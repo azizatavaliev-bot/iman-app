@@ -1,0 +1,215 @@
+@import "tailwindcss";
+
+@theme {
+    --font-arabic: "Amiri", serif;
+    --font-sans: "Inter", system-ui, sans-serif;
+    --color-emerald-glow: oklch(0.76 0.18 160);
+    --color-gold: oklch(0.82 0.15 85);
+    --color-islamic-green: oklch(0.65 0.2 155);
+    --color-islamic-dark: oklch(0.15 0.02 260);
+}
+
+/* ============================================================
+   Theme CSS Custom Properties
+   ============================================================ */
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #020617;
+    --bg-card: rgba(255, 255, 255, 0.05);
+    --bg-card-gradient-from: rgba(255, 255, 255, 0.06);
+    --bg-card-gradient-to: rgba(255, 255, 255, 0.02);
+    --bg-elevated: #1e293b;
+    --bg-input: rgba(255, 255, 255, 0.05);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --text-faint: rgba(255, 255, 255, 0.25);
+    --text-hint: rgba(255, 255, 255, 0.2);
+    --border-primary: rgba(255, 255, 255, 0.08);
+    --border-secondary: rgba(255, 255, 255, 0.1);
+    --border-input: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-bg-hover: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --overlay-bg: rgba(2, 6, 23, 0.97);
+    --progress-bg: rgba(255, 255, 255, 0.05);
+    --dropdown-bg: rgba(17, 24, 39, 0.95);
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --skeleton-bg: rgba(255, 255, 255, 0.05);
+    --skeleton-shine: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --bg-card: rgba(0, 0, 0, 0.03);
+    --bg-card-gradient-from: rgba(0, 0, 0, 0.04);
+    --bg-card-gradient-to: rgba(0, 0, 0, 0.01);
+    --bg-elevated: #ffffff;
+    --bg-input: rgba(0, 0, 0, 0.04);
+    --text-primary: #0f172a;
+    --text-secondary: rgba(15, 23, 42, 0.7);
+    --text-muted: rgba(15, 23, 42, 0.45);
+    --text-faint: rgba(15, 23, 42, 0.3);
+    --text-hint: rgba(15, 23, 42, 0.2);
+    --border-primary: rgba(0, 0, 0, 0.08);
+    --border-secondary: rgba(0, 0, 0, 0.1);
+    --border-input: rgba(0, 0, 0, 0.12);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg-hover: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --overlay-bg: rgba(248, 250, 252, 0.97);
+    --progress-bg: rgba(0, 0, 0, 0.06);
+    --dropdown-bg: rgba(255, 255, 255, 0.95);
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --skeleton-bg: rgba(0, 0, 0, 0.05);
+    --skeleton-shine: rgba(0, 0, 0, 0.08);
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    font-family: var(--font-sans);
+    background: linear-gradient(
+        180deg,
+        var(--bg-primary) 0%,
+        var(--bg-secondary) 100%
+    );
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.arabic-text {
+    font-family: var(--font-arabic);
+    direction: rtl;
+    line-height: 2;
+}
+
+.glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+}
+
+.glass-card {
+    background: linear-gradient(
+        135deg,
+        var(--bg-card-gradient-from) 0%,
+        var(--bg-card-gradient-to) 100%
+    );
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+}
+
+/* Theme-aware utility classes */
+.t-text {
+    color: var(--text-primary);
+}
+.t-text-s {
+    color: var(--text-secondary);
+}
+.t-text-m {
+    color: var(--text-muted);
+}
+.t-text-f {
+    color: var(--text-faint);
+}
+.t-text-h {
+    color: var(--text-hint);
+}
+.t-bg {
+    background: var(--bg-card);
+}
+.t-bg-el {
+    background: var(--bg-elevated);
+}
+.t-bg-in {
+    background: var(--bg-input);
+}
+.t-border {
+    border-color: var(--border-primary);
+}
+.t-border-s {
+    border-color: var(--border-secondary);
+}
+.t-border-in {
+    border-color: var(--border-input);
+}
+.t-progress {
+    background: var(--progress-bg);
+}
+.t-dropdown {
+    background: var(--dropdown-bg);
+}
+
+.glow-green {
+    box-shadow:
+        0 0 20px rgba(16, 185, 129, 0.3),
+        0 0 60px rgba(16, 185, 129, 0.1);
+}
+
+.glow-gold {
+    box-shadow:
+        0 0 20px rgba(245, 158, 11, 0.3),
+        0 0 60px rgba(245, 158, 11, 0.1);
+}
+
+.gradient-border {
+    position: relative;
+}
+
+.gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.5),
+        rgba(245, 158, 11, 0.5)
+    );
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes pulse-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+    }
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
