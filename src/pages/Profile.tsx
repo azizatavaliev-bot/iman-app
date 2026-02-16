@@ -17,6 +17,7 @@ import type { UserProfile } from "../lib/storage";
 import { COMMON_CITIES } from "../data/cities";
 import type { CityOption } from "../data/cities";
 import { useTheme } from "../lib/ThemeContext";
+import { getTelegramUser } from "../lib/telegram";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -199,8 +200,13 @@ export default function Profile() {
       )
     : COMMON_CITIES;
 
-  // User initial for avatar
+  // User initial for avatar + Telegram photo
   const userInitial = profile.name ? profile.name.charAt(0).toUpperCase() : "?";
+  const tgUser = getTelegramUser();
+  const avatarUrl =
+    tgUser?.photoUrl ||
+    ((profile as Record<string, unknown>).telegramPhoto as string) ||
+    "";
 
   return (
     <div className="min-h-screen pb-8 px-4 pt-6 max-w-lg mx-auto space-y-6 animate-fade-in">
@@ -228,22 +234,38 @@ export default function Profile() {
       <div className="flex flex-col items-center text-center space-y-3">
         {/* Avatar with level glow */}
         <div className="relative">
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold"
-            style={{
-              color: "var(--text-primary)",
-              background:
-                "linear-gradient(135deg, rgba(16,185,129,0.3), rgba(245,158,11,0.3))",
-              boxShadow:
-                currentLevelIndex >= 4
-                  ? "0 0 30px rgba(245,158,11,0.4), 0 0 60px rgba(245,158,11,0.15)"
-                  : currentLevelIndex >= 2
-                    ? "0 0 20px rgba(16,185,129,0.3), 0 0 40px rgba(16,185,129,0.1)"
-                    : "0 0 15px rgba(255,255,255,0.05)",
-            }}
-          >
-            {userInitial}
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={profile.name}
+              className="w-24 h-24 rounded-full object-cover"
+              style={{
+                boxShadow:
+                  currentLevelIndex >= 4
+                    ? "0 0 30px rgba(245,158,11,0.4), 0 0 60px rgba(245,158,11,0.15)"
+                    : currentLevelIndex >= 2
+                      ? "0 0 20px rgba(16,185,129,0.3), 0 0 40px rgba(16,185,129,0.1)"
+                      : "0 0 15px rgba(255,255,255,0.05)",
+              }}
+            />
+          ) : (
+            <div
+              className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold"
+              style={{
+                color: "var(--text-primary)",
+                background:
+                  "linear-gradient(135deg, rgba(16,185,129,0.3), rgba(245,158,11,0.3))",
+                boxShadow:
+                  currentLevelIndex >= 4
+                    ? "0 0 30px rgba(245,158,11,0.4), 0 0 60px rgba(245,158,11,0.15)"
+                    : currentLevelIndex >= 2
+                      ? "0 0 20px rgba(16,185,129,0.3), 0 0 40px rgba(16,185,129,0.1)"
+                      : "0 0 15px rgba(255,255,255,0.05)",
+              }}
+            >
+              {userInitial}
+            </div>
+          )}
 
           {/* Level badge pinned to avatar */}
           <div

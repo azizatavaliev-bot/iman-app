@@ -9,6 +9,7 @@ import {
 import { Home, Moon, BookOpen, Compass, User } from "lucide-react";
 import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
+import { getTelegramUser } from "./lib/telegram";
 import Onboarding from "./pages/Onboarding";
 import "./index.css";
 
@@ -30,6 +31,7 @@ const Dua = lazy(() => import("./pages/Dua"));
 const IbadahTimer = lazy(() => import("./pages/IbadahTimer"));
 const Memorize = lazy(() => import("./pages/Memorize"));
 const Quiz = lazy(() => import("./pages/Quiz"));
+const Seerah = lazy(() => import("./pages/Seerah"));
 
 function PageLoader() {
   return (
@@ -115,6 +117,7 @@ function AppContent() {
             <Route path="/ibadah" element={<IbadahTimer />} />
             <Route path="/memorize" element={<Memorize />} />
             <Route path="/quiz" element={<Quiz />} />
+            <Route path="/seerah" element={<Seerah />} />
           </Routes>
         </Suspense>
       </div>
@@ -123,12 +126,29 @@ function AppContent() {
   );
 }
 
-// Auto-skip onboarding for existing users (have profile saved)
+// Auto-skip onboarding for existing users or Telegram users
 function isOnboarded(): boolean {
   if (localStorage.getItem("iman_onboarded") === "true") return true;
   // Existing users who already have a profile → auto-skip
   const profile = localStorage.getItem("iman_profile");
   if (profile) {
+    localStorage.setItem("iman_onboarded", "true");
+    return true;
+  }
+  // Telegram WebApp auto-login: create profile from Telegram user data
+  const tgUser = getTelegramUser();
+  if (tgUser) {
+    const autoProfile = {
+      name: tgUser.firstName + (tgUser.lastName ? ` ${tgUser.lastName}` : ""),
+      telegramId: tgUser.id,
+      telegramPhoto: tgUser.photoUrl || "",
+      telegramUsername: tgUser.username || "",
+    };
+    const existing = localStorage.getItem("iman_profile");
+    const merged = existing
+      ? { ...JSON.parse(existing), ...autoProfile }
+      : autoProfile;
+    localStorage.setItem("iman_profile", JSON.stringify(merged));
     localStorage.setItem("iman_onboarded", "true");
     return true;
   }

@@ -1,14 +1,23 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ChevronRight, ChevronLeft, MapPin, Check, Sparkles } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  MapPin,
+  Check,
+  Sparkles,
+} from "lucide-react";
 import { storage } from "../lib/storage";
 import { COMMON_CITIES } from "../data/cities";
 import type { CityOption } from "../data/cities";
+import { getTelegramUser } from "../lib/telegram";
 
 // ---------------------------------------------------------------------------
-// Steps
+// Steps — if Telegram user exists, skip name step (3 steps instead of 4)
 // ---------------------------------------------------------------------------
 
-const TOTAL_STEPS = 4;
+const tgUser = getTelegramUser();
+const SKIP_NAME = !!tgUser;
+const TOTAL_STEPS = SKIP_NAME ? 3 : 4;
 
 // ---------------------------------------------------------------------------
 // Islamic decorative SVG patterns
@@ -23,9 +32,30 @@ function IslamicPattern({ className = "" }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Star pattern */}
-      <circle cx="100" cy="100" r="80" stroke="currentColor" strokeWidth="0.5" opacity="0.15" />
-      <circle cx="100" cy="100" r="60" stroke="currentColor" strokeWidth="0.5" opacity="0.12" />
-      <circle cx="100" cy="100" r="40" stroke="currentColor" strokeWidth="0.5" opacity="0.1" />
+      <circle
+        cx="100"
+        cy="100"
+        r="80"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.15"
+      />
+      <circle
+        cx="100"
+        cy="100"
+        r="60"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.12"
+      />
+      <circle
+        cx="100"
+        cy="100"
+        r="40"
+        stroke="currentColor"
+        strokeWidth="0.5"
+        opacity="0.1"
+      />
       {/* 8-pointed star */}
       {[0, 45, 90, 135].map((angle) => (
         <line
@@ -53,7 +83,7 @@ interface OnboardingProps {
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(tgUser?.firstName || "");
   const [cityQuery, setCityQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<CityOption | null>(null);
   const [animDir, setAnimDir] = useState<"next" | "prev">("next");
@@ -114,7 +144,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       profileData.lng = selectedCity.lng;
     }
     if (Object.keys(profileData).length > 0) {
-      storage.setProfile(profileData as Parameters<typeof storage.setProfile>[0]);
+      storage.setProfile(
+        profileData as Parameters<typeof storage.setProfile>[0],
+      );
     }
     // Mark onboarded
     localStorage.setItem("iman_onboarded", "true");
@@ -168,8 +200,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         className={`flex-1 flex flex-col items-center justify-center w-full max-w-sm transition-all duration-250 ease-out ${slideClass}`}
       >
         {step === 0 && <StepWelcome />}
-        {step === 1 && <StepName name={name} setName={setName} />}
-        {step === 2 && (
+        {!SKIP_NAME && step === 1 && <StepName name={name} setName={setName} />}
+        {((SKIP_NAME && step === 1) || (!SKIP_NAME && step === 2)) && (
           <StepCity
             cityQuery={cityQuery}
             setCityQuery={setCityQuery}
@@ -178,7 +210,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             filteredCities={filteredCities}
           />
         )}
-        {step === 3 && <StepReady name={name} city={selectedCity?.name} />}
+        {((SKIP_NAME && step === 2) || (!SKIP_NAME && step === 3)) && (
+          <StepReady name={name} city={selectedCity?.name} />
+        )}
       </div>
 
       {/* Navigation buttons */}
@@ -238,25 +272,25 @@ function StepWelcome() {
       <div
         className="w-28 h-28 rounded-full flex items-center justify-center text-6xl"
         style={{
-          background: "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(245,158,11,0.15))",
-          boxShadow: "0 0 40px rgba(16,185,129,0.15), 0 0 80px rgba(245,158,11,0.08)",
+          background:
+            "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(245,158,11,0.15))",
+          boxShadow:
+            "0 0 40px rgba(16,185,129,0.15), 0 0 80px rgba(245,158,11,0.08)",
         }}
       >
         🕌
       </div>
 
       <div className="space-y-3">
-        <h1 className="text-3xl font-bold text-white">
-          Ас-саляму алейкум!
-        </h1>
+        <h1 className="text-3xl font-bold text-white">Ас-саляму алейкум!</h1>
         <p className="text-lg text-emerald-400 font-semibold">
           Добро пожаловать в IMAN
         </p>
       </div>
 
       <p className="text-sm t-text-m leading-relaxed max-w-xs">
-        Ваш персональный помощник для укрепления веры.
-        Намазы, Коран, хадисы, дуа и многое другое — всё в одном приложении.
+        Ваш персональный помощник для укрепления веры. Намазы, Коран, хадисы,
+        дуа и многое другое — всё в одном приложении.
       </p>
 
       {/* Feature highlights */}
@@ -306,7 +340,8 @@ function StepName({
       <div
         className="w-20 h-20 rounded-full flex items-center justify-center text-4xl"
         style={{
-          background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(16,185,129,0.15))",
+          background:
+            "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(16,185,129,0.15))",
           boxShadow: "0 0 30px rgba(139,92,246,0.12)",
         }}
       >
@@ -358,7 +393,8 @@ function StepCity({
       <div
         className="w-20 h-20 rounded-full flex items-center justify-center"
         style={{
-          background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.15))",
+          background:
+            "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.15))",
           boxShadow: "0 0 30px rgba(59,130,246,0.12)",
         }}
       >
@@ -456,8 +492,10 @@ function StepReady({ name, city }: { name?: string; city?: string }) {
         <div
           className="w-28 h-28 rounded-full flex items-center justify-center text-5xl"
           style={{
-            background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(16,185,129,0.2))",
-            boxShadow: "0 0 50px rgba(245,158,11,0.2), 0 0 100px rgba(16,185,129,0.1)",
+            background:
+              "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(16,185,129,0.2))",
+            boxShadow:
+              "0 0 50px rgba(245,158,11,0.2), 0 0 100px rgba(16,185,129,0.1)",
           }}
         >
           ✨
@@ -497,14 +535,12 @@ function StepReady({ name, city }: { name?: string; city?: string }) {
         <h2 className="text-2xl font-bold text-white">
           {name ? `${name}, всё готово!` : "Всё готово!"}
         </h2>
-        <p className="text-emerald-400 font-semibold">
-          Баракаллаху фикум!
-        </p>
+        <p className="text-emerald-400 font-semibold">Баракаллаху фикум!</p>
       </div>
 
       <p className="text-sm t-text-m leading-relaxed max-w-xs">
-        Теперь у вас есть всё для укрепления вашей веры.
-        Начните свой путь с отслеживания намазов и чтения Корана.
+        Теперь у вас есть всё для укрепления вашей веры. Начните свой путь с
+        отслеживания намазов и чтения Корана.
       </p>
 
       {/* Summary of choices */}

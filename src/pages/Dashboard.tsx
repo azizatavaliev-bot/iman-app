@@ -848,9 +848,7 @@ export default function Dashboard() {
             </p>
             <p className="text-lg font-bold text-white">
               {pointsEarned}
-              <span className="t-text-f font-normal">
-                /{MAX_DAILY_POINTS}
-              </span>
+              <span className="t-text-f font-normal">/{MAX_DAILY_POINTS}</span>
             </p>
             <p className="text-xs t-text-m mt-1.5">
               <span
@@ -1219,6 +1217,13 @@ export default function Dashboard() {
             path: "/stats",
             color: "text-lime-400",
             bg: "bg-lime-400/10",
+          },
+          {
+            icon: BookOpen,
+            label: "Сира",
+            path: "/seerah",
+            color: "text-rose-400",
+            bg: "bg-rose-400/10",
           },
         ].map(({ icon: Icon, label, path, color, bg }) => (
           <button
