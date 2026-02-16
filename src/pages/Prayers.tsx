@@ -19,16 +19,20 @@ import type { PrayerStatus } from "../lib/storage";
 // ---------------------------------------------------------------------------
 
 type PrayerKey = "fajr" | "dhuhr" | "asr" | "maghrib" | "isha";
+type TimeSlotKey = PrayerKey | "sunrise" | "doha";
 
 interface PrayerInfo {
-  key: PrayerKey;
+  key: TimeSlotKey;
   name: string;
   icon: string;
+  isInfo?: boolean; // true = informational (no tracking)
 }
 
 const PRAYERS: PrayerInfo[] = [
   { key: "fajr", name: "Фаджр", icon: "🌅" },
-  { key: "dhuhr", name: "Зухр", icon: "☀️" },
+  { key: "sunrise", name: "Восход", icon: "☀️", isInfo: true },
+  { key: "doha", name: "Духа", icon: "🌤️", isInfo: true },
+  { key: "dhuhr", name: "Зухр", icon: "🕐" },
   { key: "asr", name: "Аср", icon: "🌤️" },
   { key: "maghrib", name: "Магриб", icon: "🌇" },
   { key: "isha", name: "Иша", icon: "🌙" },
@@ -92,7 +96,7 @@ async function fetchHijriDate(
     const dateStr = `${dd}-${mm}-${yyyy}`;
 
     const res = await fetch(
-      `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=2`,
+      `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=3`,
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -313,8 +317,10 @@ export default function Prayers() {
   const navigate = useNavigate();
 
   // State
-  const [prayerTimes, setPrayerTimes] = useState<Record<PrayerKey, string>>({
+  const [prayerTimes, setPrayerTimes] = useState<Record<TimeSlotKey, string>>({
     fajr: "--:--",
+    sunrise: "--:--",
+    doha: "--:--",
     dhuhr: "--:--",
     asr: "--:--",
     maghrib: "--:--",
@@ -371,8 +377,20 @@ export default function Prayers() {
 
         if (cancelled) return;
 
+        // Compute Doha time = Sunrise + 20 minutes
+        let dohaTime = "--:--";
+        if (times.Sunrise) {
+          const m = times.Sunrise.match(/^(\d{1,2}):(\d{2})/);
+          if (m) {
+            const totalMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + 20;
+            dohaTime = `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
+          }
+        }
+
         setPrayerTimes({
           fajr: times.Fajr,
+          sunrise: times.Sunrise,
+          doha: dohaTime,
           dhuhr: times.Dhuhr,
           asr: times.Asr,
           maghrib: times.Maghrib,
@@ -844,7 +862,7 @@ export default function Prayers() {
       {/* Prayer Cards */}
       <div className="space-y-3 mb-6">
         {loading
-          ? Array.from({ length: 5 }).map((_, i) => (
+          ? Array.from({ length: 7 }).map((_, i) => (
               <div
                 key={i}
                 className="glass-card p-4 animate-pulse"
@@ -855,13 +873,46 @@ export default function Prayers() {
               </div>
             ))
           : PRAYERS.map((prayer, idx) => {
-              const entry = prayerLog.prayers[prayer.key];
               const time = prayerTimes[prayer.key];
+
+              // Info-only slots (Sunrise, Doha) — compact card, no tracking
+              if (prayer.isInfo) {
+                return (
+                  <div
+                    key={prayer.key}
+                    className="glass-card px-4 py-2.5 transition-all duration-300 animate-fade-in opacity-70"
+                    style={{ animationDelay: `${idx * 60}ms` }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">{prayer.icon}</span>
+                        <span className="text-white/60 font-medium text-xs">
+                          {prayer.name}
+                        </span>
+                      </div>
+                      <span className="text-white/50 text-xs font-mono">
+                        {time}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
+              const prayerKey = prayer.key as PrayerKey;
+              const entry = prayerLog.prayers[prayerKey];
               const isFlashing = flashKey?.startsWith(prayer.key);
-              const phase = getPrayerPhase(idx);
+              // Map visible index to mandatory prayer index for phase calculation
+              const mandatoryIdx = [
+                "fajr",
+                "dhuhr",
+                "asr",
+                "maghrib",
+                "isha",
+              ].indexOf(prayerKey);
+              const phase = getPrayerPhase(mandatoryIdx);
               const isCurrent = phase === "current";
               const isPast = phase === "past";
-              const smartMsg = getSmartTimeMessage(prayer.key);
+              const smartMsg = getSmartTimeMessage(prayerKey);
               const diffMinutes = getMinutesSincePrayer(time);
 
               return (
@@ -930,7 +981,7 @@ export default function Prayers() {
                   {/* Big "Я ПРОЧИТАЛ" button for current/active prayer */}
                   {isCurrent && entry.status === "none" && (
                     <button
-                      onClick={() => smartMarkPrayer(prayer.key)}
+                      onClick={() => smartMarkPrayer(prayerKey)}
                       className="w-full py-3.5 rounded-2xl text-sm font-bold
                         bg-emerald-500 hover:bg-emerald-400 text-white
                         transition-all duration-200 active:scale-[0.97]
@@ -945,7 +996,7 @@ export default function Prayers() {
                   {isPast && entry.status === "none" && (
                     <div className="flex gap-2 mb-2">
                       <button
-                        onClick={() => smartMarkPrayer(prayer.key)}
+                        onClick={() => smartMarkPrayer(prayerKey)}
                         className="flex-1 py-2.5 rounded-xl text-xs font-semibold
                           t-bg border t-border-s t-text-s
                           hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400
@@ -956,7 +1007,7 @@ export default function Prayers() {
                         Прочитал
                       </button>
                       <button
-                        onClick={() => markPrayer(prayer.key, "missed")}
+                        onClick={() => markPrayer(prayerKey, "missed")}
                         className="flex-1 py-2.5 rounded-xl text-xs font-semibold
                           bg-red-500/10 border border-red-500/20 text-red-400/70
                           hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400
@@ -973,7 +1024,7 @@ export default function Prayers() {
                   {phase === "future" && entry.status === "none" && (
                     <div className="flex gap-2">
                       <button
-                        onClick={() => markPrayer(prayer.key, "ontime")}
+                        onClick={() => markPrayer(prayerKey, "ontime")}
                         className="flex-1 py-2 rounded-xl text-xs font-medium
                           transition-all duration-200 active:scale-95 border
                           t-bg t-border-s t-text-m
@@ -985,7 +1036,7 @@ export default function Prayers() {
                         </div>
                       </button>
                       <button
-                        onClick={() => markPrayer(prayer.key, "late")}
+                        onClick={() => markPrayer(prayerKey, "late")}
                         className="flex-1 py-2 rounded-xl text-xs font-medium
                           transition-all duration-200 active:scale-95 border
                           t-bg t-border-s t-text-m
@@ -996,7 +1047,7 @@ export default function Prayers() {
                         </div>
                       </button>
                       <button
-                        onClick={() => markPrayer(prayer.key, "missed")}
+                        onClick={() => markPrayer(prayerKey, "missed")}
                         className="flex-1 py-2 rounded-xl text-xs font-medium
                           transition-all duration-200 active:scale-95 border
                           t-bg t-border-s t-text-m
@@ -1014,7 +1065,7 @@ export default function Prayers() {
                   {entry.status !== "none" && (
                     <div className="flex gap-2">
                       <button
-                        onClick={() => markPrayer(prayer.key, "ontime")}
+                        onClick={() => markPrayer(prayerKey, "ontime")}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium
                           transition-all duration-200 active:scale-95 border
                           ${
@@ -1029,7 +1080,7 @@ export default function Prayers() {
                         </div>
                       </button>
                       <button
-                        onClick={() => markPrayer(prayer.key, "late")}
+                        onClick={() => markPrayer(prayerKey, "late")}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium
                           transition-all duration-200 active:scale-95 border
                           ${
@@ -1043,7 +1094,7 @@ export default function Prayers() {
                         </div>
                       </button>
                       <button
-                        onClick={() => markPrayer(prayer.key, "missed")}
+                        onClick={() => markPrayer(prayerKey, "missed")}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium
                           transition-all duration-200 active:scale-95 border
                           ${

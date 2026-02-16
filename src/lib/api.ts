@@ -167,11 +167,11 @@ export async function getPrayerTimes(
   const yyyy = d.getFullYear();
   const dateStr = `${dd}-${mm}-${yyyy}`;
 
-  const cacheKey = `prayer_${lat}_${lng}_${dateStr}`;
+  const cacheKey = `prayer_m3_${lat}_${lng}_${dateStr}`;
   const cached = getCached<PrayerTimes>(cacheKey, CACHE_TTL_LONG);
   if (cached) return cached;
 
-  const url = `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=2`;
+  const url = `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=3`;
   const response = await fetchJSON<AladhanTimingsResponse>(url);
 
   const timings = response.data.timings;

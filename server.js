@@ -1,7 +1,8 @@
 import { createServer } from "http";
 import { readFileSync, existsSync, writeFileSync } from "fs";
-import { join, extname } from "path";
+import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
+import { randomBytes, createHmac } from "crypto";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(__dirname, "dist");
@@ -12,11 +13,87 @@ const APP_URL =
   process.env.APP_URL || "https://iman-app-production.up.railway.app";
 const WEBHOOK_PATH = `/webhook-${BOT_TOKEN.split(":")[0]}`;
 
+// =========================================================================
+// SECURITY — Webhook secret token for Telegram verification
+// =========================================================================
+const WEBHOOK_SECRET =
+  process.env.WEBHOOK_SECRET ||
+  createHmac("sha256", BOT_TOKEN)
+    .update("iman-webhook")
+    .digest("hex")
+    .slice(0, 64);
+
+// =========================================================================
+// SECURITY — Rate limiting
+// =========================================================================
+const rateLimitMap = new Map(); // IP -> { count, resetTime }
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX = 60; // max requests per window per IP
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  let entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetTime) {
+    entry = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
+    rateLimitMap.set(ip, entry);
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+// Clean up rate limit map every 5 minutes
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [ip, entry] of rateLimitMap) {
+      if (now > entry.resetTime) rateLimitMap.delete(ip);
+    }
+  },
+  5 * 60 * 1000,
+);
+
+// =========================================================================
+// SECURITY — Input sanitization
+// =========================================================================
+function sanitizeName(name) {
+  if (!name || typeof name !== "string") return "друг";
+  // Remove markdown special chars and limit length
+  return name.replace(/[_*`\[\]()~>#+=|{}.!\\-]/g, "").slice(0, 64) || "друг";
+}
+
+function sanitizeText(text) {
+  if (!text || typeof text !== "string") return "";
+  return text.slice(0, 256).trim();
+}
+
+// =========================================================================
+// SECURITY — Security headers (OWASP best practices)
+// =========================================================================
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://telegram.org",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://cdn.jsdelivr.net https://api.quran.com https://cdn.islamic.network",
+    "frame-ancestors 'none'",
+  ].join("; "),
+};
+
+// =========================================================================
+// MIME types
+// =========================================================================
 const MIME = {
-  ".html": "text/html",
-  ".js": "application/javascript",
-  ".css": "text/css",
-  ".json": "application/json",
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".svg": "image/svg+xml",
@@ -54,6 +131,71 @@ function saveSubscribers() {
 }
 
 loadSubscribers();
+
+// =========================================================================
+// PRAYER TIMES — Fetch from Aladhan API (method 3 = MWL for Central Asia)
+// =========================================================================
+
+// Default: Bishkek
+const BISHKEK_LAT = 42.8746;
+const BISHKEK_LNG = 74.5698;
+
+async function fetchPrayerTimes(lat = BISHKEK_LAT, lng = BISHKEK_LNG) {
+  const now = new Date();
+  const bishkek = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+  const dd = String(bishkek.getUTCDate()).padStart(2, "0");
+  const mm = String(bishkek.getUTCMonth() + 1).padStart(2, "0");
+  const yyyy = bishkek.getUTCFullYear();
+  const dateStr = `${dd}-${mm}-${yyyy}`;
+
+  try {
+    const res = await fetch(
+      `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=3`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const t = data?.data?.timings;
+    if (!t) return null;
+
+    // Compute Doha = Sunrise + 20 min
+    let doha = "";
+    if (t.Sunrise) {
+      const m = t.Sunrise.match(/^(\d{1,2}):(\d{2})/);
+      if (m) {
+        const totalMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + 20;
+        doha = `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
+      }
+    }
+
+    return {
+      Fajr: t.Fajr?.replace(/ \(.*\)/, "") || "",
+      Sunrise: t.Sunrise?.replace(/ \(.*\)/, "") || "",
+      Doha: doha,
+      Dhuhr: t.Dhuhr?.replace(/ \(.*\)/, "") || "",
+      Asr: t.Asr?.replace(/ \(.*\)/, "") || "",
+      Maghrib: t.Maghrib?.replace(/ \(.*\)/, "") || "",
+      Isha: t.Isha?.replace(/ \(.*\)/, "") || "",
+    };
+  } catch (e) {
+    console.error("Failed to fetch prayer times:", e);
+    return null;
+  }
+}
+
+function formatPrayerTimesMessage(times) {
+  if (!times) return "Не удалось загрузить время намаза. Попробуйте позже.";
+  return (
+    `\u{1F54C} *Время намаза (Бишкек)*\n\n` +
+    `\u{1F305} Фаджр: *${times.Fajr}*\n` +
+    `\u2600\uFE0F Восход: *${times.Sunrise}*\n` +
+    `\u{1F324}\uFE0F Духа: *${times.Doha}*\n` +
+    `\u{1F550} Зухр: *${times.Dhuhr}*\n` +
+    `\u{1F324}\uFE0F Аср: *${times.Asr}*\n` +
+    `\u{1F307} Магриб: *${times.Maghrib}*\n` +
+    `\u{1F319} Иша: *${times.Isha}*\n\n` +
+    `_Метод: Muslim World League_`
+  );
+}
 
 // =========================================================================
 // CONTENT DATA — Hadiths, Ayats, Duas for bot commands
@@ -326,7 +468,6 @@ let lastBroadcastDate = "";
 
 function getBishkekHour() {
   const now = new Date();
-  // Bishkek is UTC+6
   const utcHour = now.getUTCHours();
   return (utcHour + 6) % 24;
 }
@@ -343,7 +484,6 @@ async function sendDailyBroadcast() {
 
   const hour = getBishkekHour();
   const minutes = new Date().getUTCMinutes();
-  // Send at 7:00 Bishkek time (1:00 UTC)
   if (hour !== 7 || minutes > 1) return;
 
   lastBroadcastDate = today;
@@ -356,9 +496,19 @@ async function sendDailyBroadcast() {
   const ayat = AYATS[dayIndex % AYATS.length];
   const dua = DUAS[dayIndex % DUAS.length];
 
+  // Fetch today's prayer times for broadcast
+  const prayerTimes = await fetchPrayerTimes();
+  const prayerSection = prayerTimes
+    ? `\n\u{1F54C} *Время намаза:*\n` +
+      `  Фаджр: ${prayerTimes.Fajr} | Восход: ${prayerTimes.Sunrise}\n` +
+      `  Зухр: ${prayerTimes.Dhuhr} | Аср: ${prayerTimes.Asr}\n` +
+      `  Магриб: ${prayerTimes.Maghrib} | Иша: ${prayerTimes.Isha}\n`
+    : "";
+
   const message =
-    `\u2728 *Доброе утро!*\n\n` +
-    `\u{1F4D6} *Хадис дня:*\n${hadith.text}\n_${hadith.source}_\n\n` +
+    `\u2728 *Доброе утро!*\n` +
+    prayerSection +
+    `\n\u{1F4D6} *Хадис дня:*\n${hadith.text}\n_${hadith.source}_\n\n` +
     `\u{1F4D6} *Аят дня:*\n${ayat.text}\n_${ayat.surah}_\n\n` +
     `\u{1F64F} *Дуа дня:*\n${dua.text}\n_${dua.source}_\n\n` +
     `Да благословит вас Аллах! \u{1F54C}`;
@@ -379,14 +529,12 @@ async function sendDailyBroadcast() {
         },
       );
       const data = await res.json();
-      // If user blocked bot, remove from subscribers
       if (!data.ok && (data.error_code === 403 || data.error_code === 400)) {
         subscribers.delete(ids[i]);
       }
     } catch (e) {
       console.error(`Failed to send to ${ids[i]}:`, e);
     }
-    // Rate limiting: 40ms between messages (Telegram limit ~30 msg/sec)
     if (i < ids.length - 1) {
       await new Promise((r) => setTimeout(r, 40));
     }
@@ -398,7 +546,6 @@ async function sendDailyBroadcast() {
   );
 }
 
-// Check every 60 seconds
 setInterval(sendDailyBroadcast, 60 * 1000);
 
 // =========================================================================
@@ -429,8 +576,8 @@ async function handleWebhook(body) {
   if (!msg || !msg.text) return;
 
   const chatId = msg.chat.id;
-  const text = msg.text.trim();
-  const name = msg.from?.first_name || "друг";
+  const text = sanitizeText(msg.text);
+  const name = sanitizeName(msg.from?.first_name);
 
   const appButton = {
     inline_keyboard: [
@@ -439,7 +586,6 @@ async function handleWebhook(body) {
   };
 
   if (text === "/start") {
-    // Auto-subscribe for daily reminders
     subscribers.add(chatId);
     saveSubscribers();
 
@@ -455,6 +601,7 @@ async function handleWebhook(body) {
         `\u{1F4CA} Статистика вашего прогресса\n\n` +
         `\u{1F514} Вы подписаны на ежедневные напоминания (7:00 Бишкек)\n\n` +
         `Команды:\n` +
+        `/namaz — Время намаза на сегодня\n` +
         `/hadith — Случайный хадис\n` +
         `/ayat — Случайный аят Корана\n` +
         `/dua — Случайное дуа\n` +
@@ -464,6 +611,9 @@ async function handleWebhook(body) {
         `Нажмите кнопку ниже, чтобы открыть приложение:`,
       appButton,
     );
+  } else if (text === "/namaz" || text === "/prayer" || text === "/times") {
+    const times = await fetchPrayerTimes();
+    await sendMessage(chatId, formatPrayerTimesMessage(times));
   } else if (text === "/hadith") {
     const h = HADITHS[Math.floor(Math.random() * HADITHS.length)];
     await sendMessage(
@@ -487,7 +637,7 @@ async function handleWebhook(body) {
     saveSubscribers();
     await sendMessage(
       chatId,
-      `\u{1F514} Вы подписаны на ежедневные напоминания!\n\nКаждый день в 7:00 (Бишкек) вы будете получать хадис, аят и дуа.\n\nДля отписки: /stop`,
+      `\u{1F514} Вы подписаны на ежедневные напоминания!\n\nКаждый день в 7:00 (Бишкек) вы будете получать хадис, аят, дуа и время намаза.\n\nДля отписки: /stop`,
     );
   } else if (text === "/stop") {
     subscribers.delete(chatId);
@@ -508,6 +658,7 @@ async function handleWebhook(body) {
       `*IMAN — Помощь*\n\n` +
         `Команды:\n` +
         `/start — Приветствие\n` +
+        `/namaz — Время намаза на сегодня\n` +
         `/hadith — Случайный хадис\n` +
         `/ayat — Случайный аят Корана\n` +
         `/dua — Случайное дуа\n` +
@@ -527,15 +678,56 @@ async function handleWebhook(body) {
 }
 
 // =========================================================================
-// HTTP SERVER — Static files + Webhook
+// HTTP SERVER — Static files + Webhook (with security)
 // =========================================================================
 
 const server = createServer(async (req, res) => {
-  // Webhook endpoint
+  const clientIP =
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.socket.remoteAddress ||
+    "unknown";
+
+  // ── Rate limiting ─────────────────────────────────────────────────────
+  if (isRateLimited(clientIP)) {
+    res.writeHead(429, {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Retry-After": "60",
+    });
+    res.end('{"error":"Too many requests"}');
+    return;
+  }
+
+  // ── Webhook endpoint ──────────────────────────────────────────────────
   if (req.method === "POST" && req.url === WEBHOOK_PATH) {
+    // Verify Telegram secret token
+    const secretHeader = req.headers["x-telegram-bot-api-secret-token"];
+    if (secretHeader !== WEBHOOK_SECRET) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end('{"error":"Forbidden"}');
+      return;
+    }
+
+    // Limit body size (1MB max)
     let body = "";
-    req.on("data", (c) => (body += c));
+    let bodySize = 0;
+    const MAX_BODY = 1024 * 1024;
+
+    req.on("data", (chunk) => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY) {
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+
     req.on("end", async () => {
+      if (bodySize > MAX_BODY) {
+        res.writeHead(413, { "Content-Type": "application/json" });
+        res.end('{"error":"Payload too large"}');
+        return;
+      }
       try {
         await handleWebhook(JSON.parse(body));
       } catch (e) {
@@ -547,9 +739,12 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Health check
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
+  // ── Health check ──────────────────────────────────────────────────────
+  if (req.url === "/health" && req.method === "GET") {
+    res.writeHead(200, {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+    });
     res.end(
       JSON.stringify({
         status: "ok",
@@ -560,14 +755,26 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Static files
-  let filePath = join(DIST, req.url === "/" ? "index.html" : req.url);
+  // ── Block non-GET methods for static files ────────────────────────────
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, { ...SECURITY_HEADERS, "Content-Type": "text/plain" });
+    res.end("Method not allowed");
+    return;
+  }
 
-  // Remove query string
-  filePath = filePath.split("?")[0];
+  // ── Static files with path traversal protection ───────────────────────
+  const urlPath = (req.url || "/").split("?")[0];
+  const safePath = normalize(urlPath).replace(/^(\.\.[\/\\])+/, "");
+  let filePath = join(DIST, safePath === "/" ? "index.html" : safePath);
+
+  // Ensure resolved path is within DIST
+  if (!filePath.startsWith(DIST)) {
+    res.writeHead(403, { ...SECURITY_HEADERS, "Content-Type": "text/plain" });
+    res.end("Forbidden");
+    return;
+  }
 
   if (!existsSync(filePath)) {
-    // SPA fallback
     filePath = join(DIST, "index.html");
   }
 
@@ -576,25 +783,34 @@ const server = createServer(async (req, res) => {
 
   try {
     const data = readFileSync(filePath);
-    const headers = { "Content-Type": contentType };
+    const headers = {
+      ...SECURITY_HEADERS,
+      "Content-Type": contentType,
+    };
 
-    // Cache static assets
+    // Cache static assets aggressively (hashed filenames)
     if (filePath.includes("/assets/")) {
       headers["Cache-Control"] = "public, max-age=31536000, immutable";
+    } else if (ext === ".html") {
+      headers["Cache-Control"] = "no-cache";
     }
+
+    // HSTS — only via HTTPS (Railway handles TLS)
+    headers["Strict-Transport-Security"] =
+      "max-age=31536000; includeSubDomains";
 
     res.writeHead(200, headers);
     res.end(data);
   } catch {
-    res.writeHead(404);
+    res.writeHead(404, { ...SECURITY_HEADERS, "Content-Type": "text/plain" });
     res.end("Not found");
   }
 });
 
 server.listen(PORT, "0.0.0.0", async () => {
   console.log(`IMAN server running on port ${PORT}`);
+  console.log(`Security: webhook secret, rate limiting, CSP, HSTS enabled`);
 
-  // Register webhook on startup
   if (BOT_TOKEN && APP_URL) {
     const webhookUrl = `${APP_URL}${WEBHOOK_PATH}`;
     try {
@@ -603,19 +819,24 @@ server.listen(PORT, "0.0.0.0", async () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: webhookUrl }),
+          body: JSON.stringify({
+            url: webhookUrl,
+            secret_token: WEBHOOK_SECRET,
+            max_connections: 40,
+            allowed_updates: ["message"],
+          }),
         },
       );
       const data = await r.json();
       console.log("Webhook set:", data.ok ? webhookUrl : data.description);
 
-      // Update bot commands
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           commands: [
             { command: "start", description: "Начать / Приветствие" },
+            { command: "namaz", description: "Время намаза на сегодня" },
             { command: "hadith", description: "Случайный хадис" },
             { command: "ayat", description: "Случайный аят Корана" },
             { command: "dua", description: "Случайное дуа" },
