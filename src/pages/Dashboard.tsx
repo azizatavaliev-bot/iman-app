@@ -236,7 +236,7 @@ function getDayPoints(dateKey: string): number {
   if (habitLog.azkar_evening) pts += POINTS.AZKAR;
   if (habitLog.charity) pts += POINTS.CHARITY;
   if (habitLog.fasting) pts += POINTS.FASTING;
-  if (habitLog.dua) pts += POINTS.AZKAR;
+  if (habitLog.dua) pts += POINTS.DUA;
   return pts;
 }
 
@@ -488,7 +488,7 @@ function ActivityRow({
         <FloatingPoints
           points={floatingPts.points}
           id={floatingPts.id}
-          onDone={() => {}}
+          onDone={() => setFloatingPts(null)}
         />
       )}
     </button>

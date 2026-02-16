@@ -71,10 +71,15 @@ export function initAudioUnlock(): void {
 
   // Handle returning from background — re-check audio state
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && !unlocked) {
-      events.forEach((e) =>
-        document.addEventListener(e, doUnlock, { passive: true }),
-      );
+    if (document.visibilityState === "visible") {
+      if (unlocked && audioCtx && audioCtx.state === "suspended") {
+        // iOS may suspend AudioContext when app goes to background
+        audioCtx.resume().catch(() => {});
+      } else if (!unlocked) {
+        events.forEach((e) =>
+          document.addEventListener(e, doUnlock, { passive: true }),
+        );
+      }
     }
   });
 }
