@@ -275,11 +275,28 @@ export default function Quran() {
   useEffect(() => {
     const audio = new Audio();
     audio.preload = "auto";
+    audio.crossOrigin = "anonymous";
+    // iOS Safari: unlock audio on first user interaction
+    const unlock = () => {
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        })
+        .catch(() => {});
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+    };
+    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("click", unlock, { once: true });
     audioRef.current = audio;
 
     return () => {
       audio.pause();
       audio.src = "";
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
     };
   }, []);
 

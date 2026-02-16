@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ArrowLeft,
   Search,
@@ -252,6 +252,48 @@ function needsReview(surah: MemorizationSurah): boolean {
 
 export default function Memorize() {
   const globalAudio = useAudio();
+  const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+
+  // Create a single reusable audio element for ayah playback (prevents memory leak + mobile compatibility)
+  useEffect(() => {
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audio.preload = "auto";
+    // iOS Safari: unlock audio on first user interaction
+    const unlock = () => {
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        })
+        .catch(() => {});
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+    };
+    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("click", unlock, { once: true });
+    audio.onended = () => setPlayingAyah(null);
+    audio.onerror = () => setPlayingAyah(null);
+    ayahAudioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+    };
+  }, []);
+
+  const playAyahAudio = useCallback((globalAyahNumber: number) => {
+    const audio = ayahAudioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.src = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalAyahNumber}.mp3`;
+    setPlayingAyah(globalAyahNumber);
+    audio.play().catch(() => setPlayingAyah(null));
+  }, []);
 
   const [list, setList] = useState<MemorizationSurah[]>([]);
   const [search, setSearch] = useState("");
@@ -575,7 +617,7 @@ export default function Memorize() {
                 const globalAyahNumber = ayahOffset + ayah.numberInSurah;
                 const translitAyah = studyData.translit[idx];
                 const translationAyah = studyData.translation[idx];
-                const ayahAudioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalAyahNumber}.mp3`;
+                const isAyahPlaying = playingAyah === globalAyahNumber;
 
                 return (
                   <div
@@ -592,13 +634,21 @@ export default function Memorize() {
                       <button
                         onClick={() => {
                           hapticImpact("light");
-                          const audio = new Audio(ayahAudioUrl);
-                          audio.play().catch(console.error);
+                          if (isAyahPlaying) {
+                            ayahAudioRef.current?.pause();
+                            setPlayingAyah(null);
+                          } else {
+                            playAyahAudio(globalAyahNumber);
+                          }
                         }}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
-                                   bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors
+                                   ${isAyahPlaying ? "bg-amber-500/25 ring-1 ring-amber-500/40" : "bg-amber-500/10 hover:bg-amber-500/20"}`}
                       >
-                        <Play className="w-3 h-3 text-amber-400" />
+                        {isAyahPlaying ? (
+                          <Pause className="w-3 h-3 text-amber-400" />
+                        ) : (
+                          <Play className="w-3 h-3 text-amber-400" />
+                        )}
                         <span className="text-amber-400 text-[10px] font-medium">
                           Аят
                         </span>
