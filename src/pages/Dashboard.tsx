@@ -819,22 +819,6 @@ export default function Dashboard() {
       </header>
 
       {/* ================================================================ */}
-      {/* INSTRUCTION BANNER                                               */}
-      {/* ================================================================ */}
-      <div className="glass-card p-4 border border-emerald-500/20 animate-fade-in">
-        <p className="text-xs text-emerald-300/90 leading-relaxed">
-          <span className="font-semibold text-emerald-400">
-            Ас-саляму алейкум!
-          </span>{" "}
-          Мы тратим часы на дунью, но забываем уделить время дину. Это
-          приложение — ваш помощник: уделяйте{" "}
-          <span className="text-white font-medium">5–10 минут в день</span>{" "}
-          намазу, Корану, хадисам и дуа в формате игры. Намерение (ният): ради
-          довольства Аллаха.
-        </p>
-      </div>
-
-      {/* ================================================================ */}
       {/* 2. DAILY SCORE CARD                                              */}
       {/* ================================================================ */}
       <div className="glass-card p-5 relative overflow-hidden">

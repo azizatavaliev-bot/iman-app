@@ -752,26 +752,6 @@ export default function Prayers() {
         </div>
       </div>
 
-      {/* Instruction Banner */}
-      <div
-        className="glass-card p-4 mb-6 border border-emerald-500/20 animate-fade-in"
-        style={{ animationDelay: "0.05s" }}
-      >
-        <p className="text-xs text-emerald-300/90 leading-relaxed">
-          <span className="font-semibold text-emerald-400">
-            Намаз — столп Ислама.
-          </span>{" "}
-          Отмечайте каждый намаз: вовремя, с опозданием или пропущен. Время
-          рассчитано по{" "}
-          <span className="text-white/80">ханафитскому масхабу</span> (MWL).
-          Намерение: «Совершаю намаз ради Аллаха». Уделите 5 минут — отметьте
-          свои молитвы.
-        </p>
-        <p className="text-[10px] text-white/30 mt-1">
-          Источник времени: Aladhan API, метод MWL, школа Ханафи
-        </p>
-      </div>
-
       {/* Juma (Friday) Reminder */}
       {isFriday && (
         <div

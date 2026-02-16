@@ -237,26 +237,6 @@ export default function Hadiths() {
         </div>
       </div>
 
-      {/* ── Instruction Banner ────────────────────────────────────────── */}
-      <div
-        className="glass-card p-4 mb-4 border border-amber-500/20 animate-fade-in"
-        style={{ animationDelay: "0.02s" }}
-      >
-        <p className="text-xs text-amber-300/90 leading-relaxed">
-          <span className="font-semibold text-amber-400">
-            Изучайте хадисы Пророка (мир ему).
-          </span>{" "}
-          «40 хадисов» ан-Навави — основа знаний каждого мусульманина. Сахих
-          аль-Бухари и Муслим — самые достоверные сборники. Добавляйте в
-          избранное и перечитывайте. Намерение: «Изучаю Сунну ради следования
-          Пророку (мир ему)».
-        </p>
-        <p className="text-[10px] text-white/30 mt-1">
-          Источники: «40 хадисов» имама ан-Навави, Сахих аль-Бухари, Сахих
-          Муслим
-        </p>
-      </div>
-
       {/* ── Collection Selector ────────────────────────────────────────── */}
       <div
         className="flex gap-1 p-1 rounded-xl t-bg mb-4 animate-fade-in"

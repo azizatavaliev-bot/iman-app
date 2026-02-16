@@ -554,20 +554,6 @@ export default function Quiz() {
           </div>
         </div>
 
-        {/* Instruction Banner */}
-        <div className="mx-4 glass-card p-4 border border-emerald-500/20">
-          <p className="text-xs text-emerald-300/90 leading-relaxed">
-            <span className="font-semibold text-emerald-400">
-              Проверьте и укрепите свои знания!
-            </span>{" "}
-            Выберите категорию и сложность. Отвечайте на вопросы по Корану,
-            хадисам, фикху и Сире. «Кто встанет на путь знаний, Аллах облегчит
-            ему путь в Рай»{" "}
-            <span className="text-white/50">(Муслим, 2699)</span>. Намерение:
-            «Изучаю религию ради довольства Аллаха».
-          </p>
-        </div>
-
         {/* Game Mode Selector */}
         <div className="px-4 mt-2">
           <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">

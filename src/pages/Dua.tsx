@@ -384,21 +384,6 @@ export default function DuaPage() {
         </div>
       </div>
 
-      {/* ── Instruction Banner ─────────────────────────────────────── */}
-      <div className="mx-4 mb-4 glass-card p-4 border border-emerald-500/20">
-        <p className="text-xs text-emerald-300/90 leading-relaxed">
-          <span className="font-semibold text-emerald-400">
-            Дуа — оружие верующего.
-          </span>{" "}
-          Выберите категорию или ситуацию. Читайте на арабском с транскрипцией и
-          переводом. «Дуа — это поклонение»{" "}
-          <span className="text-white/50">
-            (Абу Дауд, 1479; ат-Тирмизи, 3247)
-          </span>
-          . Намерение: «Обращаюсь к Аллаху с искренней мольбой».
-        </p>
-      </div>
-
       {/* ── Search Bar ─────────────────────────────────────────────── */}
       <div className="px-4 mb-4">
         <div className="relative">
