@@ -502,13 +502,12 @@ export default function Quiz() {
         setHighScores(updated);
       }
 
-      // Award points only on first attempt
-      if (!storage.isQuizScored(key) && correct > 0) {
+      // Award points only on first attempt for this category+mode
+      if (isFirstAttempt && correct > 0) {
         const earned = correct * POINTS.QUIZ_CORRECT;
         storage.addPoints(earned);
         storage.markQuizScored(key);
         setPointsEarned(earned);
-        setIsFirstAttempt(true);
       }
 
       setView("finished");
@@ -582,6 +581,7 @@ export default function Quiz() {
     usedIds,
     selectedAnswer,
     adaptiveQuestionCount,
+    isFirstAttempt,
   ]);
 
   // Go back to home

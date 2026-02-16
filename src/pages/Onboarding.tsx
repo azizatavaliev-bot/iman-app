@@ -13,7 +13,7 @@ import { getTelegramUser } from "../lib/telegram";
 import { APP_FEATURES, FEATURE_GROUPS } from "../data/guide";
 
 // ---------------------------------------------------------------------------
-// Steps — if Telegram user exists, skip name step (3 steps instead of 4)
+// Steps — if Telegram user exists, skip name step (4 steps instead of 5)
 // ---------------------------------------------------------------------------
 
 const tgUser = getTelegramUser();

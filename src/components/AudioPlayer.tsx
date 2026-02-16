@@ -338,6 +338,7 @@ function formatTime(seconds: number): string {
 
 export function AudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playIdRef = useRef(0); // increments on each play to cancel stale retries
   const [currentSurah, setCurrentSurah] = useState<SurahInfo | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -360,7 +361,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   // Create audio element once (no crossOrigin — breaks iOS WKWebView/Telegram)
   useEffect(() => {
     const audio = new Audio();
-    audio.preload = "auto";
+    audio.preload = "none";
     audioRef.current = audio;
 
     return () => {
@@ -425,21 +426,50 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     async (
       audio: HTMLAudioElement,
       surahNumber: number,
+      myPlayId: number,
       customUrl?: string,
     ) => {
       setIsLoading(true);
       setError(null);
 
-      // If custom URL provided, try only that
       const urls = customUrl
         ? [customUrl]
         : AUDIO_CDNS.map((fn) => fn(surahNumber));
 
       for (const url of urls) {
+        // Abort if a newer play was triggered
+        if (playIdRef.current !== myPlayId) return;
+
         try {
           audio.pause();
+          audio.currentTime = 0;
           audio.src = url;
+          audio.preload = "auto";
           audio.load();
+
+          // Wait for enough data before playing
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error("timeout")),
+              12000,
+            );
+            const onCanPlay = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener("canplay", onCanPlay);
+              audio.removeEventListener("error", onErr);
+              resolve();
+            };
+            const onErr = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener("canplay", onCanPlay);
+              audio.removeEventListener("error", onErr);
+              reject(new Error("load error"));
+            };
+            audio.addEventListener("canplay", onCanPlay, { once: true });
+            audio.addEventListener("error", onErr, { once: true });
+          });
+
+          if (playIdRef.current !== myPlayId) return;
           await audio.play();
           setIsLoading(false);
           return; // success
@@ -449,7 +479,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // All CDNs failed
+      // All CDNs failed — only update state if still the active play
+      if (playIdRef.current !== myPlayId) return;
       setIsLoading(false);
       setIsPlaying(false);
       setError("Не удалось загрузить аудио. Проверьте интернет.");
@@ -467,13 +498,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const audio = audioRef.current;
       if (!audio) return;
 
+      // Cancel any in-flight retry from previous play
+      const myPlayId = ++playIdRef.current;
+
       setCurrentSurah({ number: surahNumber, arabicName, russianName });
       setProgress(0);
       setDuration(0);
-      setIsPlaying(true);
       setShowUnlockHint(false);
+      // Don't set isPlaying=true here — let the 'play' event handler do it
 
-      playWithRetry(audio, surahNumber, audioUrl);
+      playWithRetry(audio, surahNumber, myPlayId, audioUrl);
     },
     [playWithRetry],
   );
@@ -489,6 +523,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const stop = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    ++playIdRef.current; // cancel any in-flight retry
     audio.pause();
     audio.src = "";
     setCurrentSurah(null);
@@ -503,6 +538,13 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const dismissError = useCallback(() => {
     setError(null);
   }, []);
+
+  // Auto-dismiss error after 6 seconds
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 6000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   const toggle = useCallback(() => {
     if (!audioRef.current || !currentSurah) return;

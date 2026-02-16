@@ -987,13 +987,25 @@ export default function Dashboard() {
               Слушать Коран
             </h3>
           </div>
-          {audio.isPlaying && audio.currentSurah && (
+          {audio.currentSurah && (
             <button
               onClick={audio.toggle}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${
+                audio.isPlaying
+                  ? "bg-emerald-500/15 border-emerald-500/30"
+                  : "bg-white/[0.04] border-white/10"
+              }`}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] text-emerald-400 font-medium truncate max-w-[100px]">
+              {audio.isPlaying ? (
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              ) : (
+                <Play size={10} className="text-white/50" />
+              )}
+              <span
+                className={`text-[10px] font-medium truncate max-w-[100px] ${
+                  audio.isPlaying ? "text-emerald-400" : "text-white/50"
+                }`}
+              >
                 {audio.currentSurah.russianName}
               </span>
             </button>
@@ -1003,15 +1015,16 @@ export default function Dashboard() {
         {/* Popular surahs — horizontal scroll */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
           {POPULAR_SURAHS.map((surah) => {
-            const isCurrentPlaying =
-              audio.isPlaying && audio.currentSurah?.number === surah.number;
+            const isCurrent = audio.currentSurah?.number === surah.number;
+            const isCurrentPlaying = isCurrent && audio.isPlaying;
+            const isCurrentPaused = isCurrent && !audio.isPlaying;
             return (
               <button
                 key={surah.number}
                 onClick={() => {
                   if (isCurrentPlaying) {
                     audio.pause();
-                  } else if (audio.currentSurah?.number === surah.number) {
+                  } else if (isCurrentPaused) {
                     audio.resume();
                   } else {
                     audio.play(surah.number, surah.ar, surah.name);
@@ -1020,24 +1033,33 @@ export default function Dashboard() {
                 className={`flex-shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border transition-all active:scale-95 ${
                   isCurrentPlaying
                     ? "bg-emerald-500/15 border-emerald-500/40 shadow-[0_0_16px_rgba(16,185,129,0.2)]"
-                    : "t-bg border-white/[0.06] hover:border-white/10"
+                    : isCurrentPaused
+                      ? "bg-white/[0.03] border-emerald-500/20"
+                      : "t-bg border-white/[0.06] hover:border-white/10"
                 }`}
               >
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    isCurrentPlaying ? "bg-emerald-500/25" : "bg-white/[0.04]"
+                    isCurrent ? "bg-emerald-500/25" : "bg-white/[0.04]"
                   }`}
                 >
                   {isCurrentPlaying ? (
                     <Pause size={14} className="text-emerald-400" />
                   ) : (
-                    <Play size={14} className="text-white/50 ml-0.5" />
+                    <Play
+                      size={14}
+                      className={
+                        isCurrent
+                          ? "text-emerald-400 ml-0.5"
+                          : "text-white/50 ml-0.5"
+                      }
+                    />
                   )}
                 </div>
                 <div className="text-left min-w-0">
                   <p
                     className={`text-xs font-medium truncate ${
-                      isCurrentPlaying ? "text-emerald-400" : "text-white/70"
+                      isCurrent ? "text-emerald-400" : "text-white/70"
                     }`}
                   >
                     {surah.name}
