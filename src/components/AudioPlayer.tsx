@@ -392,7 +392,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       } else if (repeatMode === "all" && currentSurah) {
         // Go to next surah, wrap around
         const next = currentSurah.number >= 114 ? 1 : currentSurah.number + 1;
-        const ruName = SURAH_NAMES_RU[next] || `Сүрө ${next}`;
+        const ruName = SURAH_NAMES_RU[next] || `Сура ${next}`;
         const arName = SURAH_NAMES_AR[next] || "";
         playSurah(next, arName, ruName);
       } else {
@@ -452,7 +452,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       // All CDNs failed
       setIsLoading(false);
       setIsPlaying(false);
-      setError("Аудио жүктөлбөй калды. Интернетти текшериңиз.");
+      setError("Не удалось загрузить аудио. Проверьте интернет.");
     },
     [],
   );
@@ -527,7 +527,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const playPrev = useCallback(() => {
     if (!currentSurah) return;
     const prev = currentSurah.number <= 1 ? 114 : currentSurah.number - 1;
-    const ruName = SURAH_NAMES_RU[prev] || `Сүрө ${prev}`;
+    const ruName = SURAH_NAMES_RU[prev] || `Сура ${prev}`;
     const arName = SURAH_NAMES_AR[prev] || "";
     playSurah(prev, arName, ruName);
   }, [currentSurah, playSurah]);
@@ -535,7 +535,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const playNext = useCallback(() => {
     if (!currentSurah) return;
     const next = currentSurah.number >= 114 ? 1 : currentSurah.number + 1;
-    const ruName = SURAH_NAMES_RU[next] || `Сүрө ${next}`;
+    const ruName = SURAH_NAMES_RU[next] || `Сура ${next}`;
     const arName = SURAH_NAMES_AR[next] || "";
     playSurah(next, arName, ruName);
   }, [currentSurah, playSurah]);
@@ -586,7 +586,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
           <div className="max-w-lg mx-auto glass-card px-4 py-3 flex items-center gap-3 border border-emerald-500/20">
             <Volume2 className="w-5 h-5 text-emerald-400 shrink-0" />
             <p className="text-sm text-slate-300">
-              Үндү иштетүү үчүн экранды басыңыз
+              Нажмите на экран для активации звука
             </p>
           </div>
         </div>
@@ -642,7 +642,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
                     {currentSurah.russianName}
                   </p>
                   <p className="text-slate-500 text-[11px] truncate">
-                    Сүрө {currentSurah.number}
+                    Сура {currentSurah.number}
                   </p>
                 </div>
               </div>
@@ -713,7 +713,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
               <ChevronDown className="w-5 h-5 text-slate-400" />
             </button>
             <span className="text-slate-500 text-xs font-medium uppercase tracking-wider">
-              Ойнотуу
+              Воспроизведение
             </span>
             <div className="w-10" /> {/* Spacer for centering */}
           </div>
@@ -809,7 +809,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
               {/* Center content: surah number */}
               <div className="relative z-10 flex flex-col items-center gap-1">
                 <span className="text-emerald-500/50 text-xs font-medium uppercase tracking-widest">
-                  Сүрө
+                  Сура
                 </span>
                 <span className="text-5xl font-bold text-white/90">
                   {currentSurah.number}
@@ -839,7 +839,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-emerald-400 text-[11px] font-medium">
-                Фондук режим
+                Фоновый режим
               </span>
             </div>
           </div>
@@ -890,10 +890,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
                          ${repeatMode !== "off" ? "bg-emerald-500/15 text-emerald-400" : "text-slate-500 hover:text-slate-300"}`}
               title={
                 repeatMode === "off"
-                  ? "Кайталоо өчүк"
+                  ? "Повтор выкл"
                   : repeatMode === "one"
-                    ? "Сүрөнү кайталоо"
-                    : "Баарын кайталоо"
+                    ? "Повтор суры"
+                    : "Повтор всех"
               }
             >
               {repeatMode === "one" ? (

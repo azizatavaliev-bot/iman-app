@@ -18,8 +18,12 @@ import {
   BarChart3,
   Headphones,
   GraduationCap,
+  Play,
+  Pause,
+  Volume2,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
+import { useAudio } from "../components/AudioPlayer";
 import {
   getPrayerTimes,
   getHadithOfDay,
@@ -495,8 +499,19 @@ function ActivityRow({
 // Dashboard Component
 // ---------------------------------------------------------------------------
 
+// Popular surahs for quick play
+const POPULAR_SURAHS = [
+  { number: 1, name: "Аль-Фатиха", ar: "الفاتحة" },
+  { number: 36, name: "Йа Син", ar: "يس" },
+  { number: 55, name: "Ар-Рахман", ar: "الرحمن" },
+  { number: 67, name: "Аль-Мульк", ar: "الملك" },
+  { number: 18, name: "Аль-Кахф", ar: "الكهف" },
+  { number: 56, name: "Аль-Вакиа", ar: "الواقعة" },
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const audio = useAudio();
 
   // Core state
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
@@ -956,6 +971,94 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ================================================================ */}
+      {/* 2.5. LISTEN TO QURAN — audio hero block                          */}
+      {/* ================================================================ */}
+      <div className="glass-card p-4 relative overflow-hidden">
+        {/* Decorative glow */}
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Volume2 size={16} className="text-emerald-400" />
+            <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">
+              Слушать Коран
+            </h3>
+          </div>
+          {audio.isPlaying && audio.currentSurah && (
+            <button
+              onClick={audio.toggle}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] text-emerald-400 font-medium truncate max-w-[100px]">
+                {audio.currentSurah.russianName}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Popular surahs — horizontal scroll */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          {POPULAR_SURAHS.map((surah) => {
+            const isCurrentPlaying =
+              audio.isPlaying && audio.currentSurah?.number === surah.number;
+            return (
+              <button
+                key={surah.number}
+                onClick={() => {
+                  if (isCurrentPlaying) {
+                    audio.pause();
+                  } else if (audio.currentSurah?.number === surah.number) {
+                    audio.resume();
+                  } else {
+                    audio.play(surah.number, surah.ar, surah.name);
+                  }
+                }}
+                className={`flex-shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border transition-all active:scale-95 ${
+                  isCurrentPlaying
+                    ? "bg-emerald-500/15 border-emerald-500/40 shadow-[0_0_16px_rgba(16,185,129,0.2)]"
+                    : "t-bg border-white/[0.06] hover:border-white/10"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    isCurrentPlaying ? "bg-emerald-500/25" : "bg-white/[0.04]"
+                  }`}
+                >
+                  {isCurrentPlaying ? (
+                    <Pause size={14} className="text-emerald-400" />
+                  ) : (
+                    <Play size={14} className="text-white/50 ml-0.5" />
+                  )}
+                </div>
+                <div className="text-left min-w-0">
+                  <p
+                    className={`text-xs font-medium truncate ${
+                      isCurrentPlaying ? "text-emerald-400" : "text-white/70"
+                    }`}
+                  >
+                    {surah.name}
+                  </p>
+                  <p className="text-[10px] text-white/25">
+                    Сура {surah.number}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Full Quran link */}
+        <button
+          onClick={() => navigate("/quran")}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg t-bg text-white/40 text-[11px] font-medium hover:text-white/60 transition-colors"
+        >
+          Все 114 сур
+          <ChevronRight size={12} />
+        </button>
       </div>
 
       {/* ================================================================ */}
