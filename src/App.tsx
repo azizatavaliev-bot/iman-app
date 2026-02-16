@@ -10,6 +10,7 @@ import { Home, Moon, BookOpen, Compass, User } from "lucide-react";
 import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
 import { getTelegramUser } from "./lib/telegram";
+import { initAudioUnlock } from "./lib/audioUnlock";
 import Onboarding from "./pages/Onboarding";
 import "./index.css";
 
@@ -127,6 +128,9 @@ function AppContent() {
     </div>
   );
 }
+
+// Initialize iOS audio unlock (must be called before any audio playback)
+initAudioUnlock();
 
 // Auto-skip onboarding for existing users or Telegram users
 function isOnboarded(): boolean {

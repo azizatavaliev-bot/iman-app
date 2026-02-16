@@ -252,6 +252,7 @@ export default function Quran() {
   const [audioState, setAudioState] = useState<AudioState | null>(null);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [audioLoading, setAudioLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ayahRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
@@ -271,32 +272,15 @@ export default function Quran() {
     setBookmarks(storage.getQuranBookmarks());
   }, []);
 
-  // --- Create audio element once ---
+  // --- Create audio element once (no crossOrigin — breaks iOS WKWebView/Telegram) ---
   useEffect(() => {
     const audio = new Audio();
     audio.preload = "auto";
-    audio.crossOrigin = "anonymous";
-    // iOS Safari: unlock audio on first user interaction
-    const unlock = () => {
-      audio
-        .play()
-        .then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-        })
-        .catch(() => {});
-      document.removeEventListener("touchstart", unlock);
-      document.removeEventListener("click", unlock);
-    };
-    document.addEventListener("touchstart", unlock, { once: true });
-    document.addEventListener("click", unlock, { once: true });
     audioRef.current = audio;
 
     return () => {
       audio.pause();
       audio.src = "";
-      document.removeEventListener("touchstart", unlock);
-      document.removeEventListener("click", unlock);
     };
   }, []);
 
@@ -322,6 +306,12 @@ export default function Quran() {
         mode: "single",
       });
 
+      setAudioLoading(true);
+
+      audio.oncanplay = () => {
+        setAudioLoading(false);
+      };
+
       audio.onended = () => {
         setAudioState((prev) => (prev ? { ...prev, isPlaying: false } : null));
       };
@@ -334,7 +324,14 @@ export default function Quran() {
         setAudioDuration(audio.duration);
       };
 
-      audio.play().catch(console.error);
+      audio.onerror = () => {
+        setAudioLoading(false);
+        setAudioState((prev) => (prev ? { ...prev, isPlaying: false } : null));
+      };
+
+      audio.play().catch(() => {
+        setAudioLoading(false);
+      });
     },
     [ayahs, selectedSurah, surahDetail],
   );
@@ -368,6 +365,12 @@ export default function Quran() {
         ref.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
+      setAudioLoading(true);
+
+      audio.oncanplay = () => {
+        setAudioLoading(false);
+      };
+
       audio.onended = () => {
         const nextIndex = startIndex + 1;
         if (nextIndex < ayahs.length) {
@@ -388,7 +391,14 @@ export default function Quran() {
         setAudioDuration(audio.duration);
       };
 
-      audio.play().catch(console.error);
+      audio.onerror = () => {
+        setAudioLoading(false);
+        setAudioState((prev) => (prev ? { ...prev, isPlaying: false } : null));
+      };
+
+      audio.play().catch(() => {
+        setAudioLoading(false);
+      });
     },
     [ayahs, selectedSurah, surahDetail],
   );
@@ -418,9 +428,12 @@ export default function Quran() {
     audio.onended = null;
     audio.ontimeupdate = null;
     audio.onloadedmetadata = null;
+    audio.oncanplay = null;
+    audio.onerror = null;
     setAudioState(null);
     setAudioProgress(0);
     setAudioDuration(0);
+    setAudioLoading(false);
   }, []);
 
   // --- Auto-scroll when playing ayah changes ---
@@ -930,15 +943,19 @@ export default function Quran() {
                            hover:bg-emerald-500/25 active:scale-[0.97]
                            transition-all duration-150"
               >
-                {audioState?.isPlaying && audioState.mode === "surah" ? (
+                {audioLoading && audioState?.mode === "surah" ? (
+                  <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                ) : audioState?.isPlaying && audioState.mode === "surah" ? (
                   <Pause className="w-5 h-5 text-emerald-400" />
                 ) : (
                   <Play className="w-5 h-5 text-emerald-400 ml-0.5" />
                 )}
                 <span className="text-emerald-300 text-sm font-medium">
-                  {audioState?.isPlaying && audioState.mode === "surah"
-                    ? `Пауза  --  Аят ${audioState.currentAyahIndex + 1} из ${audioState.totalAyahs}`
-                    : "Слушать суру"}
+                  {audioLoading && audioState?.mode === "surah"
+                    ? "Загрузка..."
+                    : audioState?.isPlaying && audioState.mode === "surah"
+                      ? `Пауза  --  Аят ${audioState.currentAyahIndex + 1} из ${audioState.totalAyahs}`
+                      : "Слушать суру"}
                 </span>
                 <Volume2 className="w-4 h-4 text-emerald-500/60" />
               </button>
@@ -1034,6 +1051,8 @@ export default function Quran() {
             {ayahs.map((ayah, index) => {
               const isCurrentlyPlaying =
                 audioState?.isPlaying && audioState.currentAyahIndex === index;
+              const isCurrentlyLoading =
+                audioLoading && audioState?.currentAyahIndex === index;
               const wasPlayed =
                 audioState &&
                 audioState.mode === "surah" &&
@@ -1084,13 +1103,21 @@ export default function Quran() {
                                     transition-all duration-200 ${
                                       isCurrentlyPlaying
                                         ? "bg-emerald-500/25 scale-110"
-                                        : "t-bg hover:bg-emerald-500/15"
+                                        : isCurrentlyLoading
+                                          ? "bg-emerald-500/15 animate-pulse"
+                                          : "t-bg hover:bg-emerald-500/15"
                                     }`}
                         title={
-                          isCurrentlyPlaying ? "Пауза" : "Воспроизвести аят"
+                          isCurrentlyLoading
+                            ? "Загрузка..."
+                            : isCurrentlyPlaying
+                              ? "Пауза"
+                              : "Воспроизвести аят"
                         }
                       >
-                        {isCurrentlyPlaying ? (
+                        {isCurrentlyLoading ? (
+                          <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                        ) : isCurrentlyPlaying ? (
                           <Pause className="w-4 h-4 text-emerald-400" />
                         ) : (
                           <Play className="w-4 h-4 text-slate-400 hover:text-emerald-400 ml-0.5 transition-colors" />

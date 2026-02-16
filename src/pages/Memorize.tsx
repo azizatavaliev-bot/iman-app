@@ -254,35 +254,26 @@ export default function Memorize() {
   const globalAudio = useAudio();
   const ayahAudioRef = useRef<HTMLAudioElement | null>(null);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+  const [ayahLoading, setAyahLoading] = useState(false);
 
-  // Create a single reusable audio element for ayah playback (prevents memory leak + mobile compatibility)
+  // Create a single reusable audio element (no crossOrigin — breaks iOS WKWebView/Telegram)
   useEffect(() => {
     const audio = new Audio();
-    audio.crossOrigin = "anonymous";
     audio.preload = "auto";
-    // iOS Safari: unlock audio on first user interaction
-    const unlock = () => {
-      audio
-        .play()
-        .then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-        })
-        .catch(() => {});
-      document.removeEventListener("touchstart", unlock);
-      document.removeEventListener("click", unlock);
+    audio.onended = () => {
+      setPlayingAyah(null);
+      setAyahLoading(false);
     };
-    document.addEventListener("touchstart", unlock, { once: true });
-    document.addEventListener("click", unlock, { once: true });
-    audio.onended = () => setPlayingAyah(null);
-    audio.onerror = () => setPlayingAyah(null);
+    audio.onerror = () => {
+      setPlayingAyah(null);
+      setAyahLoading(false);
+    };
+    audio.oncanplay = () => setAyahLoading(false);
     ayahAudioRef.current = audio;
 
     return () => {
       audio.pause();
       audio.src = "";
-      document.removeEventListener("touchstart", unlock);
-      document.removeEventListener("click", unlock);
     };
   }, []);
 
@@ -292,7 +283,11 @@ export default function Memorize() {
     audio.pause();
     audio.src = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalAyahNumber}.mp3`;
     setPlayingAyah(globalAyahNumber);
-    audio.play().catch(() => setPlayingAyah(null));
+    setAyahLoading(true);
+    audio.play().catch(() => {
+      setPlayingAyah(null);
+      setAyahLoading(false);
+    });
   }, []);
 
   const [list, setList] = useState<MemorizationSurah[]>([]);
@@ -618,6 +613,8 @@ export default function Memorize() {
                 const translitAyah = studyData.translit[idx];
                 const translationAyah = studyData.translation[idx];
                 const isAyahPlaying = playingAyah === globalAyahNumber;
+                const isAyahLoading =
+                  ayahLoading && playingAyah === globalAyahNumber;
 
                 return (
                   <div
@@ -637,20 +634,23 @@ export default function Memorize() {
                           if (isAyahPlaying) {
                             ayahAudioRef.current?.pause();
                             setPlayingAyah(null);
+                            setAyahLoading(false);
                           } else {
                             playAyahAudio(globalAyahNumber);
                           }
                         }}
                         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors
-                                   ${isAyahPlaying ? "bg-amber-500/25 ring-1 ring-amber-500/40" : "bg-amber-500/10 hover:bg-amber-500/20"}`}
+                                   ${isAyahPlaying ? "bg-amber-500/25 ring-1 ring-amber-500/40" : isAyahLoading ? "bg-amber-500/15 animate-pulse" : "bg-amber-500/10 hover:bg-amber-500/20"}`}
                       >
-                        {isAyahPlaying ? (
+                        {isAyahLoading ? (
+                          <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                        ) : isAyahPlaying ? (
                           <Pause className="w-3 h-3 text-amber-400" />
                         ) : (
                           <Play className="w-3 h-3 text-amber-400" />
                         )}
                         <span className="text-amber-400 text-[10px] font-medium">
-                          Аят
+                          {isAyahLoading ? "..." : "Аят"}
                         </span>
                       </button>
                     </div>
