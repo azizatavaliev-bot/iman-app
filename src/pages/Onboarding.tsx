@@ -10,6 +10,7 @@ import { storage } from "../lib/storage";
 import { COMMON_CITIES } from "../data/cities";
 import type { CityOption } from "../data/cities";
 import { getTelegramUser } from "../lib/telegram";
+import { APP_FEATURES, FEATURE_GROUPS } from "../data/guide";
 
 // ---------------------------------------------------------------------------
 // Steps — if Telegram user exists, skip name step (3 steps instead of 4)
@@ -17,7 +18,7 @@ import { getTelegramUser } from "../lib/telegram";
 
 const tgUser = getTelegramUser();
 const SKIP_NAME = !!tgUser;
-const TOTAL_STEPS = SKIP_NAME ? 3 : 4;
+const TOTAL_STEPS = SKIP_NAME ? 4 : 5;
 
 // ---------------------------------------------------------------------------
 // Islamic decorative SVG patterns
@@ -200,8 +201,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         className={`flex-1 flex flex-col items-center justify-center w-full max-w-sm transition-all duration-250 ease-out ${slideClass}`}
       >
         {step === 0 && <StepWelcome />}
-        {!SKIP_NAME && step === 1 && <StepName name={name} setName={setName} />}
-        {((SKIP_NAME && step === 1) || (!SKIP_NAME && step === 2)) && (
+        {step === 1 && <StepOverview />}
+        {!SKIP_NAME && step === 2 && <StepName name={name} setName={setName} />}
+        {((SKIP_NAME && step === 2) || (!SKIP_NAME && step === 3)) && (
           <StepCity
             cityQuery={cityQuery}
             setCityQuery={setCityQuery}
@@ -210,7 +212,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             filteredCities={filteredCities}
           />
         )}
-        {((SKIP_NAME && step === 2) || (!SKIP_NAME && step === 3)) && (
+        {((SKIP_NAME && step === 3) || (!SKIP_NAME && step === 4)) && (
           <StepReady name={name} city={selectedCity?.name} />
         )}
       </div>
@@ -317,7 +319,72 @@ function StepWelcome() {
 }
 
 // ---------------------------------------------------------------------------
-// Step 1: Name
+// Step 1: App Overview — what's inside IMAN
+// ---------------------------------------------------------------------------
+
+function StepOverview() {
+  const groups = ["start", "study", "practice", "growth"] as const;
+
+  return (
+    <div className="flex flex-col items-center text-center space-y-4 w-full">
+      <div
+        className="w-20 h-20 rounded-full flex items-center justify-center text-4xl"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(16,185,129,0.15), rgba(139,92,246,0.15))",
+          boxShadow: "0 0 30px rgba(16,185,129,0.12)",
+        }}
+      >
+        📋
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold text-white">Что есть в IMAN?</h2>
+        <p className="text-sm text-white/40">
+          15 функций для вашего духовного роста
+        </p>
+      </div>
+
+      {/* Scrollable feature list by groups */}
+      <div className="w-full max-h-[45vh] overflow-y-auto rounded-2xl space-y-4 pb-2">
+        {groups.map((groupKey) => {
+          const features = APP_FEATURES.filter((f) => f.group === groupKey);
+          if (features.length === 0) return null;
+          return (
+            <div key={groupKey}>
+              <p className="text-[10px] font-semibold text-emerald-400/60 uppercase tracking-widest mb-2 px-1">
+                {FEATURE_GROUPS[groupKey]}
+              </p>
+              <div className="space-y-1.5">
+                {features.map((feature) => (
+                  <div
+                    key={feature.path}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04]"
+                  >
+                    <span className="text-xl w-8 text-center shrink-0">
+                      {feature.icon}
+                    </span>
+                    <div className="text-left min-w-0">
+                      <p className="text-sm font-medium text-white truncate">
+                        {feature.name}
+                      </p>
+                      <p className="text-[11px] text-white/35 leading-snug line-clamp-1">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step 2: Name
 // ---------------------------------------------------------------------------
 
 function StepName({
