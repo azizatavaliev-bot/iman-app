@@ -6,8 +6,10 @@ import { fileURLToPath } from "url";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(__dirname, "dist");
 const PORT = parseInt(process.env.PORT || "3000", 10);
-const BOT_TOKEN = process.env.BOT_TOKEN || "";
-const APP_URL = process.env.APP_URL || "";
+const BOT_TOKEN =
+  process.env.BOT_TOKEN || "8598576939:AAHSAtSNp0a8zULTBUJuFamzp4CbvXG9cqM";
+const APP_URL =
+  process.env.APP_URL || "https://iman-app-production.up.railway.app";
 const WEBHOOK_PATH = `/webhook-${BOT_TOKEN.split(":")[0]}`;
 
 const MIME = {
@@ -67,8 +69,7 @@ async function handleWebhook(body) {
       `/help — Эта справка\n\n` +
       `Или нажмите кнопку **«Открыть IMAN»** внизу чата.`;
   } else {
-    reply =
-      `Ас-саляму алейкум! \u2728\n\nОткройте приложение IMAN кнопкой ниже:`;
+    reply = `Ас-саляму алейкум! \u2728\n\nОткройте приложение IMAN кнопкой ниже:`;
     replyMarkup = {
       inline_keyboard: [
         [{ text: "\u{1F55C} Открыть IMAN", web_app: { url: APP_URL } }],
