@@ -368,7 +368,7 @@ export default function Quiz() {
 
       // Load persisted usedIds for this category+mode
       const persistKey = `${categoryKey || "_all"}_${mode}`;
-      const savedUsedIds = storage.getQuizUsedIds(persistKey);
+      let savedUsedIds = storage.getQuizUsedIds(persistKey);
 
       if (mode === "adaptive") {
         // Adaptive: start with easy, pick first question
@@ -403,6 +403,7 @@ export default function Quiz() {
         if (unseen.length === 0) {
           // All questions seen — reset and start fresh
           storage.clearQuizUsedIds(persistKey);
+          savedUsedIds = new Set();
           unseen = pool;
         }
 
