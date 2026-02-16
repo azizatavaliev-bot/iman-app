@@ -32,6 +32,7 @@ const IbadahTimer = lazy(() => import("./pages/IbadahTimer"));
 const Memorize = lazy(() => import("./pages/Memorize"));
 const Quiz = lazy(() => import("./pages/Quiz"));
 const Seerah = lazy(() => import("./pages/Seerah"));
+const Beginners = lazy(() => import("./pages/Beginners"));
 
 function PageLoader() {
   return (
@@ -118,6 +119,7 @@ function AppContent() {
             <Route path="/memorize" element={<Memorize />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/seerah" element={<Seerah />} />
+            <Route path="/beginners" element={<Beginners />} />
           </Routes>
         </Suspense>
       </div>

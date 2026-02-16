@@ -17,6 +17,7 @@ import {
   Brain,
   BarChart3,
   Headphones,
+  GraduationCap,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import {
@@ -1134,6 +1135,13 @@ export default function Dashboard() {
       {/* ================================================================ */}
       <div className="grid grid-cols-4 gap-3">
         {[
+          {
+            icon: GraduationCap,
+            label: "Новичкам",
+            path: "/beginners",
+            color: "text-yellow-400",
+            bg: "bg-yellow-400/10",
+          },
           {
             icon: Moon,
             label: "Намазы",
