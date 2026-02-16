@@ -422,10 +422,12 @@ function ActivityRow({
   item,
   onTap,
   floatingPts,
+  onClearFloat,
 }: {
   item: ActivityItem;
   onTap: () => void;
   floatingPts: { id: string; points: number } | null;
+  onClearFloat: () => void;
 }) {
   const statusIcon =
     item.status === "done" ? (
@@ -488,7 +490,7 @@ function ActivityRow({
         <FloatingPoints
           points={floatingPts.points}
           id={floatingPts.id}
-          onDone={() => setFloatingPts(null)}
+          onDone={onClearFloat}
         />
       )}
     </button>
@@ -1241,6 +1243,7 @@ export default function Dashboard() {
                   ? floatingPts
                   : null
               }
+              onClearFloat={() => setFloatingPts(null)}
             />
           ))}
 
@@ -1269,6 +1272,7 @@ export default function Dashboard() {
                   ? floatingPts
                   : null
               }
+              onClearFloat={() => setFloatingPts(null)}
             />
           ))}
       </div>
