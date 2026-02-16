@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   MapPin,
@@ -11,6 +12,9 @@ import {
   RotateCcw,
   ChevronLeft,
   Check,
+  BarChart3,
+  GraduationCap,
+  ChevronRight,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS } from "../lib/storage";
 import type { UserProfile } from "../lib/storage";
@@ -86,6 +90,7 @@ function StatCard({
 // ---------------------------------------------------------------------------
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { theme, toggleTheme, isDark } = useTheme();
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
   const [editingName, setEditingName] = useState(false);
@@ -698,6 +703,55 @@ export default function Profile() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ================================================================ */}
+      {/* QUICK LINKS                                                      */}
+      {/* ================================================================ */}
+      <div className="glass-card p-1 space-y-0.5">
+        {[
+          {
+            icon: BarChart3,
+            label: "Статистика",
+            desc: "Намазы, привычки, очки",
+            path: "/stats",
+            color: "text-lime-400",
+          },
+          {
+            icon: GraduationCap,
+            label: "Для новичков",
+            desc: "Вуду, намаз, основы",
+            path: "/beginners",
+            color: "text-yellow-400",
+          },
+          {
+            icon: BookOpen,
+            label: "Введение",
+            desc: "Все функции и уровни",
+            path: "/guide",
+            color: "text-slate-400",
+          },
+        ].map((item) => (
+          <button
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-white/[0.03] active:scale-[0.98] transition-all"
+          >
+            <item.icon size={18} className={item.color} />
+            <div className="flex-1 text-left">
+              <p
+                className="text-sm font-medium"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {item.label}
+              </p>
+              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                {item.desc}
+              </p>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+          </button>
+        ))}
       </div>
 
       {/* ================================================================ */}
