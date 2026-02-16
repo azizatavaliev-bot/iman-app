@@ -1188,6 +1188,19 @@ export default function Quran() {
         <p className="text-slate-400 text-sm">114 сур Священного Корана</p>
       </div>
 
+      {/* Instruction Banner */}
+      <div className="mx-4 mb-4 glass-card p-4 border border-emerald-500/20">
+        <p className="text-xs text-emerald-300/90 leading-relaxed">
+          <span className="font-semibold text-emerald-400">
+            Читайте Коран каждый день.
+          </span>{" "}
+          Выберите суру, слушайте чтение известных кариев, читайте перевод и
+          тафсир. За каждую букву Корана — 10 хасанат{" "}
+          <span className="text-white/50">(ат-Тирмизи, 2910)</span>. Намерение:
+          «Читаю Коран ради довольства Аллаха».
+        </p>
+      </div>
+
       {/* Search */}
       <div className="px-4 mb-4">
         <div className="glass-card flex items-center gap-3 px-4 py-3">

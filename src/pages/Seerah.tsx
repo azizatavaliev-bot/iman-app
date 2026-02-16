@@ -83,15 +83,30 @@ export default function Seerah() {
             >
               Сира
             </h1>
-            <p
-              className="text-xs"
-              style={{ color: "var(--text-muted)" }}
-            >
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
               Жизнеописание Пророка (мир ему)
             </p>
           </div>
         </div>
       </header>
+
+      {/* ── Instruction Banner ─────────────────────────────────────────── */}
+      <div className="glass-card p-4 mb-6 border border-emerald-500/20">
+        <p className="text-xs text-emerald-300/90 leading-relaxed">
+          <span className="font-semibold text-emerald-400">
+            Сира — жизнь Пророка Мухаммада (мир ему).
+          </span>{" "}
+          Читайте главы по порядку: от рождения до последних дней. Отмечайте
+          прочитанные главы и зарабатывайте очки. «Лучшие из вас — те, кто
+          изучает Коран и обучает ему»{" "}
+          <span className="text-white/50">(аль-Бухари, 5027)</span>. Намерение:
+          «Изучаю Сиру, чтобы следовать примеру Пророка (мир ему)».
+        </p>
+        <p className="text-[10px] text-white/30 mt-1">
+          Источники: Ибн Хишам «Ас-Сира ан-Набавийя», Ибн Касир «Аль-Бидая ва
+          ан-Нихая»
+        </p>
+      </div>
 
       {/* ── Progress Bar ───────────────────────────────────────────────── */}
       <div className="glass-card p-4 mb-6">
@@ -132,7 +147,11 @@ export default function Seerah() {
           const isLast = index === SEERAH_CHAPTERS.length - 1;
 
           return (
-            <div key={chapter.id} className="flex gap-4 animate-fade-in" style={{ animationDelay: `${0.05 + index * 0.03}s` }}>
+            <div
+              key={chapter.id}
+              className="flex gap-4 animate-fade-in"
+              style={{ animationDelay: `${0.05 + index * 0.03}s` }}
+            >
               {/* ── Timeline column: dot + line ──────────────────────── */}
               <div className="flex flex-col items-center flex-shrink-0 w-10">
                 {/* Year badge */}
@@ -282,6 +301,16 @@ export default function Seerah() {
                         ))}
                       </ul>
                     </div>
+
+                    {/* Source */}
+                    {chapter.source && (
+                      <p
+                        className="mt-3 text-[10px] leading-relaxed"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        Источники: {chapter.source}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

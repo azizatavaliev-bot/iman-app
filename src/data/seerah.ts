@@ -6,6 +6,7 @@ export interface SeerahChapter {
   content: string;
   keyEvents: string[];
   points: number;
+  source: string;
 }
 
 export const SEERAH_CHAPTERS: SeerahChapter[] = [
@@ -24,6 +25,8 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Опека деда Абдуль-Мутталиба, затем дяди Абу Талиба",
     ],
     points: 15,
+    source:
+      "Ибн Хишам, Ас-Сира ан-Набавийя, 1/158-177; Ибн Касир, Аль-Бидая ва ан-Нихая, 2/258",
   },
   {
     id: 2,
@@ -40,6 +43,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Женитьба на Хадидже бинт Хувайлид в 595 году",
     ],
     points: 15,
+    source: "Ибн Хишам, 1/187-199; Ибн Саад, Ат-Табакат аль-Кубра, 1/130",
   },
   {
     id: 3,
@@ -56,6 +60,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Подтверждение пророчества учёным Варакой ибн Науфалем",
     ],
     points: 15,
+    source: "Аль-Бухари, 3; Муслим, 160; Ибн Хишам, 1/235-240",
   },
   {
     id: 4,
@@ -72,6 +77,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Формирование первой мусульманской общины из ~40 человек",
     ],
     points: 10,
+    source: "Ибн Хишам, 1/245-262; Ибн Касир, Аль-Бидая ва ан-Нихая, 3/23",
   },
   {
     id: 5,
@@ -88,6 +94,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Стойкость Биляля ибн Рабаха под пытками",
     ],
     points: 10,
+    source: "Ибн Хишам, 1/265-290; Аль-Бухари, 3856",
   },
   {
     id: 6,
@@ -105,6 +112,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Смерть Абу Талиба — защитника Пророка, «Год Скорби» (619 г.)",
     ],
     points: 15,
+    source: "Ибн Хишам, 1/321-360; Аль-Бухари, 3884; Муслим, 24",
   },
   {
     id: 7,
@@ -121,6 +129,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Предписание пяти ежедневных молитв (вместо первоначальных пятидесяти)",
     ],
     points: 15,
+    source: "Аль-Бухари, 349; Муслим, 163; Коран, 17:1",
   },
   {
     id: 8,
@@ -138,6 +147,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Мединская конституция (Сахифа) — договор о правах всех жителей",
     ],
     points: 20,
+    source: "Ибн Хишам, 2/58-100; Аль-Бухари, 3906; Муслим, 2009",
   },
   {
     id: 9,
@@ -154,6 +164,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Укрепление мусульманского государства в Медине",
     ],
     points: 15,
+    source: "Ибн Хишам, 2/259-300; Коран, 8:9; Аль-Бухари, 3953",
   },
   {
     id: 10,
@@ -171,6 +182,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Окончательный перелом в пользу мусульман",
     ],
     points: 15,
+    source: "Ибн Хишам, 3/1-83; Аль-Бухари, 4043; Муслим, 1789; Коран, 33:9-27",
   },
   {
     id: 11,
@@ -188,6 +200,7 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Разрушение 360 идолов в Каабе и всеобщая амнистия",
     ],
     points: 20,
+    source: "Ибн Хишам, 3/247-330; Коран, 48:1; Аль-Бухари, 4280; Коран, 17:81",
   },
   {
     id: 12,
@@ -205,5 +218,6 @@ export const SEERAH_CHAPTERS: SeerahChapter[] = [
       "Наследие: Коран, Сунна и пример для всего человечества",
     ],
     points: 20,
+    source: "Аль-Бухари, 4406; Муслим, 1218; Коран, 5:3; Ибн Хишам, 4/251-314",
   },
 ];
