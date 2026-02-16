@@ -32,6 +32,7 @@ export const POINTS = {
   DAILY_BONUS: 25,
   IBADAH_MINUTE: 2,
   MEMORIZE_REPEAT: 5,
+  QUIZ_CORRECT: 2,
 } as const;
 
 // ---- Levels ----
@@ -263,6 +264,7 @@ class Storage {
   private write<T>(key: string, value: T): void {
     if (typeof window === "undefined") return;
     localStorage.setItem(key, JSON.stringify(value));
+    this.notifySync();
   }
 
   // ---- Очистка старых логов (>90 дней) ----
@@ -752,6 +754,42 @@ class Storage {
     return entry;
   }
 
+  // ---- Quiz Used IDs (persist across sessions) ----
+
+  getQuizUsedIds(key: string): Set<number> {
+    const stored = localStorage.getItem(`iman_quiz_used_${key}`);
+    if (!stored) return new Set();
+    try {
+      return new Set(JSON.parse(stored) as number[]);
+    } catch {
+      return new Set();
+    }
+  }
+
+  setQuizUsedIds(key: string, ids: Set<number>): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(`iman_quiz_used_${key}`, JSON.stringify([...ids]));
+    this.notifySync();
+  }
+
+  clearQuizUsedIds(key: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(`iman_quiz_used_${key}`);
+    this.notifySync();
+  }
+
+  // ---- Quiz Completion Tracking (one-time scoring) ----
+
+  isQuizScored(key: string): boolean {
+    return localStorage.getItem(`iman_quiz_scored_${key}`) === "1";
+  }
+
+  markQuizScored(key: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(`iman_quiz_scored_${key}`, "1");
+    this.notifySync();
+  }
+
   // ---- Clear All Data ----
 
   clearAll(): void {
@@ -759,6 +797,13 @@ class Storage {
     for (const key of Object.values(KEYS)) {
       localStorage.removeItem(key);
     }
+  }
+
+  // ---- Sync hook ----
+
+  private notifySync(): void {
+    // Dynamic import to avoid circular dependency
+    import("./sync").then((m) => m.scheduleSyncPush()).catch(() => {});
   }
 }
 

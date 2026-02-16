@@ -17,7 +17,11 @@ import {
   Repeat,
   Repeat1,
   ChevronDown,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
+import { isAudioUnlocked } from "../lib/audioUnlock";
+import { isTelegramWebApp } from "../lib/telegram";
 
 // ============================================================
 // Russian surah names (full 114 for navigation)
@@ -272,6 +276,8 @@ interface SurahInfo {
 
 interface AudioContextType {
   isPlaying: boolean;
+  isLoading: boolean;
+  error: string | null;
   currentSurah: SurahInfo | null;
   play: (
     surahNumber: number,
@@ -283,6 +289,7 @@ interface AudioContextType {
   resume: () => void;
   stop: () => void;
   toggle: () => void;
+  dismissError: () => void;
 }
 
 // ============================================================
@@ -300,11 +307,18 @@ export function useAudio(): AudioContextType {
 }
 
 // ============================================================
-// Helper: surah audio URL (full surah, single mp3)
+// Helper: surah audio URL with fallback CDNs
 // ============================================================
 
+const AUDIO_CDNS = [
+  (n: number) =>
+    `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${n}.mp3`,
+  (n: number) =>
+    `https://server8.mp3quran.net/afs/${String(n).padStart(3, "0")}.mp3`,
+];
+
 function getSurahAudioUrl(surahNumber: number): string {
-  return `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${surahNumber}.mp3`;
+  return AUDIO_CDNS[0](surahNumber);
 }
 
 // ============================================================
@@ -326,10 +340,22 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentSurah, setCurrentSurah] = useState<SurahInfo | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+  const [showUnlockHint, setShowUnlockHint] = useState(false);
+
+  // Show unlock hint in Telegram on first mount if audio not yet unlocked
+  useEffect(() => {
+    if (isTelegramWebApp() && !isAudioUnlocked()) {
+      setShowUnlockHint(true);
+      const timer = setTimeout(() => setShowUnlockHint(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Create audio element once (no crossOrigin — breaks iOS WKWebView/Telegram)
   useEffect(() => {
@@ -366,7 +392,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       } else if (repeatMode === "all" && currentSurah) {
         // Go to next surah, wrap around
         const next = currentSurah.number >= 114 ? 1 : currentSurah.number + 1;
-        const ruName = SURAH_NAMES_RU[next] || `Сура ${next}`;
+        const ruName = SURAH_NAMES_RU[next] || `Сүрө ${next}`;
         const arName = SURAH_NAMES_AR[next] || "";
         playSurah(next, arName, ruName);
       } else {
@@ -395,6 +421,42 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   // ---- Playback controls ----
 
+  const playWithRetry = useCallback(
+    async (
+      audio: HTMLAudioElement,
+      surahNumber: number,
+      customUrl?: string,
+    ) => {
+      setIsLoading(true);
+      setError(null);
+
+      // If custom URL provided, try only that
+      const urls = customUrl
+        ? [customUrl]
+        : AUDIO_CDNS.map((fn) => fn(surahNumber));
+
+      for (const url of urls) {
+        try {
+          audio.pause();
+          audio.src = url;
+          audio.load();
+          await audio.play();
+          setIsLoading(false);
+          return; // success
+        } catch (err) {
+          console.warn(`[audio] Failed ${url}:`, err);
+          continue;
+        }
+      }
+
+      // All CDNs failed
+      setIsLoading(false);
+      setIsPlaying(false);
+      setError("Аудио жүктөлбөй калды. Интернетти текшериңиз.");
+    },
+    [],
+  );
+
   const playSurah = useCallback(
     (
       surahNumber: number,
@@ -405,18 +467,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const audio = audioRef.current;
       if (!audio) return;
 
-      audio.pause();
-      audio.src = audioUrl || getSurahAudioUrl(surahNumber);
-      audio.load();
-
       setCurrentSurah({ number: surahNumber, arabicName, russianName });
       setProgress(0);
       setDuration(0);
       setIsPlaying(true);
+      setShowUnlockHint(false);
 
-      audio.play().catch(console.error);
+      playWithRetry(audio, surahNumber, audioUrl);
     },
-    [],
+    [playWithRetry],
   );
 
   const pause = useCallback(() => {
@@ -434,9 +493,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     audio.src = "";
     setCurrentSurah(null);
     setIsPlaying(false);
+    setIsLoading(false);
+    setError(null);
     setProgress(0);
     setDuration(0);
     setExpanded(false);
+  }, []);
+
+  const dismissError = useCallback(() => {
+    setError(null);
   }, []);
 
   const toggle = useCallback(() => {
@@ -462,7 +527,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const playPrev = useCallback(() => {
     if (!currentSurah) return;
     const prev = currentSurah.number <= 1 ? 114 : currentSurah.number - 1;
-    const ruName = SURAH_NAMES_RU[prev] || `Сура ${prev}`;
+    const ruName = SURAH_NAMES_RU[prev] || `Сүрө ${prev}`;
     const arName = SURAH_NAMES_AR[prev] || "";
     playSurah(prev, arName, ruName);
   }, [currentSurah, playSurah]);
@@ -470,7 +535,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const playNext = useCallback(() => {
     if (!currentSurah) return;
     const next = currentSurah.number >= 114 ? 1 : currentSurah.number + 1;
-    const ruName = SURAH_NAMES_RU[next] || `Сура ${next}`;
+    const ruName = SURAH_NAMES_RU[next] || `Сүрө ${next}`;
     const arName = SURAH_NAMES_AR[next] || "";
     playSurah(next, arName, ruName);
   }, [currentSurah, playSurah]);
@@ -489,12 +554,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const contextValue: AudioContextType = {
     isPlaying,
+    isLoading,
+    error,
     currentSurah,
     play: playSurah,
     pause,
     resume,
     stop,
     toggle,
+    dismissError,
   };
 
   // ---- Progress percentage ----
@@ -508,6 +576,37 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   return (
     <AudioContext.Provider value={contextValue}>
       {children}
+
+      {/* ---- Audio unlock hint for Telegram ---- */}
+      {showUnlockHint && (
+        <div
+          className="fixed top-4 left-4 right-4 z-[80] animate-fade-in"
+          onClick={() => setShowUnlockHint(false)}
+        >
+          <div className="max-w-lg mx-auto glass-card px-4 py-3 flex items-center gap-3 border border-emerald-500/20">
+            <Volume2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <p className="text-sm text-slate-300">
+              Үндү иштетүү үчүн экранды басыңыз
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Error toast ---- */}
+      {error && (
+        <div className="fixed top-4 left-4 right-4 z-[80] animate-fade-in">
+          <div className="max-w-lg mx-auto glass-card px-4 py-3 flex items-center gap-3 border border-red-500/20">
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+            <p className="text-sm text-red-300 flex-1">{error}</p>
+            <button
+              onClick={dismissError}
+              className="text-slate-500 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ---- Mini player bar ---- */}
       {currentSurah && !expanded && (
@@ -543,26 +642,30 @@ export function AudioProvider({ children }: { children: ReactNode }) {
                     {currentSurah.russianName}
                   </p>
                   <p className="text-slate-500 text-[11px] truncate">
-                    Сура {currentSurah.number}
+                    Сүрө {currentSurah.number}
                   </p>
                 </div>
               </div>
 
-              {/* Center: Play/Pause */}
+              {/* Center: Play/Pause/Loading */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggle();
+                  if (!isLoading) toggle();
                 }}
                 className={`flex items-center justify-center w-11 h-11 rounded-full shrink-0
                             transition-all duration-200
                             ${
-                              isPlaying
-                                ? "bg-emerald-500/25 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
-                                : "t-bg hover:bg-white/15"
+                              isLoading
+                                ? "bg-emerald-500/15"
+                                : isPlaying
+                                  ? "bg-emerald-500/25 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
+                                  : "t-bg hover:bg-white/15"
                             }`}
               >
-                {isPlaying ? (
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                ) : isPlaying ? (
                   <Pause className="w-5 h-5 text-emerald-400" />
                 ) : (
                   <Play className="w-5 h-5 text-emerald-400 ml-0.5" />
@@ -610,7 +713,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
               <ChevronDown className="w-5 h-5 text-slate-400" />
             </button>
             <span className="text-slate-500 text-xs font-medium uppercase tracking-wider">
-              Воспроизведение
+              Ойнотуу
             </span>
             <div className="w-10" /> {/* Spacer for centering */}
           </div>
@@ -706,7 +809,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
               {/* Center content: surah number */}
               <div className="relative z-10 flex flex-col items-center gap-1">
                 <span className="text-emerald-500/50 text-xs font-medium uppercase tracking-widest">
-                  Сура
+                  Сүрө
                 </span>
                 <span className="text-5xl font-bold text-white/90">
                   {currentSurah.number}
@@ -736,7 +839,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-emerald-400 text-[11px] font-medium">
-                Фоновый режим
+                Фондук режим
               </span>
             </div>
           </div>
@@ -787,10 +890,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
                          ${repeatMode !== "off" ? "bg-emerald-500/15 text-emerald-400" : "text-slate-500 hover:text-slate-300"}`}
               title={
                 repeatMode === "off"
-                  ? "Повтор выкл"
+                  ? "Кайталоо өчүк"
                   : repeatMode === "one"
-                    ? "Повтор суры"
-                    : "Повтор всех"
+                    ? "Сүрөнү кайталоо"
+                    : "Баарын кайталоо"
               }
             >
               {repeatMode === "one" ? (
@@ -809,19 +912,25 @@ export function AudioProvider({ children }: { children: ReactNode }) {
               <SkipBack className="w-5 h-5 text-white" />
             </button>
 
-            {/* Play / Pause (large, center) */}
+            {/* Play / Pause / Loading (large, center) */}
             <button
-              onClick={toggle}
+              onClick={() => {
+                if (!isLoading) toggle();
+              }}
               className={`flex items-center justify-center w-18 h-18 rounded-full
                           transition-all duration-300
                           ${
-                            isPlaying
-                              ? "bg-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.4)]"
-                              : "bg-white/15 hover:bg-white/20"
+                            isLoading
+                              ? "bg-emerald-500/50"
+                              : isPlaying
+                                ? "bg-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.4)]"
+                                : "bg-white/15 hover:bg-white/20"
                           }`}
               style={{ width: "72px", height: "72px" }}
             >
-              {isPlaying ? (
+              {isLoading ? (
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              ) : isPlaying ? (
                 <Pause className="w-8 h-8 text-white" />
               ) : (
                 <Play className="w-8 h-8 text-white ml-1" />

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { QUIZ_CATEGORIES, QUIZ_DATA } from "../data/quiz";
 import type { QuizQuestion, QuizCategory } from "../data/quiz";
+import { storage, POINTS } from "../lib/storage";
 
 // ============================================================
 // Constants
@@ -271,6 +272,10 @@ export default function Quiz() {
   const [adaptiveQuestionCount, setAdaptiveQuestionCount] = useState(0);
   const ADAPTIVE_TOTAL = 20; // number of questions in adaptive mode
 
+  // Scoring: first attempt only
+  const [isFirstAttempt, setIsFirstAttempt] = useState(true);
+  const [pointsEarned, setPointsEarned] = useState(0);
+
   // Animations
   const [shakeAnswer, setShakeAnswer] = useState(false);
   const [flashCorrect, setFlashCorrect] = useState(false);
@@ -336,6 +341,13 @@ export default function Quiz() {
     }
   }, [questions, currentIndex, gameMode]);
 
+  // Helper: build storage key for quiz used IDs
+  const getUsedIdsKey = useCallback(
+    (categoryKey: string | null, mode: GameMode) =>
+      `${categoryKey || "_all"}_${mode}`,
+    [],
+  );
+
   // Start quiz
   const startQuiz = useCallback(
     (categoryKey: string | null, mode: GameMode) => {
@@ -348,15 +360,24 @@ export default function Quiz() {
       setShowExplanation(false);
       setShakeAnswer(false);
       setFlashCorrect(false);
+      setPointsEarned(0);
+
+      // Check if this quiz combination was already scored
+      const scoreKey = `${categoryKey || "_all"}_${mode}`;
+      setIsFirstAttempt(!storage.isQuizScored(scoreKey));
+
+      // Load persisted usedIds for this category+mode
+      const persistKey = `${categoryKey || "_all"}_${mode}`;
+      const savedUsedIds = storage.getQuizUsedIds(persistKey);
 
       if (mode === "adaptive") {
         // Adaptive: start with easy, pick first question
-        const firstUsedIds = new Set<number>();
-        const firstQ = pickNextAdaptive("easy", firstUsedIds, categoryKey);
+        const firstQ = pickNextAdaptive("easy", savedUsedIds, categoryKey);
         if (firstQ) {
-          firstUsedIds.add(firstQ.id);
+          savedUsedIds.add(firstQ.id);
           setQuestions([firstQ]);
-          setUsedIds(firstUsedIds);
+          setUsedIds(savedUsedIds);
+          storage.setQuizUsedIds(persistKey, savedUsedIds);
           setAdaptiveLevel("easy");
           setAdaptiveStreak(0);
           setAdaptiveQuestionCount(1);
@@ -365,19 +386,29 @@ export default function Quiz() {
           setTimerMax(t);
         }
       } else {
-        let filtered: QuizQuestion[];
+        let pool: QuizQuestion[];
         if (mode === "easy" || mode === "medium" || mode === "hard") {
-          const pool = categoryKey
+          const base = categoryKey
             ? QUIZ_DATA.filter((q) => q.category === categoryKey)
             : QUIZ_DATA;
-          filtered = pool.filter((q) => getDifficulty(q) === mode);
+          pool = base.filter((q) => getDifficulty(q) === mode);
         } else {
-          filtered = categoryKey
+          pool = categoryKey
             ? QUIZ_DATA.filter((q) => q.category === categoryKey)
             : [...QUIZ_DATA];
         }
-        const shuffled = shuffle(filtered);
+
+        // Filter out already-seen questions
+        let unseen = pool.filter((q) => !savedUsedIds.has(q.id));
+        if (unseen.length === 0) {
+          // All questions seen — reset and start fresh
+          storage.clearQuizUsedIds(persistKey);
+          unseen = pool;
+        }
+
+        const shuffled = shuffle(unseen);
         setQuestions(shuffled);
+        setUsedIds(savedUsedIds);
 
         if (shuffled.length > 0) {
           const t = getTimerForQuestion(shuffled[0]);
@@ -404,6 +435,15 @@ export default function Quiz() {
       setTimerActive(false);
       setShowExplanation(true);
 
+      // Persist this question as "used" so it won't repeat next session
+      const persistKey = getUsedIdsKey(activeCategory, gameMode);
+      setUsedIds((prev) => {
+        const next = new Set(prev);
+        next.add(currentQ.id);
+        storage.setQuizUsedIds(persistKey, next);
+        return next;
+      });
+
       if (isCorrect) {
         setCorrectCount((prev) => prev + 1);
         setFlashCorrect(true);
@@ -428,7 +468,14 @@ export default function Quiz() {
         }
       }
     },
-    [selectedAnswer, questions, currentIndex, gameMode],
+    [
+      selectedAnswer,
+      questions,
+      currentIndex,
+      gameMode,
+      activeCategory,
+      getUsedIdsKey,
+    ],
   );
 
   // Next question
@@ -453,6 +500,15 @@ export default function Quiz() {
         updated[key] = { correct, total, percentage };
         saveHighScores(updated);
         setHighScores(updated);
+      }
+
+      // Award points only on first attempt
+      if (!storage.isQuizScored(key) && correct > 0) {
+        const earned = correct * POINTS.QUIZ_CORRECT;
+        storage.addPoints(earned);
+        storage.markQuizScored(key);
+        setPointsEarned(earned);
+        setIsFirstAttempt(true);
       }
 
       setView("finished");
@@ -486,6 +542,8 @@ export default function Quiz() {
         const newUsed = new Set(usedIds);
         newUsed.add(nextQ.id);
         setUsedIds(newUsed);
+        const persistKey = getUsedIdsKey(activeCategory, gameMode);
+        storage.setQuizUsedIds(persistKey, newUsed);
         setQuestions((prev) => [...prev, nextQ]);
         setCurrentIndex((prev) => prev + 1);
         setAdaptiveQuestionCount((prev) => prev + 1);
@@ -771,6 +829,16 @@ export default function Quiz() {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Training mode indicator */}
+        {!isFirstAttempt && (
+          <div className="flex items-center justify-center gap-1.5 px-4 mb-2">
+            <RotateCcw size={12} className="text-slate-500" />
+            <span className="text-xs text-slate-500">
+              Тренировка (без очков)
+            </span>
+          </div>
+        )}
 
         {/* Adaptive level indicator */}
         {gameMode === "adaptive" && (
@@ -1077,6 +1145,23 @@ export default function Quiz() {
             <div className="text-xs text-gray-500">Всего</div>
           </div>
         </div>
+
+        {/* Points earned or training mode */}
+        {pointsEarned > 0 ? (
+          <div className="mt-5 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30">
+            <Zap className="w-5 h-5 text-emerald-400" />
+            <span className="text-emerald-400 font-semibold text-sm">
+              +{pointsEarned} очков начислено!
+            </span>
+          </div>
+        ) : !isFirstAttempt ? (
+          <div className="mt-5 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-500/15 border border-slate-500/30">
+            <RotateCcw className="w-4 h-4 text-slate-400" />
+            <span className="text-slate-400 text-sm">
+              Тренировка — очки уже получены
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {/* Difficulty Breakdown */}

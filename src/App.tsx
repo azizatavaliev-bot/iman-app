@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useCallback } from "react";
+import { lazy, Suspense, useState, useCallback, useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -11,6 +11,7 @@ import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
 import { getTelegramUser } from "./lib/telegram";
 import { initAudioUnlock } from "./lib/audioUnlock";
+import { syncUserData } from "./lib/sync";
 import Onboarding from "./pages/Onboarding";
 import "./index.css";
 
@@ -34,6 +35,7 @@ const Memorize = lazy(() => import("./pages/Memorize"));
 const Quiz = lazy(() => import("./pages/Quiz"));
 const Seerah = lazy(() => import("./pages/Seerah"));
 const Beginners = lazy(() => import("./pages/Beginners"));
+const Guide = lazy(() => import("./pages/Guide"));
 
 function PageLoader() {
   return (
@@ -121,6 +123,7 @@ function AppContent() {
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/seerah" element={<Seerah />} />
             <Route path="/beginners" element={<Beginners />} />
+            <Route path="/guide" element={<Guide />} />
           </Routes>
         </Suspense>
       </div>
@@ -163,6 +166,13 @@ function isOnboarded(): boolean {
 
 export default function App() {
   const [onboarded, setOnboarded] = useState(isOnboarded);
+
+  // Sync user data with server on startup (Telegram only)
+  useEffect(() => {
+    if (onboarded) {
+      syncUserData().catch(console.error);
+    }
+  }, [onboarded]);
 
   const handleOnboardingComplete = useCallback(() => {
     setOnboarded(true);

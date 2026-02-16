@@ -1,8 +1,9 @@
 import { createServer } from "http";
-import { readFileSync, existsSync, writeFileSync } from "fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, createHmac } from "crypto";
+import Database from "better-sqlite3";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(__dirname, "dist");
@@ -12,6 +13,30 @@ const BOT_TOKEN =
 const APP_URL =
   process.env.APP_URL || "https://iman-app-production.up.railway.app";
 const WEBHOOK_PATH = `/webhook-${BOT_TOKEN.split(":")[0]}`;
+
+// =========================================================================
+// SQLite DATABASE — User data persistence
+// =========================================================================
+const DATA_DIR = join(__dirname, "data");
+if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+
+const db = new Database(join(DATA_DIR, "iman.db"));
+db.pragma("journal_mode = WAL");
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    telegram_id INTEGER PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )
+`);
+
+const stmtGetUser = db.prepare(
+  "SELECT data, updated_at FROM users WHERE telegram_id = ?",
+);
+const stmtUpsertUser = db.prepare(`
+  INSERT INTO users (telegram_id, data, updated_at) VALUES (?, ?, ?)
+  ON CONFLICT(telegram_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+`);
 
 // =========================================================================
 // SECURITY — Webhook secret token for Telegram verification
@@ -81,7 +106,8 @@ const SECURITY_HEADERS = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://cdn.jsdelivr.net https://api.quran.com https://cdn.islamic.network",
+    "connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://cdn.jsdelivr.net https://api.quran.com https://cdn.islamic.network https://server8.mp3quran.net",
+    "media-src 'self' https://cdn.islamic.network https://server8.mp3quran.net blob: data:",
     "frame-ancestors 'none'",
   ].join("; "),
 };
@@ -761,6 +787,85 @@ const server = createServer(async (req, res) => {
         uptime: Math.floor(process.uptime()),
       }),
     );
+    return;
+  }
+
+  // ── User Data API ─────────────────────────────────────────────────────
+  const userMatch = req.url?.match(/^\/api\/user\/(\d+)$/);
+  if (userMatch) {
+    const telegramId = parseInt(userMatch[1], 10);
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+
+    if (req.method === "GET") {
+      const row = stmtGetUser.get(telegramId);
+      if (!row) {
+        res.writeHead(404, corsHeaders);
+        res.end('{"error":"not_found"}');
+      } else {
+        res.writeHead(200, corsHeaders);
+        res.end(
+          JSON.stringify({
+            data: JSON.parse(row.data),
+            updated_at: row.updated_at,
+          }),
+        );
+      }
+      return;
+    }
+
+    if (req.method === "POST") {
+      let body = "";
+      let bodySize = 0;
+      const MAX = 2 * 1024 * 1024; // 2MB
+
+      req.on("data", (chunk) => {
+        bodySize += chunk.length;
+        if (bodySize > MAX) {
+          req.destroy();
+          return;
+        }
+        body += chunk;
+      });
+
+      req.on("end", () => {
+        if (bodySize > MAX) {
+          res.writeHead(413, corsHeaders);
+          res.end('{"error":"too_large"}');
+          return;
+        }
+        try {
+          const parsed = JSON.parse(body);
+          if (!parsed.data || typeof parsed.data !== "object") {
+            res.writeHead(400, corsHeaders);
+            res.end('{"error":"invalid_data"}');
+            return;
+          }
+          const now = Date.now();
+          stmtUpsertUser.run(telegramId, JSON.stringify(parsed.data), now);
+          res.writeHead(200, corsHeaders);
+          res.end(JSON.stringify({ ok: true, updated_at: now }));
+        } catch (e) {
+          res.writeHead(400, corsHeaders);
+          res.end('{"error":"invalid_json"}');
+        }
+      });
+      return;
+    }
+
+    res.writeHead(405, corsHeaders);
+    res.end('{"error":"method_not_allowed"}');
     return;
   }
 

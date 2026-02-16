@@ -532,6 +532,11 @@ export default function Dashboard() {
   const greeting = getGreeting();
   const currentLevel = getCurrentLevel(profile.totalPoints);
   const nextLevel = LEVELS.find((l) => l.minPoints > profile.totalPoints);
+  const currentLevelIndex = LEVELS.findIndex(
+    (l) => l.name === currentLevel.name,
+  );
+  const prevLevel =
+    currentLevelIndex > 0 ? LEVELS[currentLevelIndex - 1] : null;
 
   // Level progress
   const levelProgressPct = nextLevel
@@ -763,6 +768,7 @@ export default function Dashboard() {
 
   // ---------- Stats ----------
   const streak = profile.streak;
+  const longestStreak = profile.longestStreak;
   const prayersCompleted = todayStats.prayersCompleted;
   const habitsCompleted = todayStats.habitsCompleted;
   const pointsEarned = todayStats.pointsEarned;
@@ -820,7 +826,140 @@ export default function Dashboard() {
       </header>
 
       {/* ================================================================ */}
-      {/* 2. DAILY SCORE CARD                                              */}
+      {/* 2. QUICK ACTIONS — Features Grid                                 */}
+      {/* ================================================================ */}
+      <div>
+        <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3 px-1">
+          Возможности IMAN
+        </h3>
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            {
+              icon: BookOpen,
+              label: "Введение",
+              path: "/guide",
+              color: "text-violet-400",
+              bg: "bg-violet-400/10",
+            },
+            {
+              icon: GraduationCap,
+              label: "Новичкам",
+              path: "/beginners",
+              color: "text-yellow-400",
+              bg: "bg-yellow-400/10",
+            },
+            {
+              icon: Moon,
+              label: "Намазы",
+              path: "/prayers",
+              color: "text-emerald-400",
+              bg: "bg-emerald-400/10",
+            },
+            {
+              icon: BookOpen,
+              label: "Коран",
+              path: "/quran",
+              color: "text-sky-400",
+              bg: "bg-sky-400/10",
+            },
+            {
+              icon: Quote,
+              label: "Хадисы",
+              path: "/hadiths",
+              color: "text-amber-400",
+              bg: "bg-amber-400/10",
+            },
+            {
+              icon: Star,
+              label: "99 Имён",
+              path: "/names",
+              color: "text-purple-400",
+              bg: "bg-purple-400/10",
+            },
+            {
+              icon: Heart,
+              label: "Дуа",
+              path: "/dua",
+              color: "text-pink-400",
+              bg: "bg-pink-400/10",
+            },
+            {
+              icon: Brain,
+              label: "Викторина",
+              path: "/quiz",
+              color: "text-orange-400",
+              bg: "bg-orange-400/10",
+            },
+            {
+              icon: Timer,
+              label: "Ибада",
+              path: "/ibadah",
+              color: "text-cyan-400",
+              bg: "bg-cyan-400/10",
+            },
+            {
+              icon: Headphones,
+              label: "Хифз",
+              path: "/memorize",
+              color: "text-violet-400",
+              bg: "bg-violet-400/10",
+            },
+            {
+              icon: Target,
+              label: "Привычки",
+              path: "/habits",
+              color: "text-rose-400",
+              bg: "bg-rose-400/10",
+            },
+            {
+              icon: Calendar,
+              label: "Зикры",
+              path: "/dhikr",
+              color: "text-teal-400",
+              bg: "bg-teal-400/10",
+            },
+            {
+              icon: Moon,
+              label: "Рамадан",
+              path: "/ramadan",
+              color: "text-indigo-400",
+              bg: "bg-indigo-400/10",
+            },
+            {
+              icon: BarChart3,
+              label: "Статистика",
+              path: "/stats",
+              color: "text-lime-400",
+              bg: "bg-lime-400/10",
+            },
+            {
+              icon: BookOpen,
+              label: "Сира",
+              path: "/seerah",
+              color: "text-rose-400",
+              bg: "bg-rose-400/10",
+            },
+          ].map(({ icon: Icon, label, path, color, bg }) => (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className="glass-card p-3 flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+            >
+              <div
+                className={`${bg} w-11 h-11 rounded-xl flex items-center justify-center`}
+              >
+                <Icon size={20} className={color} />
+              </div>
+              <span className="text-[11px] text-white/70 font-medium">
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ================================================================ */}
+      {/* 3. DAILY SCORE CARD                                              */}
       {/* ================================================================ */}
       <div className="glass-card p-5 relative overflow-hidden">
         {/* Decorative glow based on completion */}
@@ -1010,38 +1149,53 @@ export default function Dashboard() {
       </div>
 
       {/* ================================================================ */}
-      {/* 5. STREAK + LEVEL PROGRESS (combined card)                       */}
+      {/* 5. STREAK + LEVEL PROGRESS (Duolingo-style)                      */}
       {/* ================================================================ */}
       <div className="glass-card p-4 relative overflow-hidden">
         {/* Fire glow for streak > 7 */}
         {streak > 7 && (
-          <div className="absolute -bottom-6 left-8 w-24 h-24 bg-amber-500/15 rounded-full blur-2xl pointer-events-none animate-pulse" />
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-32 h-32 bg-amber-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
         )}
 
-        <div className="flex items-center gap-5">
-          {/* Left: Streak */}
+        {/* Streak hero */}
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Flame
-              size={32}
-              className={
+            <div
+              className={`relative flex items-center justify-center w-14 h-14 rounded-2xl ${
                 streak > 7
-                  ? "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                  ? "bg-gradient-to-br from-amber-500/30 to-orange-500/20 border border-amber-500/30"
                   : streak > 0
-                    ? "text-amber-400/70"
-                    : "text-white/20"
-              }
-              fill={streak > 0 ? "currentColor" : "none"}
-              style={
-                streak > 7
-                  ? { animation: "streak-flame 1.5s ease-in-out infinite" }
-                  : {}
-              }
-            />
+                    ? "bg-amber-500/10 border border-amber-500/20"
+                    : "t-bg border t-border"
+              }`}
+            >
+              <Flame
+                size={30}
+                className={
+                  streak > 7
+                    ? "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                    : streak > 0
+                      ? "text-amber-400/70"
+                      : "text-white/20"
+                }
+                fill={streak > 0 ? "currentColor" : "none"}
+                style={
+                  streak > 7
+                    ? { animation: "streak-flame 1.5s ease-in-out infinite" }
+                    : {}
+                }
+              />
+              {streak > 7 && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center text-[9px] font-bold text-white border-2 border-slate-900">
+                  {streak > 99 ? "99" : streak}
+                </div>
+              )}
+            </div>
             <div>
-              <p className="text-2xl font-black text-white tabular-nums">
+              <p className="text-2xl font-black text-white tabular-nums leading-none">
                 {streak}
               </p>
-              <p className="text-[10px] text-white/40">
+              <p className="text-xs text-white/40 mt-0.5">
                 {streak === 1
                   ? "день подряд"
                   : streak >= 2 && streak <= 4
@@ -1050,57 +1204,146 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
+          {longestStreak > 0 && (
+            <div className="text-right">
+              <p className="text-[10px] text-white/30 uppercase tracking-wider">
+                Рекорд
+              </p>
+              <p className="text-lg font-bold text-amber-400/60 tabular-nums">
+                {longestStreak}
+              </p>
+            </div>
+          )}
+        </div>
 
-          {/* Divider */}
-          <div className="w-px h-12 t-bg" />
+        {/* Weekly dots (like Duolingo) */}
+        <div className="flex items-center justify-between mb-4 px-1">
+          {weeklyBarData.map((day) => {
+            const active = day.points > 0;
+            const isFuture = day.isFuture;
+            return (
+              <div
+                key={day.date}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <span className="text-[10px] text-white/30 font-medium">
+                  {day.dayLabel}
+                </span>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    day.isToday
+                      ? active
+                        ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                        : "border-2 border-emerald-500/50 bg-emerald-500/10"
+                      : active
+                        ? "bg-emerald-500/25 border border-emerald-500/40"
+                        : isFuture
+                          ? "t-bg border t-border opacity-30"
+                          : "t-bg border t-border"
+                  }`}
+                >
+                  {active && (
+                    <Check
+                      size={14}
+                      className={
+                        day.isToday ? "text-white" : "text-emerald-400"
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-          {/* Right: Level progress */}
-          <button
-            onClick={() => navigate("/profile")}
-            className="flex-1 min-w-0 group"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm">{currentLevel.icon}</span>
-                <span className="text-xs font-semibold t-text">
-                  {currentLevel.name}
+        {/* Motivational message */}
+        {streak > 0 && (
+          <p className="text-xs text-center text-white/30 mb-4">
+            {streak >= 30
+              ? "Субханаллах! Ты на пути к величию!"
+              : streak >= 7
+                ? "Отличная привычка! Не останавливайся!"
+                : streak >= 3
+                  ? "Хорошее начало! Продолжай каждый день"
+                  : "Начало положено! Завтра будет 2-й день"}
+          </p>
+        )}
+
+        {/* Divider */}
+        <div className="h-px t-bg mb-4" />
+
+        {/* Mini level ladder: prev → current → next */}
+        <div className="flex items-center gap-2 mb-3">
+          {prevLevel && (
+            <>
+              <div className="flex items-center gap-1 opacity-40">
+                <span className="text-sm">{prevLevel.icon}</span>
+                <span className="text-[10px] text-white/60">
+                  {prevLevel.name}
                 </span>
               </div>
-              {nextLevel ? (
-                <span className="text-[10px] t-text-f group-hover:t-text-m transition-colors flex items-center gap-0.5">
-                  {profile.totalPoints}/{nextLevel.minPoints}
-                  <ChevronRight size={10} />
+              <ChevronRight size={12} className="text-white/15" />
+            </>
+          )}
+          <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+            <span className="text-base">{currentLevel.icon}</span>
+            <span className="text-xs font-bold text-emerald-400">
+              {currentLevel.name}
+            </span>
+          </div>
+          {nextLevel && (
+            <>
+              <ChevronRight size={12} className="text-white/15" />
+              <div className="flex items-center gap-1 opacity-40">
+                <span className="text-sm">{nextLevel.icon}</span>
+                <span className="text-[10px] text-white/60">
+                  {nextLevel.name}
                 </span>
-              ) : (
-                <span className="text-[10px] text-amber-400/70">MAX</span>
-              )}
-            </div>
-            <div className="w-full h-2 t-bg rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700 ease-out"
-                style={{
-                  width: `${levelProgressPct}%`,
-                  background:
-                    levelProgressPct >= 100
-                      ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                      : "linear-gradient(90deg, #10b981, #34d399)",
-                  boxShadow:
-                    levelProgressPct >= 100
-                      ? "0 0 12px rgba(245,158,11,0.4)"
-                      : "0 0 12px rgba(16,185,129,0.4)",
-                }}
-              />
-            </div>
-            {nextLevel && (
-              <p className="text-[9px] text-white/20 mt-1">
-                Ещё {nextLevel.minPoints - profile.totalPoints} до{" "}
-                <span className="text-amber-400/40">
-                  {nextLevel.icon} {nextLevel.name}
-                </span>
-              </p>
-            )}
-          </button>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Progress bar */}
+        <div className="w-full h-2.5 t-bg rounded-full overflow-hidden mb-2">
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out"
+            style={{
+              width: `${levelProgressPct}%`,
+              background:
+                levelProgressPct >= 100
+                  ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+                  : "linear-gradient(90deg, #10b981, #34d399)",
+              boxShadow:
+                levelProgressPct >= 100
+                  ? "0 0 12px rgba(245,158,11,0.4)"
+                  : "0 0 12px rgba(16,185,129,0.4)",
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] text-white/30">
+            {profile.totalPoints.toLocaleString()} очков
+          </p>
+          {nextLevel ? (
+            <p className="text-[10px] text-white/20">
+              Ещё {(nextLevel.minPoints - profile.totalPoints).toLocaleString()}{" "}
+              до <span className="text-amber-400/40">{nextLevel.name}</span>
+            </p>
+          ) : (
+            <p className="text-[10px] text-amber-400/70">MAX</p>
+          )}
+        </div>
+
+        {/* Link to all levels */}
+        <button
+          onClick={() => navigate("/guide#levels")}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg t-bg text-white/40 text-[11px] font-medium hover:text-white/60 transition-colors"
+        >
+          Все уровни
+          <ChevronRight size={12} />
+        </button>
       </div>
 
       {/* ================================================================ */}
@@ -1131,128 +1374,7 @@ export default function Dashboard() {
       </div>
 
       {/* ================================================================ */}
-      {/* 7. QUICK ACTIONS — 3x2 GRID                                      */}
-      {/* ================================================================ */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          {
-            icon: GraduationCap,
-            label: "Новичкам",
-            path: "/beginners",
-            color: "text-yellow-400",
-            bg: "bg-yellow-400/10",
-          },
-          {
-            icon: Moon,
-            label: "Намазы",
-            path: "/prayers",
-            color: "text-emerald-400",
-            bg: "bg-emerald-400/10",
-          },
-          {
-            icon: BookOpen,
-            label: "Коран",
-            path: "/quran",
-            color: "text-sky-400",
-            bg: "bg-sky-400/10",
-          },
-          {
-            icon: Quote,
-            label: "Хадисы",
-            path: "/hadiths",
-            color: "text-amber-400",
-            bg: "bg-amber-400/10",
-          },
-          {
-            icon: Star,
-            label: "99 Имён",
-            path: "/names",
-            color: "text-purple-400",
-            bg: "bg-purple-400/10",
-          },
-          {
-            icon: Heart,
-            label: "Дуа",
-            path: "/dua",
-            color: "text-pink-400",
-            bg: "bg-pink-400/10",
-          },
-          {
-            icon: Brain,
-            label: "Викторина",
-            path: "/quiz",
-            color: "text-orange-400",
-            bg: "bg-orange-400/10",
-          },
-          {
-            icon: Timer,
-            label: "Ибада",
-            path: "/ibadah",
-            color: "text-cyan-400",
-            bg: "bg-cyan-400/10",
-          },
-          {
-            icon: Headphones,
-            label: "Хифз",
-            path: "/memorize",
-            color: "text-violet-400",
-            bg: "bg-violet-400/10",
-          },
-          {
-            icon: Target,
-            label: "Привычки",
-            path: "/habits",
-            color: "text-rose-400",
-            bg: "bg-rose-400/10",
-          },
-          {
-            icon: Calendar,
-            label: "Зикры",
-            path: "/dhikr",
-            color: "text-teal-400",
-            bg: "bg-teal-400/10",
-          },
-          {
-            icon: Moon,
-            label: "Рамадан",
-            path: "/ramadan",
-            color: "text-indigo-400",
-            bg: "bg-indigo-400/10",
-          },
-          {
-            icon: BarChart3,
-            label: "Статистика",
-            path: "/stats",
-            color: "text-lime-400",
-            bg: "bg-lime-400/10",
-          },
-          {
-            icon: BookOpen,
-            label: "Сира",
-            path: "/seerah",
-            color: "text-rose-400",
-            bg: "bg-rose-400/10",
-          },
-        ].map(({ icon: Icon, label, path, color, bg }) => (
-          <button
-            key={path}
-            onClick={() => navigate(path)}
-            className="glass-card p-3 flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
-          >
-            <div
-              className={`${bg} w-11 h-11 rounded-xl flex items-center justify-center`}
-            >
-              <Icon size={20} className={color} />
-            </div>
-            <span className="text-[11px] text-white/70 font-medium">
-              {label}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* ================================================================ */}
-      {/* 8. WEEKLY OVERVIEW — Mini 7-day bar chart                        */}
+      {/* 7. WEEKLY OVERVIEW — Mini 7-day bar chart                        */}
       {/* ================================================================ */}
       <div className="glass-card p-4">
         <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">
