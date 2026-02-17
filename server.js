@@ -913,6 +913,53 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── Database status endpoint ──────────────────────────────────────────
+  if (req.url === "/api/db-status" && req.method === "GET") {
+    (async () => {
+      try {
+        const dbCheck = await pool.query(
+          "SELECT NOW(), pg_database_size(current_database()) as size",
+        );
+        const usersCount = await pool.query(
+          "SELECT COUNT(*) as count FROM users",
+        );
+        const analyticsCount = await pool.query(
+          "SELECT COUNT(*) as count FROM analytics",
+        );
+
+        res.writeHead(200, {
+          ...SECURITY_HEADERS,
+          "Content-Type": "application/json",
+        });
+        res.end(
+          JSON.stringify({
+            status: "connected",
+            database: "PostgreSQL",
+            timestamp: dbCheck.rows[0].now,
+            size_bytes: parseInt(dbCheck.rows[0].size),
+            tables: {
+              users: parseInt(usersCount.rows[0].count),
+              analytics: parseInt(analyticsCount.rows[0].count),
+            },
+          }),
+        );
+      } catch (err) {
+        res.writeHead(500, {
+          ...SECURITY_HEADERS,
+          "Content-Type": "application/json",
+        });
+        res.end(
+          JSON.stringify({
+            status: "error",
+            database: "unknown",
+            error: err.message,
+          }),
+        );
+      }
+    })();
+    return;
+  }
+
   // ── Admin API — Get all users ─────────────────────────────────────────
   if (req.url === "/api/admin/users" && req.method === "GET") {
     const corsHeaders = {
