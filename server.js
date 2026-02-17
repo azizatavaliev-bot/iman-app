@@ -942,23 +942,26 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    try {
-      const result = await pool.query(
-        "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC"
-      );
-      const rows = result.rows.map(row => ({
-        telegram_id: row.telegram_id,
-        data: typeof row.data === 'string' ? row.data : JSON.stringify(row.data),
-        updated_at: row.updated_at
-      }));
+    (async () => {
+      try {
+        const result = await pool.query(
+          "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC",
+        );
+        const rows = result.rows.map((row) => ({
+          telegram_id: row.telegram_id,
+          data:
+            typeof row.data === "string" ? row.data : JSON.stringify(row.data),
+          updated_at: row.updated_at,
+        }));
 
-      res.writeHead(200, corsHeaders);
-      res.end(JSON.stringify({ users: rows }));
-    } catch (e) {
-      console.error("Admin API error:", e);
-      res.writeHead(500, corsHeaders);
-      res.end('{"error":"internal_error"}');
-    }
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({ users: rows }));
+      } catch (e) {
+        console.error("Admin API error:", e);
+        res.writeHead(500, corsHeaders);
+        res.end('{"error":"internal_error"}');
+      }
+    })();
     return;
   }
 
@@ -991,7 +994,7 @@ const server = createServer(async (req, res) => {
       body += chunk;
     });
 
-    req.on("end", () => {
+    req.on("end", async () => {
       if (bodySize > MAX) {
         res.writeHead(413, corsHeaders);
         res.end('{"error":"too_large"}');
@@ -1059,93 +1062,95 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    try {
-      const now = Date.now();
-      const FIVE_MIN = 5 * 60 * 1000;
-      const ONE_DAY = 24 * 60 * 60 * 1000;
+    (async () => {
+      try {
+        const now = Date.now();
+        const FIVE_MIN = 5 * 60 * 1000;
+        const ONE_DAY = 24 * 60 * 60 * 1000;
 
-      // Online users (active in last 5 min)
-      const onlineResult = await pool.query(
-        `SELECT COUNT(DISTINCT telegram_id) as count
-         FROM analytics
-         WHERE timestamp > $1`,
-        [now - FIVE_MIN]
-      );
-      const online = parseInt(onlineResult.rows[0].count);
+        // Online users (active in last 5 min)
+        const onlineResult = await pool.query(
+          `SELECT COUNT(DISTINCT telegram_id) as count
+           FROM analytics
+           WHERE timestamp > $1`,
+          [now - FIVE_MIN],
+        );
+        const online = parseInt(onlineResult.rows[0].count);
 
-      // Active today (active in last 24h)
-      const activeTodayResult = await pool.query(
-        `SELECT COUNT(DISTINCT telegram_id) as count
-         FROM analytics
-         WHERE timestamp > $1`,
-        [now - ONE_DAY]
-      );
-      const activeToday = parseInt(activeTodayResult.rows[0].count);
+        // Active today (active in last 24h)
+        const activeTodayResult = await pool.query(
+          `SELECT COUNT(DISTINCT telegram_id) as count
+           FROM analytics
+           WHERE timestamp > $1`,
+          [now - ONE_DAY],
+        );
+        const activeToday = parseInt(activeTodayResult.rows[0].count);
 
-      // Top pages (last 7 days)
-      const topPagesResult = await pool.query(
-        `SELECT page, COUNT(*) as count
-         FROM analytics
-         WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > $1
-         GROUP BY page
-         ORDER BY count DESC
-         LIMIT 10`,
-        [now - 7 * ONE_DAY]
-      );
-      const topPages = topPagesResult.rows;
+        // Top pages (last 7 days)
+        const topPagesResult = await pool.query(
+          `SELECT page, COUNT(*) as count
+           FROM analytics
+           WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > $1
+           GROUP BY page
+           ORDER BY count DESC
+           LIMIT 10`,
+          [now - 7 * ONE_DAY],
+        );
+        const topPages = topPagesResult.rows;
 
-      // Top actions (last 7 days)
-      const topActionsResult = await pool.query(
-        `SELECT action, COUNT(*) as count
-         FROM analytics
-         WHERE type = 'action' AND action IS NOT NULL AND timestamp > $1
-         GROUP BY action
-         ORDER BY count DESC
-         LIMIT 10`,
-        [now - 7 * ONE_DAY]
-      );
-      const topActions = topActionsResult.rows;
+        // Top actions (last 7 days)
+        const topActionsResult = await pool.query(
+          `SELECT action, COUNT(*) as count
+           FROM analytics
+           WHERE type = 'action' AND action IS NOT NULL AND timestamp > $1
+           GROUP BY action
+           ORDER BY count DESC
+           LIMIT 10`,
+          [now - 7 * ONE_DAY],
+        );
+        const topActions = topActionsResult.rows;
 
-      // Average session duration (last 7 days)
-      const avgSessionResult = await pool.query(
-        `SELECT AVG((metadata->>'duration')::INTEGER) as avg_duration
-         FROM analytics
-         WHERE type = 'session_end' AND timestamp > $1 AND metadata IS NOT NULL`,
-        [now - 7 * ONE_DAY]
-      );
-      const avgDuration = avgSessionResult.rows[0].avg_duration
-        ? Math.round(avgSessionResult.rows[0].avg_duration / 1000)
-        : 0; // convert to seconds
+        // Average session duration (last 7 days)
+        const avgSessionResult = await pool.query(
+          `SELECT AVG((metadata->>'duration')::INTEGER) as avg_duration
+           FROM analytics
+           WHERE type = 'session_end' AND timestamp > $1 AND metadata IS NOT NULL`,
+          [now - 7 * ONE_DAY],
+        );
+        const avgDuration = avgSessionResult.rows[0].avg_duration
+          ? Math.round(avgSessionResult.rows[0].avg_duration / 1000)
+          : 0; // convert to seconds
 
-      // User activity timeline (last 24h, grouped by hour)
-      const timelineResult = await pool.query(
-        `SELECT
-          EXTRACT(HOUR FROM to_timestamp(timestamp / 1000)) as hour,
-          COUNT(DISTINCT telegram_id) as users
-         FROM analytics
-         WHERE timestamp > $1
-         GROUP BY hour
-         ORDER BY hour`,
-        [now - ONE_DAY]
-      );
-      const timeline = timelineResult.rows;
+        // User activity timeline (last 24h, grouped by hour)
+        const timelineResult = await pool.query(
+          `SELECT
+            EXTRACT(HOUR FROM to_timestamp(timestamp / 1000)) as hour,
+            COUNT(DISTINCT telegram_id) as users
+           FROM analytics
+           WHERE timestamp > $1
+           GROUP BY hour
+           ORDER BY hour`,
+          [now - ONE_DAY],
+        );
+        const timeline = timelineResult.rows;
 
-      res.writeHead(200, corsHeaders);
-      res.end(
-        JSON.stringify({
-          online,
-          activeToday,
-          topPages,
-          topActions,
-          avgSessionDuration: avgDuration,
-          timeline,
-        }),
-      );
-    } catch (e) {
-      console.error("Admin analytics error:", e);
-      res.writeHead(500, corsHeaders);
-      res.end('{"error":"internal_error"}');
-    }
+        res.writeHead(200, corsHeaders);
+        res.end(
+          JSON.stringify({
+            online,
+            activeToday,
+            topPages,
+            topActions,
+            avgSessionDuration: avgDuration,
+            timeline,
+          }),
+        );
+      } catch (e) {
+        console.error("Admin analytics error:", e);
+        res.writeHead(500, corsHeaders);
+        res.end('{"error":"internal_error"}');
+      }
+    })();
     return;
   }
 
@@ -1168,18 +1173,24 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET") {
-      const row = await stmtGetUser.get(telegramId);
-      if (!row) {
-        res.writeHead(404, corsHeaders);
-        res.end('{"error":"not_found"}');
-      } else {
-        res.writeHead(200, corsHeaders);
-        res.end(
-          JSON.stringify({
-            data: JSON.parse(row.data),
-            updated_at: row.updated_at,
-          }),
-        );
+      try {
+        const row = await stmtGetUser.get(telegramId);
+        if (!row) {
+          res.writeHead(404, corsHeaders);
+          res.end('{"error":"not_found"}');
+        } else {
+          res.writeHead(200, corsHeaders);
+          res.end(
+            JSON.stringify({
+              data: JSON.parse(row.data),
+              updated_at: row.updated_at,
+            }),
+          );
+        }
+      } catch (e) {
+        console.error("User GET error:", e);
+        res.writeHead(500, corsHeaders);
+        res.end('{"error":"internal_error"}');
       }
       return;
     }
@@ -1198,7 +1209,7 @@ const server = createServer(async (req, res) => {
         body += chunk;
       });
 
-      req.on("end", () => {
+      req.on("end", async () => {
         if (bodySize > MAX) {
           res.writeHead(413, corsHeaders);
           res.end('{"error":"too_large"}');
@@ -1212,7 +1223,11 @@ const server = createServer(async (req, res) => {
             return;
           }
           const now = Date.now();
-          await stmtUpsertUser.run(telegramId, JSON.stringify(parsed.data), now);
+          await stmtUpsertUser.run(
+            telegramId,
+            JSON.stringify(parsed.data),
+            now,
+          );
           res.writeHead(200, corsHeaders);
           res.end(JSON.stringify({ ok: true, updated_at: now }));
         } catch (e) {
