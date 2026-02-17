@@ -3,7 +3,8 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, createHmac } from "crypto";
-import Database from "better-sqlite3";
+import pkg from "pg";
+const { Pool } = pkg;
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(__dirname, "dist");
@@ -15,58 +16,126 @@ const APP_URL =
 const WEBHOOK_PATH = `/webhook-${BOT_TOKEN.split(":")[0]}`;
 
 // =========================================================================
-// SQLite DATABASE — User data persistence
+// PostgreSQL DATABASE — User data persistence
 // =========================================================================
-// Use /data for Railway persistent volume, fallback to ./data for local dev
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error("❌ ERROR: DATABASE_URL environment variable is not set!");
+  console.error("Please add DATABASE_URL in Railway Variables.");
+  process.exit(1);
+}
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
+});
+
+// Test connection and init DB
+(async () => {
+  const client = await pool.connect();
+  try {
+    const res = await client.query("SELECT NOW()");
+    console.log("✅ Database connected:", res.rows[0].now);
+
+    // Create users table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        telegram_id BIGINT PRIMARY KEY,
+        data JSONB NOT NULL,
+        updated_at BIGINT NOT NULL
+      )
+    `);
+
+    // Create analytics table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS analytics (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT NOT NULL REFERENCES users(telegram_id) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        page TEXT,
+        action TEXT,
+        metadata JSONB,
+        timestamp BIGINT NOT NULL
+      )
+    `);
+
+    // Create indexes
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_analytics_telegram_id ON analytics(telegram_id)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics(type)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_users_updated_at ON users(updated_at)`,
+    );
+
+    console.log("✅ Database schema initialized");
+  } catch (err) {
+    console.error("❌ Database error:", err.message);
+    process.exit(1);
+  } finally {
+    client.release();
+  }
+})();
+
+// Database helper functions (replacing prepared statements)
+const stmtGetUser = {
+  get: async (telegramId) => {
+    const result = await pool.query(
+      "SELECT data, updated_at FROM users WHERE telegram_id = $1",
+      [telegramId],
+    );
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      data: typeof row.data === "string" ? row.data : JSON.stringify(row.data),
+      updated_at: row.updated_at,
+    };
+  },
+};
+
+const stmtUpsertUser = {
+  run: async (telegramId, dataStr, updatedAt) => {
+    await pool.query(
+      `INSERT INTO users (telegram_id, data, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (telegram_id)
+       DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
+      [telegramId, dataStr, updatedAt],
+    );
+  },
+};
+
+const stmtInsertAnalytics = {
+  run: async (telegramId, type, page, action, metadata, timestamp) => {
+    await pool.query(
+      `INSERT INTO analytics (telegram_id, type, page, action, metadata, timestamp)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        telegramId,
+        type,
+        page || null,
+        action || null,
+        metadata || null,
+        timestamp,
+      ],
+    );
+  },
+};
+
+// Keep DATA_DIR for subscribers.json
 const DATA_DIR = process.env.RAILWAY_ENVIRONMENT
   ? "/data"
   : join(__dirname, "data");
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-
-const db = new Database(join(DATA_DIR, "iman.db"));
-db.pragma("journal_mode = WAL");
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    telegram_id INTEGER PRIMARY KEY,
-    data TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
-  )
-`);
-
-// Analytics table — track user activity
-db.exec(`
-  CREATE TABLE IF NOT EXISTS analytics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    telegram_id INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    page TEXT,
-    action TEXT,
-    metadata TEXT,
-    timestamp INTEGER NOT NULL,
-    FOREIGN KEY(telegram_id) REFERENCES users(telegram_id)
-  )
-`);
-
-// Index for faster queries
-db.exec(
-  `CREATE INDEX IF NOT EXISTS idx_analytics_telegram_id ON analytics(telegram_id)`,
-);
-db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics(type)`);
-db.exec(
-  `CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp)`,
-);
-
-const stmtGetUser = db.prepare(
-  "SELECT data, updated_at FROM users WHERE telegram_id = ?",
-);
-const stmtUpsertUser = db.prepare(`
-  INSERT INTO users (telegram_id, data, updated_at) VALUES (?, ?, ?)
-  ON CONFLICT(telegram_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
-`);
-const stmtInsertAnalytics = db.prepare(`
-  INSERT INTO analytics (telegram_id, type, page, action, metadata, timestamp)
-  VALUES (?, ?, ?, ?, ?, ?)
-`);
 
 // =========================================================================
 // ADMIN AUTHORIZATION
@@ -874,10 +943,14 @@ const server = createServer(async (req, res) => {
     }
 
     try {
-      const stmtGetAllUsers = db.prepare(
-        "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC",
+      const result = await pool.query(
+        "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC"
       );
-      const rows = stmtGetAllUsers.all();
+      const rows = result.rows.map(row => ({
+        telegram_id: row.telegram_id,
+        data: typeof row.data === 'string' ? row.data : JSON.stringify(row.data),
+        updated_at: row.updated_at
+      }));
 
       res.writeHead(200, corsHeaders);
       res.end(JSON.stringify({ users: rows }));
@@ -934,21 +1007,17 @@ const server = createServer(async (req, res) => {
           return;
         }
 
-        // Insert all events in a transaction
-        const insertMany = db.transaction((evts) => {
-          for (const evt of evts) {
-            stmtInsertAnalytics.run(
-              telegramId,
-              evt.type || "unknown",
-              evt.page || null,
-              evt.action || null,
-              evt.metadata ? JSON.stringify(evt.metadata) : null,
-              evt.timestamp || Date.now(),
-            );
-          }
-        });
-
-        insertMany(events);
+        // Insert all events
+        for (const evt of events) {
+          await stmtInsertAnalytics.run(
+            telegramId,
+            evt.type || "unknown",
+            evt.page || null,
+            evt.action || null,
+            evt.metadata ? JSON.stringify(evt.metadata) : null,
+            evt.timestamp || Date.now(),
+          );
+        }
 
         res.writeHead(200, corsHeaders);
         res.end('{"ok":true}');
@@ -996,65 +1065,70 @@ const server = createServer(async (req, res) => {
       const ONE_DAY = 24 * 60 * 60 * 1000;
 
       // Online users (active in last 5 min)
-      const onlineStmt = db.prepare(`
-        SELECT COUNT(DISTINCT telegram_id) as count
-        FROM analytics
-        WHERE timestamp > ?
-      `);
-      const online = onlineStmt.get(now - FIVE_MIN).count;
+      const onlineResult = await pool.query(
+        `SELECT COUNT(DISTINCT telegram_id) as count
+         FROM analytics
+         WHERE timestamp > $1`,
+        [now - FIVE_MIN]
+      );
+      const online = parseInt(onlineResult.rows[0].count);
 
       // Active today (active in last 24h)
-      const activeTodayStmt = db.prepare(`
-        SELECT COUNT(DISTINCT telegram_id) as count
-        FROM analytics
-        WHERE timestamp > ?
-      `);
-      const activeToday = activeTodayStmt.get(now - ONE_DAY).count;
+      const activeTodayResult = await pool.query(
+        `SELECT COUNT(DISTINCT telegram_id) as count
+         FROM analytics
+         WHERE timestamp > $1`,
+        [now - ONE_DAY]
+      );
+      const activeToday = parseInt(activeTodayResult.rows[0].count);
 
       // Top pages (last 7 days)
-      const topPagesStmt = db.prepare(`
-        SELECT page, COUNT(*) as count
-        FROM analytics
-        WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > ?
-        GROUP BY page
-        ORDER BY count DESC
-        LIMIT 10
-      `);
-      const topPages = topPagesStmt.all(now - 7 * ONE_DAY);
+      const topPagesResult = await pool.query(
+        `SELECT page, COUNT(*) as count
+         FROM analytics
+         WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > $1
+         GROUP BY page
+         ORDER BY count DESC
+         LIMIT 10`,
+        [now - 7 * ONE_DAY]
+      );
+      const topPages = topPagesResult.rows;
 
       // Top actions (last 7 days)
-      const topActionsStmt = db.prepare(`
-        SELECT action, COUNT(*) as count
-        FROM analytics
-        WHERE type = 'action' AND action IS NOT NULL AND timestamp > ?
-        GROUP BY action
-        ORDER BY count DESC
-        LIMIT 10
-      `);
-      const topActions = topActionsStmt.all(now - 7 * ONE_DAY);
+      const topActionsResult = await pool.query(
+        `SELECT action, COUNT(*) as count
+         FROM analytics
+         WHERE type = 'action' AND action IS NOT NULL AND timestamp > $1
+         GROUP BY action
+         ORDER BY count DESC
+         LIMIT 10`,
+        [now - 7 * ONE_DAY]
+      );
+      const topActions = topActionsResult.rows;
 
       // Average session duration (last 7 days)
-      const avgSessionStmt = db.prepare(`
-        SELECT AVG(CAST(json_extract(metadata, '$.duration') AS INTEGER)) as avg_duration
-        FROM analytics
-        WHERE type = 'session_end' AND timestamp > ? AND metadata IS NOT NULL
-      `);
-      const avgSession = avgSessionStmt.get(now - 7 * ONE_DAY);
-      const avgDuration = avgSession.avg_duration
-        ? Math.round(avgSession.avg_duration / 1000)
+      const avgSessionResult = await pool.query(
+        `SELECT AVG((metadata->>'duration')::INTEGER) as avg_duration
+         FROM analytics
+         WHERE type = 'session_end' AND timestamp > $1 AND metadata IS NOT NULL`,
+        [now - 7 * ONE_DAY]
+      );
+      const avgDuration = avgSessionResult.rows[0].avg_duration
+        ? Math.round(avgSessionResult.rows[0].avg_duration / 1000)
         : 0; // convert to seconds
 
       // User activity timeline (last 24h, grouped by hour)
-      const timelineStmt = db.prepare(`
-        SELECT
-          strftime('%H', datetime(timestamp / 1000, 'unixepoch')) as hour,
+      const timelineResult = await pool.query(
+        `SELECT
+          EXTRACT(HOUR FROM to_timestamp(timestamp / 1000)) as hour,
           COUNT(DISTINCT telegram_id) as users
-        FROM analytics
-        WHERE timestamp > ?
-        GROUP BY hour
-        ORDER BY hour
-      `);
-      const timeline = timelineStmt.all(now - ONE_DAY);
+         FROM analytics
+         WHERE timestamp > $1
+         GROUP BY hour
+         ORDER BY hour`,
+        [now - ONE_DAY]
+      );
+      const timeline = timelineResult.rows;
 
       res.writeHead(200, corsHeaders);
       res.end(
@@ -1094,7 +1168,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET") {
-      const row = stmtGetUser.get(telegramId);
+      const row = await stmtGetUser.get(telegramId);
       if (!row) {
         res.writeHead(404, corsHeaders);
         res.end('{"error":"not_found"}');
@@ -1138,7 +1212,7 @@ const server = createServer(async (req, res) => {
             return;
           }
           const now = Date.now();
-          stmtUpsertUser.run(telegramId, JSON.stringify(parsed.data), now);
+          await stmtUpsertUser.run(telegramId, JSON.stringify(parsed.data), now);
           res.writeHead(200, corsHeaders);
           res.end(JSON.stringify({ ok: true, updated_at: now }));
         } catch (e) {
