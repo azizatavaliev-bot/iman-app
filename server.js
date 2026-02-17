@@ -219,7 +219,7 @@ function sanitizeText(text) {
 // =========================================================================
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
+  "X-Frame-Options": "ALLOW-FROM https://web.telegram.org",
   "X-XSS-Protection": "1; mode=block",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
@@ -231,7 +231,7 @@ const SECURITY_HEADERS = {
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://cdn.jsdelivr.net https://api.quran.com https://cdn.islamic.network https://server8.mp3quran.net",
     "media-src 'self' https://cdn.islamic.network https://server8.mp3quran.net blob: data:",
-    "frame-ancestors 'none'",
+    "frame-ancestors https://web.telegram.org https://telegram.org",
   ].join("; "),
 };
 
@@ -1387,4 +1387,3 @@ server.listen(PORT, "0.0.0.0", async () => {
     }
   }
 });
-
