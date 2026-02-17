@@ -790,6 +790,38 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── Admin API — Get all users ─────────────────────────────────────────
+  if (req.url === "/api/admin/users" && req.method === "GET") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+
+    try {
+      const stmtGetAllUsers = db.prepare(
+        "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC",
+      );
+      const rows = stmtGetAllUsers.all();
+
+      res.writeHead(200, corsHeaders);
+      res.end(JSON.stringify({ users: rows }));
+    } catch (e) {
+      console.error("Admin API error:", e);
+      res.writeHead(500, corsHeaders);
+      res.end('{"error":"internal_error"}');
+    }
+    return;
+  }
+
   // ── User Data API ─────────────────────────────────────────────────────
   const userMatch = req.url?.match(/^\/api\/user\/(\d+)$/);
   if (userMatch) {

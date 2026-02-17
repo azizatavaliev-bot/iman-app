@@ -37,6 +37,7 @@ const Seerah = lazy(() => import("./pages/Seerah"));
 const Beginners = lazy(() => import("./pages/Beginners"));
 const Guide = lazy(() => import("./pages/Guide"));
 const AboutApp = lazy(() => import("./pages/AboutApp"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 function PageLoader() {
   return (
@@ -126,6 +127,7 @@ function AppContent() {
             <Route path="/beginners" element={<Beginners />} />
             <Route path="/guide" element={<Guide />} />
             <Route path="/about-app" element={<AboutApp />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </Suspense>
       </div>

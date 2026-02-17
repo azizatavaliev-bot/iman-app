@@ -15,6 +15,7 @@ import {
   BarChart3,
   GraduationCap,
   ChevronRight,
+  Shield,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS } from "../lib/storage";
 import type { UserProfile } from "../lib/storage";
@@ -22,6 +23,7 @@ import { COMMON_CITIES } from "../data/cities";
 import type { CityOption } from "../data/cities";
 import { useTheme } from "../lib/ThemeContext";
 import { getTelegramUser } from "../lib/telegram";
+import { isAdmin } from "../lib/adminConfig";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -212,6 +214,7 @@ export default function Profile() {
     tgUser?.photoUrl ||
     ((profile as Record<string, unknown>).telegramPhoto as string) ||
     "";
+  const showAdminButton = isAdmin(tgUser?.id);
 
   return (
     <div className="min-h-screen pb-8 px-4 pt-6 max-w-lg mx-auto space-y-6 animate-fade-in">
@@ -753,6 +756,27 @@ export default function Profile() {
           </button>
         ))}
       </div>
+
+      {/* ================================================================ */}
+      {/* ADMIN PANEL BUTTON (only for admins)                            */}
+      {/* ================================================================ */}
+      {showAdminButton && (
+        <button
+          onClick={() => navigate("/admin")}
+          className="w-full bg-red-500/20 border-2 border-red-500 text-red-500 p-4 rounded-xl flex items-center justify-between hover:bg-red-500/30 active:scale-[0.98] transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <Shield className="w-6 h-6" />
+            <div className="text-left">
+              <p className="font-bold">Админ-панель</p>
+              <p className="text-xs opacity-70">
+                Статистика всех пользователей
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
 
       {/* ================================================================ */}
       {/* RESET DATA                                                       */}
