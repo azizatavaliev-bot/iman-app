@@ -25,6 +25,29 @@ function getAudioContext(): AudioContext {
 }
 
 /**
+ * Manually unlock audio. Call this from a user interaction (e.g. button click).
+ * Returns a promise that resolves when audio is successfully unlocked.
+ */
+export async function unlockAudio(): Promise<void> {
+  if (unlocked) return;
+
+  const ctx = getAudioContext();
+
+  // AudioContext.resume() is the Apple-approved way to unlock audio in WebView
+  await ctx.resume();
+
+  // Also play a short silent buffer to fully activate the audio path
+  const buffer = ctx.createBuffer(1, 1, 22050);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+  source.start(0);
+
+  unlocked = true;
+  unlockPromiseResolve?.();
+}
+
+/**
  * Initialize audio for iOS / Telegram WebApp.
  * Call this once at app startup (e.g. in App.tsx).
  * Audio will be unlocked on the first user gesture via AudioContext.resume().
@@ -42,27 +65,9 @@ export function initAudioUnlock(): void {
 
   const doUnlock = () => {
     if (unlocked) return;
-
-    const ctx = getAudioContext();
-
-    // AudioContext.resume() is the Apple-approved way to unlock audio in WebView
-    ctx
-      .resume()
-      .then(() => {
-        // Also play a short silent buffer to fully activate the audio path
-        const buffer = ctx.createBuffer(1, 1, 22050);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.start(0);
-
-        unlocked = true;
-        unlockPromiseResolve?.();
-        events.forEach((e) => document.removeEventListener(e, doUnlock));
-      })
-      .catch(() => {
-        // Will retry on next gesture
-      });
+    unlockAudio().catch(() => {
+      // Will retry on next gesture
+    });
   };
 
   events.forEach((e) =>

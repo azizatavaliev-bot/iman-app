@@ -19,8 +19,9 @@ import {
   ChevronDown,
   Loader2,
   AlertCircle,
+  VolumeX,
 } from "lucide-react";
-import { isAudioUnlocked } from "../lib/audioUnlock";
+import { isAudioUnlocked, unlockAudio } from "../lib/audioUnlock";
 import { isTelegramWebApp } from "../lib/telegram";
 
 // ============================================================
@@ -347,14 +348,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
-  const [showUnlockHint, setShowUnlockHint] = useState(false);
+  const [showAudioUnlockOverlay, setShowAudioUnlockOverlay] = useState(false);
 
-  // Show unlock hint in Telegram on first mount if audio not yet unlocked
+  // Check if we need to show audio unlock overlay on mount (Telegram + iOS only)
   useEffect(() => {
     if (isTelegramWebApp() && !isAudioUnlocked()) {
-      setShowUnlockHint(true);
-      const timer = setTimeout(() => setShowUnlockHint(false), 5000);
-      return () => clearTimeout(timer);
+      // Check if user is on iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        setShowAudioUnlockOverlay(true);
+      }
     }
   }, []);
 
@@ -504,13 +507,25 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       setCurrentSurah({ number: surahNumber, arabicName, russianName });
       setProgress(0);
       setDuration(0);
-      setShowUnlockHint(false);
+      setShowAudioUnlockOverlay(false);
       // Don't set isPlaying=true here — let the 'play' event handler do it
 
       playWithRetry(audio, surahNumber, myPlayId, audioUrl);
     },
     [playWithRetry],
   );
+
+  // Handle "Enable Audio" button click
+  const handleEnableAudio = useCallback(async () => {
+    try {
+      await unlockAudio();
+      setShowAudioUnlockOverlay(false);
+      // Optionally auto-play Surah Al-Fatiha after enabling audio
+      playSurah(1, SURAH_NAMES_AR[1], SURAH_NAMES_RU[1]);
+    } catch (err) {
+      console.error("Failed to unlock audio:", err);
+    }
+  }, [playSurah]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
@@ -619,16 +634,60 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     <AudioContext.Provider value={contextValue}>
       {children}
 
-      {/* ---- Audio unlock hint for Telegram ---- */}
-      {showUnlockHint && (
+      {/* ---- Audio unlock overlay for iOS Telegram ---- */}
+      {showAudioUnlockOverlay && (
         <div
-          className="fixed top-4 left-4 right-4 z-[80] animate-fade-in"
-          onClick={() => setShowUnlockHint(false)}
+          className="fixed inset-0 z-[100] flex items-center justify-center px-6"
+          style={{
+            background: "rgba(0, 0, 0, 0.85)",
+            backdropFilter: "blur(12px)",
+          }}
         >
-          <div className="max-w-lg mx-auto glass-card px-4 py-3 flex items-center gap-3 border border-emerald-500/20">
-            <Volume2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <p className="text-sm text-slate-300">
-              Нажмите на экран для активации звука
+          <div className="glass-card max-w-sm w-full p-8 text-center border border-emerald-500/20">
+            {/* Icon */}
+            <div className="flex items-center justify-center mb-6">
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05))",
+                  border: "2px solid rgba(16,185,129,0.3)",
+                }}
+              >
+                <VolumeX className="w-10 h-10 text-emerald-400" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl font-bold text-white mb-3">
+              Активировать аудио
+            </h2>
+
+            {/* Description */}
+            <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+              iOS требует подтверждение для воспроизведения звука. Нажмите
+              кнопку ниже, чтобы разблокировать аудио в приложении.
+            </p>
+
+            {/* Enable Audio Button */}
+            <button
+              onClick={handleEnableAudio}
+              className="w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg"
+              style={{
+                background:
+                  "linear-gradient(135deg, #10b981, #059669, #047857)",
+                boxShadow: "0 4px 20px rgba(16,185,129,0.4)",
+              }}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Volume2 className="w-5 h-5" />
+                <span>Включить звук</span>
+              </div>
+            </button>
+
+            {/* Small note */}
+            <p className="text-xs text-slate-500 mt-4">
+              После активации начнётся воспроизведение суры Аль-Фатиха
             </p>
           </div>
         </div>
