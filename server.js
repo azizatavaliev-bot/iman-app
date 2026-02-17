@@ -17,7 +17,10 @@ const WEBHOOK_PATH = `/webhook-${BOT_TOKEN.split(":")[0]}`;
 // =========================================================================
 // SQLite DATABASE — User data persistence
 // =========================================================================
-const DATA_DIR = join(__dirname, "data");
+// Use /data for Railway persistent volume, fallback to ./data for local dev
+const DATA_DIR = process.env.RAILWAY_ENVIRONMENT
+  ? "/data"
+  : join(__dirname, "data");
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
 const db = new Database(join(DATA_DIR, "iman.db"));
@@ -184,7 +187,7 @@ const MIME = {
 // SUBSCRIBERS — in-memory + persist to subscribers.json
 // =========================================================================
 
-const SUBSCRIBERS_FILE = join(__dirname, "subscribers.json");
+const SUBSCRIBERS_FILE = join(DATA_DIR, "subscribers.json");
 const subscribers = new Set();
 
 function loadSubscribers() {
