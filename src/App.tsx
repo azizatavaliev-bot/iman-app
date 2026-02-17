@@ -12,6 +12,7 @@ import { ThemeProvider } from "./lib/ThemeContext";
 import { getTelegramUser } from "./lib/telegram";
 import { initAudioUnlock } from "./lib/audioUnlock";
 import { syncUserData } from "./lib/sync";
+import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
 import "./index.css";
 
@@ -37,7 +38,7 @@ const Seerah = lazy(() => import("./pages/Seerah"));
 const Beginners = lazy(() => import("./pages/Beginners"));
 const Guide = lazy(() => import("./pages/Guide"));
 const AboutApp = lazy(() => import("./pages/AboutApp"));
-const Admin = lazy(() => import("./pages/Admin"));
+const Admin = lazy(() => import("./pages/AdminNew"));
 
 function PageLoader() {
   return (
@@ -98,6 +99,13 @@ function BottomNav() {
 }
 
 function AppContent() {
+  const location = useLocation();
+
+  // Track page views
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+
   return (
     <div
       className="min-h-screen"
@@ -175,6 +183,8 @@ export default function App() {
   useEffect(() => {
     if (onboarded) {
       syncUserData().catch(console.error);
+      // Initialize analytics tracking
+      initAnalytics();
     }
   }, [onboarded]);
 

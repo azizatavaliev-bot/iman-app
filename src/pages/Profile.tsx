@@ -758,6 +758,39 @@ export default function Profile() {
       </div>
 
       {/* ================================================================ */}
+      {/* TELEGRAM ID (for admin configuration)                           */}
+      {/* ================================================================ */}
+      {tgUser && (
+        <div className="glass-card p-4 border border-purple-500/20">
+          <p
+            className="text-xs uppercase tracking-wider mb-2"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Ваш Telegram ID
+          </p>
+          <div className="flex items-center gap-3">
+            <code className="flex-1 px-3 py-2 rounded-lg bg-black/20 text-purple-400 font-mono text-sm">
+              {tgUser.id}
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(tgUser.id.toString());
+                alert("Telegram ID скопирован!");
+              }}
+              className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-medium hover:bg-purple-500/30 active:scale-95 transition-all"
+            >
+              Копировать
+            </button>
+          </div>
+          {showAdminButton && (
+            <p className="text-xs mt-2" style={{ color: "var(--text-faint)" }}>
+              ✓ Вы администратор
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ================================================================ */}
       {/* ADMIN PANEL BUTTON (only for admins)                            */}
       {/* ================================================================ */}
       {showAdminButton && (

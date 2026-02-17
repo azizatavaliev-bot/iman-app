@@ -30,6 +30,29 @@ db.exec(`
   )
 `);
 
+// Analytics table — track user activity
+db.exec(`
+  CREATE TABLE IF NOT EXISTS analytics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    page TEXT,
+    action TEXT,
+    metadata TEXT,
+    timestamp INTEGER NOT NULL,
+    FOREIGN KEY(telegram_id) REFERENCES users(telegram_id)
+  )
+`);
+
+// Index for faster queries
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_analytics_telegram_id ON analytics(telegram_id)`,
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics(type)`);
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp)`,
+);
+
 const stmtGetUser = db.prepare(
   "SELECT data, updated_at FROM users WHERE telegram_id = ?",
 );
@@ -37,6 +60,34 @@ const stmtUpsertUser = db.prepare(`
   INSERT INTO users (telegram_id, data, updated_at) VALUES (?, ?, ?)
   ON CONFLICT(telegram_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
 `);
+const stmtInsertAnalytics = db.prepare(`
+  INSERT INTO analytics (telegram_id, type, page, action, metadata, timestamp)
+  VALUES (?, ?, ?, ?, ?, ?)
+`);
+
+// =========================================================================
+// ADMIN AUTHORIZATION
+// =========================================================================
+const ADMIN_TELEGRAM_IDS = [
+  // Add your Telegram ID here after first login
+  // Example: 123456789
+];
+
+const ADMIN_USERNAMES = [
+  "atavaliev", // @atavaliev - fallback (less secure than ID)
+];
+
+function isAdmin(telegramId, username) {
+  // Primary: check by Telegram ID (immutable, secure)
+  if (telegramId && ADMIN_TELEGRAM_IDS.includes(telegramId)) {
+    return true;
+  }
+  // Fallback: check by username (can be changed, less secure)
+  if (username && ADMIN_USERNAMES.includes(username.toLowerCase())) {
+    return true;
+  }
+  return false;
+}
 
 // =========================================================================
 // SECURITY — Webhook secret token for Telegram verification
@@ -797,12 +848,25 @@ const server = createServer(async (req, res) => {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers":
+        "Content-Type, X-Telegram-Id, X-Telegram-Username",
     };
 
     if (req.method === "OPTIONS") {
       res.writeHead(204, corsHeaders);
       res.end();
+      return;
+    }
+
+    // Admin authorization check
+    const telegramId = req.headers["x-telegram-id"]
+      ? parseInt(req.headers["x-telegram-id"], 10)
+      : null;
+    const telegramUsername = req.headers["x-telegram-username"] || null;
+
+    if (!isAdmin(telegramId, telegramUsername)) {
+      res.writeHead(403, corsHeaders);
+      res.end('{"error":"forbidden","message":"Admin access required"}');
       return;
     }
 
@@ -816,6 +880,192 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ users: rows }));
     } catch (e) {
       console.error("Admin API error:", e);
+      res.writeHead(500, corsHeaders);
+      res.end('{"error":"internal_error"}');
+    }
+    return;
+  }
+
+  // ── Analytics API — Track events ──────────────────────────────────────
+  if (req.url === "/api/analytics" && req.method === "POST") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+
+    let body = "";
+    let bodySize = 0;
+    const MAX = 1024 * 1024; // 1MB for analytics batch
+
+    req.on("data", (chunk) => {
+      bodySize += chunk.length;
+      if (bodySize > MAX) {
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+
+    req.on("end", () => {
+      if (bodySize > MAX) {
+        res.writeHead(413, corsHeaders);
+        res.end('{"error":"too_large"}');
+        return;
+      }
+
+      try {
+        const { telegramId, events } = JSON.parse(body);
+
+        if (!telegramId || !Array.isArray(events)) {
+          res.writeHead(400, corsHeaders);
+          res.end('{"error":"invalid_payload"}');
+          return;
+        }
+
+        // Insert all events in a transaction
+        const insertMany = db.transaction((evts) => {
+          for (const evt of evts) {
+            stmtInsertAnalytics.run(
+              telegramId,
+              evt.type || "unknown",
+              evt.page || null,
+              evt.action || null,
+              evt.metadata ? JSON.stringify(evt.metadata) : null,
+              evt.timestamp || Date.now(),
+            );
+          }
+        });
+
+        insertMany(events);
+
+        res.writeHead(200, corsHeaders);
+        res.end('{"ok":true}');
+      } catch (e) {
+        console.error("Analytics error:", e);
+        res.writeHead(500, corsHeaders);
+        res.end('{"error":"internal_error"}');
+      }
+    });
+    return;
+  }
+
+  // ── Admin Analytics API — Get aggregated stats ────────────────────────
+  if (req.url === "/api/admin/analytics" && req.method === "GET") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, X-Telegram-Id, X-Telegram-Username",
+    };
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+
+    // Admin authorization check
+    const telegramId = req.headers["x-telegram-id"]
+      ? parseInt(req.headers["x-telegram-id"], 10)
+      : null;
+    const telegramUsername = req.headers["x-telegram-username"] || null;
+
+    if (!isAdmin(telegramId, telegramUsername)) {
+      res.writeHead(403, corsHeaders);
+      res.end('{"error":"forbidden","message":"Admin access required"}');
+      return;
+    }
+
+    try {
+      const now = Date.now();
+      const FIVE_MIN = 5 * 60 * 1000;
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+
+      // Online users (active in last 5 min)
+      const onlineStmt = db.prepare(`
+        SELECT COUNT(DISTINCT telegram_id) as count
+        FROM analytics
+        WHERE timestamp > ?
+      `);
+      const online = onlineStmt.get(now - FIVE_MIN).count;
+
+      // Active today (active in last 24h)
+      const activeTodayStmt = db.prepare(`
+        SELECT COUNT(DISTINCT telegram_id) as count
+        FROM analytics
+        WHERE timestamp > ?
+      `);
+      const activeToday = activeTodayStmt.get(now - ONE_DAY).count;
+
+      // Top pages (last 7 days)
+      const topPagesStmt = db.prepare(`
+        SELECT page, COUNT(*) as count
+        FROM analytics
+        WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > ?
+        GROUP BY page
+        ORDER BY count DESC
+        LIMIT 10
+      `);
+      const topPages = topPagesStmt.all(now - 7 * ONE_DAY);
+
+      // Top actions (last 7 days)
+      const topActionsStmt = db.prepare(`
+        SELECT action, COUNT(*) as count
+        FROM analytics
+        WHERE type = 'action' AND action IS NOT NULL AND timestamp > ?
+        GROUP BY action
+        ORDER BY count DESC
+        LIMIT 10
+      `);
+      const topActions = topActionsStmt.all(now - 7 * ONE_DAY);
+
+      // Average session duration (last 7 days)
+      const avgSessionStmt = db.prepare(`
+        SELECT AVG(CAST(json_extract(metadata, '$.duration') AS INTEGER)) as avg_duration
+        FROM analytics
+        WHERE type = 'session_end' AND timestamp > ? AND metadata IS NOT NULL
+      `);
+      const avgSession = avgSessionStmt.get(now - 7 * ONE_DAY);
+      const avgDuration = avgSession.avg_duration
+        ? Math.round(avgSession.avg_duration / 1000)
+        : 0; // convert to seconds
+
+      // User activity timeline (last 24h, grouped by hour)
+      const timelineStmt = db.prepare(`
+        SELECT
+          strftime('%H', datetime(timestamp / 1000, 'unixepoch')) as hour,
+          COUNT(DISTINCT telegram_id) as users
+        FROM analytics
+        WHERE timestamp > ?
+        GROUP BY hour
+        ORDER BY hour
+      `);
+      const timeline = timelineStmt.all(now - ONE_DAY);
+
+      res.writeHead(200, corsHeaders);
+      res.end(
+        JSON.stringify({
+          online,
+          activeToday,
+          topPages,
+          topActions,
+          avgSessionDuration: avgDuration,
+          timeline,
+        }),
+      );
+    } catch (e) {
+      console.error("Admin analytics error:", e);
       res.writeHead(500, corsHeaders);
       res.end('{"error":"internal_error"}');
     }

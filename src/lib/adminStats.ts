@@ -5,6 +5,7 @@
 
 import type { UserProfile, PrayerLog, HabitLog } from "./storage";
 import { LEVELS } from "./storage";
+import { getTelegramUser } from "./telegram";
 
 // ---- Types ----
 
@@ -56,7 +57,9 @@ function getProfile(data: Record<string, unknown>): UserProfile | null {
   return profile as UserProfile;
 }
 
-function getPrayerLogs(data: Record<string, unknown>): Record<string, PrayerLog> {
+function getPrayerLogs(
+  data: Record<string, unknown>,
+): Record<string, PrayerLog> {
   const logs = data.iman_prayer_logs;
   if (!logs || typeof logs !== "object") return {};
   return logs as Record<string, PrayerLog>;
@@ -118,7 +121,14 @@ function isActiveWithinDays(lastActive: Date, days: number): boolean {
  */
 async function fetchAllUsersFromServer(): Promise<ServerUserData[]> {
   try {
-    const response = await fetch("/api/admin/users");
+    const tgUser = getTelegramUser();
+    const headers: Record<string, string> = {};
+    if (tgUser) {
+      headers["X-Telegram-Id"] = tgUser.id.toString();
+      if (tgUser.username) headers["X-Telegram-Username"] = tgUser.username;
+    }
+
+    const response = await fetch("/api/admin/users", { headers });
     if (!response.ok) {
       console.error("Failed to fetch users:", response.statusText);
       return [];
@@ -234,8 +244,10 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
 
   const totalPoints = allUsers.reduce((sum, u) => sum + u.points, 0);
   const totalStreaks = allUsers.reduce((sum, u) => sum + u.streak, 0);
-  const averagePoints = allUsers.length > 0 ? Math.round(totalPoints / allUsers.length) : 0;
-  const averageStreak = allUsers.length > 0 ? Math.round(totalStreaks / allUsers.length) : 0;
+  const averagePoints =
+    allUsers.length > 0 ? Math.round(totalPoints / allUsers.length) : 0;
+  const averageStreak =
+    allUsers.length > 0 ? Math.round(totalStreaks / allUsers.length) : 0;
 
   // Calculate average level
   const levelValues = allUsers.map((u) => {

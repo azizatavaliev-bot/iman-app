@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { useAudio } from "../components/AudioPlayer";
+import { trackAction } from "../lib/analytics";
 import {
   getPrayerTimes,
   getHadithOfDay,
@@ -635,6 +636,9 @@ export default function Dashboard() {
       storage.setPrayerLog(todayKey, currentLog.prayers);
       storage.updateStreak();
       storage.recalculateTotalPoints();
+
+      // Track analytics
+      trackAction("prayer_marked", { prayer: prayerKey, status });
 
       // Haptic + Animations
       hapticSuccess();
