@@ -235,7 +235,7 @@ export default function AdminNew() {
   if (!dashboard) return null;
 
   // Sort and filter users
-  let users = [...dashboard.allUsers];
+  let users = [...dashboard.users];
 
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
@@ -346,7 +346,7 @@ export default function AdminNew() {
               icon={Users}
               label="Всего пользователей"
               value={dashboard.totalUsers}
-              subtitle={`${dashboard.activeThisWeek} активны эту неделю`}
+              subtitle={`${dashboard.activeWeek} активны эту неделю`}
               color="text-purple-400"
               bgColor="bg-purple-400/10"
             />
@@ -456,21 +456,21 @@ export default function AdminNew() {
             <StatCard
               icon={TrendingUp}
               label="Уровень"
-              value={dashboard.avgLevel}
+              value={dashboard.averageLevel}
               color="text-violet-400"
               bgColor="bg-violet-400/10"
             />
             <StatCard
               icon={BarChart3}
               label="Очки"
-              value={Math.round(dashboard.avgPoints)}
+              value={Math.round(dashboard.averagePoints)}
               color="text-amber-400"
               bgColor="bg-amber-400/10"
             />
             <StatCard
               icon={Activity}
               label="Страйк"
-              value={`${Math.round(dashboard.avgStreak)} д.`}
+              value={`${Math.round(dashboard.averageStreak)} д.`}
               color="text-orange-400"
               bgColor="bg-orange-400/10"
             />
