@@ -12,14 +12,27 @@
  * 3. Copy the "id" field
  */
 export const ADMIN_TELEGRAM_IDS = [
-  // Add your Telegram ID here
-  // Example: 123456789
+  // Aziz Atavaliev - добавьте свой ID после первого входа в приложение
+];
+
+/**
+ * Telegram usernames of administrators (fallback method)
+ */
+export const ADMIN_USERNAMES = [
+  "atavaliev", // @atavaliev
 ];
 
 /**
  * Check if a user is an administrator
  */
-export function isAdmin(telegramId?: number): boolean {
-  if (!telegramId) return false;
-  return ADMIN_TELEGRAM_IDS.includes(telegramId);
+export function isAdmin(telegramId?: number, username?: string): boolean {
+  // Check by Telegram ID (primary)
+  if (telegramId && ADMIN_TELEGRAM_IDS.includes(telegramId)) {
+    return true;
+  }
+  // Check by username (fallback)
+  if (username && ADMIN_USERNAMES.includes(username.toLowerCase())) {
+    return true;
+  }
+  return false;
 }

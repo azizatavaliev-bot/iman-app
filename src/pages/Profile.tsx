@@ -214,7 +214,7 @@ export default function Profile() {
     tgUser?.photoUrl ||
     ((profile as Record<string, unknown>).telegramPhoto as string) ||
     "";
-  const showAdminButton = isAdmin(tgUser?.id);
+  const showAdminButton = isAdmin(tgUser?.id, tgUser?.username);
 
   return (
     <div className="min-h-screen pb-8 px-4 pt-6 max-w-lg mx-auto space-y-6 animate-fade-in">

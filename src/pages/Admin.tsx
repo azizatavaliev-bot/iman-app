@@ -90,7 +90,7 @@ export default function Admin() {
 
   // Check admin access
   useEffect(() => {
-    if (!isAdmin(tgUser?.id)) {
+    if (!isAdmin(tgUser?.id, tgUser?.username)) {
       navigate("/");
     }
   }, [tgUser, navigate]);
@@ -114,7 +114,7 @@ export default function Admin() {
     loadData();
   }, []);
 
-  if (!isAdmin(tgUser?.id)) {
+  if (!isAdmin(tgUser?.id, tgUser?.username)) {
     return null;
   }
 
