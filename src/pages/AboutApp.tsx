@@ -28,7 +28,9 @@ export default function AboutApp() {
           <ArrowLeft size={18} className="text-white/70" />
         </button>
         <div>
-          <h1 className="text-xl font-semibold text-white">О приложении IMAN</h1>
+          <h1 className="text-xl font-semibold text-white">
+            О приложении IMAN
+          </h1>
           <p className="text-sm t-text-m mt-0.5">
             Ваш спутник на пути к Аллаху
           </p>
@@ -55,25 +57,30 @@ export default function AboutApp() {
       <div className="glass-card p-5 mb-5">
         <div className="flex items-center gap-2 mb-4">
           <Users className="w-5 h-5 text-blue-400" />
-          <h3 className="text-base font-semibold text-white">Для кого это приложение?</h3>
+          <h3 className="text-base font-semibold text-white">
+            Для кого это приложение?
+          </h3>
         </div>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <p className="text-sm t-text-s">
-              <span className="font-medium text-white">Новичков</span> — которые только начинают изучать ислам
+              <span className="font-medium text-white">Новичков</span> — которые
+              только начинают изучать ислам
             </p>
           </div>
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <p className="text-sm t-text-s">
-              <span className="font-medium text-white">Практикующих</span> — кто хочет улучшить свои ибадаты
+              <span className="font-medium text-white">Практикующих</span> — кто
+              хочет улучшить свои ибадаты
             </p>
           </div>
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <p className="text-sm t-text-s">
-              <span className="font-medium text-white">Всех мусульман</span> — кто стремится к духовному росту
+              <span className="font-medium text-white">Всех мусульман</span> —
+              кто стремится к духовному росту
             </p>
           </div>
         </div>
@@ -83,7 +90,9 @@ export default function AboutApp() {
       <div className="glass-card p-5 mb-5">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="w-5 h-5 text-amber-400" />
-          <h3 className="text-base font-semibold text-white">Основные возможности</h3>
+          <h3 className="text-base font-semibold text-white">
+            Основные возможности
+          </h3>
         </div>
         <div className="space-y-3">
           {[
@@ -177,7 +186,9 @@ export default function AboutApp() {
       <div className="glass-card p-5 mb-5">
         <div className="flex items-center gap-2 mb-4">
           <Trophy className="w-5 h-5 text-amber-400" />
-          <h3 className="text-base font-semibold text-white">Система мотивации</h3>
+          <h3 className="text-base font-semibold text-white">
+            Система мотивации
+          </h3>
         </div>
         <div className="space-y-3">
           <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
@@ -214,29 +225,33 @@ export default function AboutApp() {
       <div className="glass-card p-5">
         <div className="flex items-center gap-2 mb-4">
           <MessageCircle className="w-5 h-5 text-sky-400" />
-          <h3 className="text-base font-semibold text-white">Контакты и поддержка</h3>
+          <h3 className="text-base font-semibold text-white">
+            Контакты и поддержка
+          </h3>
         </div>
         <div className="space-y-3">
           <a
-            href="mailto:support@imanapp.com"
+            href="https://t.me/ATAVALIEV"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 rounded-xl t-bg hover:bg-white/[0.08] transition-colors active:scale-[0.98]"
           >
             <Mail className="w-5 h-5 text-sky-400" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white">Email</p>
-              <p className="text-xs t-text-m">support@imanapp.com</p>
+              <p className="text-sm font-medium text-white">Telegram</p>
+              <p className="text-xs t-text-m">@ATAVALIEV</p>
             </div>
           </a>
           <a
-            href="https://imanapp.com"
+            href="https://t.me/ATAVALIEV"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 rounded-xl t-bg hover:bg-white/[0.08] transition-colors active:scale-[0.98]"
           >
             <Globe className="w-5 h-5 text-emerald-400" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white">Веб-сайт</p>
-              <p className="text-xs t-text-m">imanapp.com</p>
+              <p className="text-sm font-medium text-white">По всем вопросам</p>
+              <p className="text-xs t-text-m">Пишите @ATAVALIEV</p>
             </div>
           </a>
         </div>
