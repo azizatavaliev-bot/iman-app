@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Moon,
   BookOpen,
@@ -23,6 +24,7 @@ import {
   Repeat,
   Scroll,
   Sparkles,
+  Info,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { useAudio } from "../components/AudioPlayer";
@@ -196,7 +198,6 @@ function formatCountdown(totalSeconds: number): string {
   return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
 }
 
-/** Determine which prayer's time window is currently active */
 /** Get difference in minutes between now and a prayer time */
 function getMinutesSincePrayer(timeStr: string): number | null {
   const match = timeStr.match(/^(\d{1,2}):(\d{2})/);
@@ -406,7 +407,7 @@ function FloatingPoints({
 }
 
 // ---------------------------------------------------------------------------
-// Activity Feed Item
+// Activity Feed Item (REDESIGNED - NO TIMESTAMPS)
 // ---------------------------------------------------------------------------
 
 interface ActivityItem {
@@ -415,7 +416,6 @@ interface ActivityItem {
   label: string;
   emoji: string;
   status: "done" | "pending" | "missed" | "none";
-  time?: string | null;
   points: number;
   earnedPoints: number;
 }
@@ -431,60 +431,28 @@ function ActivityRow({
   floatingPts: { id: string; points: number } | null;
   onClearFloat: () => void;
 }) {
-  const statusIcon =
-    item.status === "done" ? (
-      <Check size={14} className="text-emerald-400" />
-    ) : item.status === "pending" ? (
-      <Clock size={14} className="text-amber-400/60" />
-    ) : (
-      <X size={14} className="text-red-400/50" />
-    );
-
-  const statusBg =
-    item.status === "done"
-      ? "bg-emerald-500/15 border-emerald-500/25"
-      : item.status === "pending"
-        ? "bg-white/[0.03] border-white/[0.06]"
-        : "bg-white/[0.02] border-white/[0.04]";
-
-  const textColor =
-    item.status === "done"
-      ? "text-white/90"
-      : item.status === "pending"
-        ? "t-text-m"
-        : "t-text-f";
+  // Only show completed items
+  if (item.status !== "done") return null;
 
   return (
     <button
       onClick={onTap}
-      className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 active:scale-[0.98] relative ${statusBg}`}
+      className="w-full flex items-center gap-2.5 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 transition-all duration-200 active:scale-[0.98] relative"
     >
-      {/* Status icon */}
-      <div className="w-7 h-7 rounded-full t-bg flex items-center justify-center shrink-0">
-        {statusIcon}
+      {/* Checkmark */}
+      <div className="w-6 h-6 rounded-full bg-emerald-500/25 flex items-center justify-center shrink-0">
+        <Check size={12} className="text-emerald-400" />
       </div>
-
-      {/* Time */}
-      <span className="text-[11px] font-mono t-text-f w-11 shrink-0 text-left">
-        {item.time || "--:--"}
-      </span>
 
       {/* Emoji + Label */}
       <span className="text-sm mr-1">{item.emoji}</span>
-      <span className={`text-sm font-medium flex-1 text-left ${textColor}`}>
+      <span className="text-sm font-medium flex-1 text-left text-white/90">
         {item.label}
-        {item.status === "done" && item.type === "prayer" && (
-          <span className="text-emerald-400/50 text-xs ml-1.5">вовремя</span>
-        )}
       </span>
 
       {/* Points */}
-      <span
-        className={`text-xs font-bold tabular-nums ${
-          item.earnedPoints > 0 ? "text-emerald-400" : "text-white/15"
-        }`}
-      >
-        {item.earnedPoints > 0 ? `+${item.earnedPoints}` : `0`}
+      <span className="text-xs font-bold tabular-nums text-emerald-400">
+        +{item.earnedPoints}
       </span>
 
       {/* Floating points animation */}
@@ -719,9 +687,6 @@ export default function Dashboard() {
     for (const pk of PRAYER_KEYS) {
       const entry = prayerLog.prayers[pk];
       const apiKey = PRAYER_KEY_TO_API[pk];
-      const timeStr = prayerTimes
-        ? prayerTimes[apiKey]?.replace(/\s*\(.*\)/, "").trim()
-        : null;
 
       let status: ActivityItem["status"] = "none";
       let earnedPts = 0;
@@ -738,7 +703,6 @@ export default function Dashboard() {
         if (prayerTimes) {
           const diff = getMinutesSincePrayer(prayerTimes[apiKey]);
           if (diff !== null && diff > 0) {
-            // Time has passed but not marked — show as pending (could still mark)
             status = "none";
           } else {
             status = "pending";
@@ -748,20 +712,12 @@ export default function Dashboard() {
         }
       }
 
-      const recordedTime = entry.timestamp
-        ? new Date(entry.timestamp).toLocaleTimeString("ru-RU", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : timeStr;
-
       items.push({
         type: "prayer",
         key: pk,
         label: PRAYER_NAMES_MAP[apiKey],
         emoji: PRAYER_ICONS[pk],
         status,
-        time: status === "done" ? recordedTime : timeStr,
         points: POINTS.PRAYER_ONTIME,
         earnedPoints: earnedPts,
       });
@@ -776,7 +732,6 @@ export default function Dashboard() {
         label: h.label,
         emoji: h.emoji,
         status: done ? "done" : "none",
-        time: null,
         points: h.points,
         earnedPoints: done ? h.points : 0,
       });
@@ -809,12 +764,15 @@ export default function Dashboard() {
         isFuture,
       };
     });
-  }, [weekDates, todayStats]); // re-calc when todayStats changes
+  }, [weekDates, todayStats]);
 
   const maxWeekPoints = Math.max(...weeklyBarData.map((d) => d.points), 1);
 
+  // Filter completed items for activity feed
+  const completedItems = activityItems.filter((item) => item.status === "done");
+
   // =======================================================================
-  // RENDER
+  // RENDER - NEW LAYOUT ORDER
   // =======================================================================
 
   return (
@@ -827,10 +785,10 @@ export default function Dashboard() {
       {/* ================================================================ */}
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white leading-tight">
+          <h1 className="text-xl font-semibold text-white leading-tight">
             {greeting.salaam}
           </h1>
-          <p className="text-sm t-text-m mt-0.5">
+          <p className="text-base t-text-m mt-0.5">
             {greeting.timeGreeting}
             {profile.name ? `, ${profile.name}` : ""}
           </p>
@@ -845,7 +803,135 @@ export default function Dashboard() {
       </header>
 
       {/* ================================================================ */}
-      {/* 2. QUICK ACTIONS — Features Grid                                 */}
+      {/* 2. ДВЕ БОЛЬШИЕ КНОПКИ (Новичкам + О приложении)                 */}
+      {/* ================================================================ */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Большая кнопка "Новичкам" */}
+        <Link
+          to="/beginners"
+          className="col-span-1 h-28 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
+        >
+          <GraduationCap className="w-8 h-8 text-white" strokeWidth={2} />
+          <div>
+            <h3 className="text-base font-bold text-white">Новичкам</h3>
+            <p className="text-xs text-white/80 mt-0.5">Начните здесь</p>
+          </div>
+        </Link>
+
+        {/* Большая кнопка "О приложении IMAN" */}
+        <Link
+          to="/about-app"
+          className="col-span-1 h-28 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
+        >
+          <Info className="w-8 h-8 text-white" strokeWidth={2} />
+          <div>
+            <h3 className="text-base font-bold text-white">
+              О приложении IMAN
+            </h3>
+            <p className="text-xs text-white/80 mt-0.5">Узнайте больше</p>
+          </div>
+        </Link>
+      </div>
+
+      {/* ================================================================ */}
+      {/* 3. DAILY SCORE + LEVEL (компактно в одну строку)                */}
+      {/* ================================================================ */}
+      <div className="glass-card p-4 flex items-center gap-4">
+        {/* Daily Score Ring */}
+        <DailyProgressRing
+          earned={pointsEarned}
+          possible={MAX_DAILY_POINTS}
+          size={90}
+        />
+
+        {/* Stats + Level */}
+        <div className="flex-1 min-w-0 space-y-2">
+          <div>
+            <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">
+              Сегодня
+            </p>
+            <p className="text-base font-semibold text-white">
+              {pointsEarned}
+              <span className="t-text-f font-normal text-sm">
+                /{MAX_DAILY_POINTS}
+              </span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+              <span className="text-sm">{currentLevel.icon}</span>
+              <span className="text-xs font-semibold text-emerald-400">
+                {currentLevel.name}
+              </span>
+            </div>
+            <div className="flex-1 h-1.5 t-bg rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-500 to-emerald-400"
+                style={{ width: `${levelProgressPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================================ */}
+      {/* 4. NEXT PRAYER TIMER                                             */}
+      {/* ================================================================ */}
+      <div className="glass-card glow-green p-5 relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : nextPrayer ? (
+          <>
+            <div className="flex items-center gap-2 text-emerald-400/70 text-xs font-medium uppercase tracking-widest mb-3">
+              <Clock size={14} />
+              <span>Следующий намаз</span>
+            </div>
+
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                <h2 className="text-3xl font-bold text-white">
+                  {nextPrayer.russianName}
+                </h2>
+                <p className="text-lg t-text-s mt-1">{nextPrayer.time}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-white/40 mb-1">через</p>
+                <p className="text-2xl font-mono font-bold text-emerald-400 tabular-nums tracking-tight">
+                  {countdown}
+                </p>
+              </div>
+            </div>
+
+            {/* "Прочитал" button */}
+            {nextPrayerAlreadyDone ? (
+              <div className="w-full py-3 rounded-2xl text-sm font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center gap-2 cursor-default">
+                <Check size={18} strokeWidth={2.5} />
+                Прочитано
+              </div>
+            ) : (
+              <button
+                onClick={() => markPrayerDone(nextPrayer.key)}
+                className="w-full py-3 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-white transition-all duration-200 active:scale-[0.97] shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2"
+              >
+                <Check size={18} strokeWidth={2.5} />
+                Прочитал
+              </button>
+            )}
+          </>
+        ) : (
+          <p className="t-text-m text-sm text-center py-4">
+            Не удалось загрузить время намазов
+          </p>
+        )}
+      </div>
+
+      {/* ================================================================ */}
+      {/* 5. QUICK ACTIONS GRID (12 функций)                              */}
       {/* ================================================================ */}
       <div>
         <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3 px-1">
@@ -911,7 +997,7 @@ export default function Dashboard() {
             },
             {
               icon: Timer,
-              label: "Ибада",
+              label: "Поклонение",
               path: "/ibadah",
               color: "text-cyan-400",
               bg: "bg-cyan-400/10",
@@ -925,7 +1011,7 @@ export default function Dashboard() {
             },
             {
               icon: Headphones,
-              label: "Хифз",
+              label: "Заучивание",
               path: "/memorize",
               color: "text-violet-400",
               bg: "bg-violet-400/10",
@@ -936,27 +1022,6 @@ export default function Dashboard() {
               path: "/stats",
               color: "text-lime-400",
               bg: "bg-lime-400/10",
-            },
-            {
-              icon: Sparkles,
-              label: "Рамадан",
-              path: "/ramadan",
-              color: "text-indigo-400",
-              bg: "bg-indigo-400/10",
-            },
-            {
-              icon: GraduationCap,
-              label: "Новичкам",
-              path: "/beginners",
-              color: "text-yellow-400",
-              bg: "bg-yellow-400/10",
-            },
-            {
-              icon: BookOpen,
-              label: "Введение",
-              path: "/guide",
-              color: "text-slate-400",
-              bg: "bg-slate-400/10",
             },
           ].map(({ icon: Icon, label, path, color, bg }) => (
             <button
@@ -969,7 +1034,7 @@ export default function Dashboard() {
               >
                 <Icon size={20} className={color} />
               </div>
-              <span className="text-[11px] text-white/70 font-medium">
+              <span className="text-[11px] text-white/70 font-medium text-center leading-tight">
                 {label}
               </span>
             </button>
@@ -978,321 +1043,65 @@ export default function Dashboard() {
       </div>
 
       {/* ================================================================ */}
-      {/* 2.5. LISTEN TO QURAN — audio hero block                          */}
+      {/* 6. ACTIVITY TODAY (компактно, без времени, только выполненные)   */}
       {/* ================================================================ */}
-      <div className="glass-card p-4 relative overflow-hidden">
-        {/* Decorative glow */}
-        <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Volume2 size={16} className="text-emerald-400" />
+      {completedItems.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">
-              Слушать Коран
+              Активность сегодня
             </h3>
+            <span className="text-[10px] text-white/20">
+              {completedItems.length} выполнено
+            </span>
           </div>
-          {audio.currentSurah && (
+
+          <div className="space-y-1.5">
+            {completedItems.slice(0, 8).map((item) => (
+              <ActivityRow
+                key={item.key}
+                item={item}
+                onTap={() => {
+                  if (item.type === "prayer") {
+                    navigate("/prayers");
+                  } else {
+                    const habit = HABITS.find((h) => h.key === item.key);
+                    if (habit) toggleHabit(habit);
+                  }
+                }}
+                floatingPts={
+                  floatingPts && floatingPts.id.includes(item.key)
+                    ? floatingPts
+                    : null
+                }
+                onClearFloat={() => setFloatingPts(null)}
+              />
+            ))}
+          </div>
+
+          {completedItems.length > 8 && (
             <button
-              onClick={audio.toggle}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${
-                audio.isPlaying
-                  ? "bg-emerald-500/15 border-emerald-500/30"
-                  : "bg-white/[0.04] border-white/10"
-              }`}
+              onClick={() => navigate("/stats")}
+              className="w-full py-2 text-xs text-white/40 hover:text-white/60 transition-colors"
             >
-              {audio.isPlaying ? (
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              ) : (
-                <Play size={10} className="text-white/50" />
-              )}
-              <span
-                className={`text-[10px] font-medium truncate max-w-[100px] ${
-                  audio.isPlaying ? "text-emerald-400" : "text-white/50"
-                }`}
-              >
-                {audio.currentSurah.russianName}
-              </span>
+              Показать все ({completedItems.length})
             </button>
           )}
         </div>
-
-        {/* Popular surahs — horizontal scroll */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-          {POPULAR_SURAHS.map((surah) => {
-            const isCurrent = audio.currentSurah?.number === surah.number;
-            const isCurrentPlaying = isCurrent && audio.isPlaying;
-            const isCurrentPaused = isCurrent && !audio.isPlaying;
-            return (
-              <button
-                key={surah.number}
-                onClick={() => {
-                  if (isCurrentPlaying) {
-                    audio.pause();
-                  } else if (isCurrentPaused) {
-                    audio.resume();
-                  } else {
-                    audio.play(surah.number, surah.ar, surah.name);
-                  }
-                }}
-                className={`flex-shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border transition-all active:scale-95 ${
-                  isCurrentPlaying
-                    ? "bg-emerald-500/15 border-emerald-500/40 shadow-[0_0_16px_rgba(16,185,129,0.2)]"
-                    : isCurrentPaused
-                      ? "bg-white/[0.03] border-emerald-500/20"
-                      : "t-bg border-white/[0.06] hover:border-white/10"
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    isCurrent ? "bg-emerald-500/25" : "bg-white/[0.04]"
-                  }`}
-                >
-                  {isCurrentPlaying ? (
-                    <Pause size={14} className="text-emerald-400" />
-                  ) : (
-                    <Play
-                      size={14}
-                      className={
-                        isCurrent
-                          ? "text-emerald-400 ml-0.5"
-                          : "text-white/50 ml-0.5"
-                      }
-                    />
-                  )}
-                </div>
-                <div className="text-left min-w-0">
-                  <p
-                    className={`text-xs font-medium truncate ${
-                      isCurrent ? "text-emerald-400" : "text-white/70"
-                    }`}
-                  >
-                    {surah.name}
-                  </p>
-                  <p className="text-[10px] text-white/25">
-                    Сура {surah.number}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Full Quran link */}
-        <button
-          onClick={() => navigate("/quran")}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg t-bg text-white/40 text-[11px] font-medium hover:text-white/60 transition-colors"
-        >
-          Все 114 сур
-          <ChevronRight size={12} />
-        </button>
-      </div>
+      )}
 
       {/* ================================================================ */}
-      {/* 3. DAILY SCORE CARD                                              */}
-      {/* ================================================================ */}
-      <div className="glass-card p-5 relative overflow-hidden">
-        {/* Decorative glow based on completion */}
-        <div
-          className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl pointer-events-none"
-          style={{
-            background:
-              overallPct >= 0.7
-                ? "rgba(16,185,129,0.08)"
-                : overallPct >= 0.4
-                  ? "rgba(245,158,11,0.08)"
-                  : "rgba(239,68,68,0.06)",
-          }}
-        />
-
-        <div className="flex items-center gap-5">
-          <DailyProgressRing
-            earned={pointsEarned}
-            possible={MAX_DAILY_POINTS}
-            size={120}
-          />
-
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1.5">
-              Сегодня
-            </p>
-            <p className="text-lg font-bold text-white">
-              {pointsEarned}
-              <span className="t-text-f font-normal">/{MAX_DAILY_POINTS}</span>
-            </p>
-            <p className="text-xs t-text-m mt-1.5">
-              <span
-                className={prayersCompleted === 5 ? "text-emerald-400" : ""}
-              >
-                {prayersCompleted}/5 намазов
-              </span>
-              <span className="text-white/20 mx-1.5">&middot;</span>
-              <span
-                className={
-                  habitsCompleted === HABITS.length ? "text-emerald-400" : ""
-                }
-              >
-                {habitsCompleted}/{HABITS.length} привычек
-              </span>
-            </p>
-
-            {/* Micro progress bar */}
-            <div className="w-full h-1.5 t-bg rounded-full overflow-hidden mt-3">
-              <div
-                className="h-full rounded-full transition-all duration-700 ease-out"
-                style={{
-                  width: `${Math.round(overallPct * 100)}%`,
-                  background:
-                    overallPct >= 0.7
-                      ? "linear-gradient(90deg, #10b981, #34d399)"
-                      : overallPct >= 0.4
-                        ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                        : "linear-gradient(90deg, #ef4444, #f87171)",
-                }}
-              />
-            </div>
-            <p className="text-[10px] text-white/25 mt-1 text-right">
-              {Math.round(overallPct * 100)}%
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ================================================================ */}
-      {/* 3. NEXT PRAYER TIMER + "ПРОЧИТАЛ" BUTTON                        */}
-      {/* ================================================================ */}
-      <div className="glass-card glow-green p-5 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        {loading ? (
-          <div className="flex items-center justify-center py-6">
-            <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : nextPrayer ? (
-          <>
-            <div className="flex items-center gap-2 text-emerald-400/70 text-xs font-medium uppercase tracking-widest mb-3">
-              <Clock size={14} />
-              <span>Следующий намаз</span>
-            </div>
-
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <h2 className="text-3xl font-bold text-white">
-                  {nextPrayer.russianName}
-                </h2>
-                <p className="text-lg t-text-s mt-1">{nextPrayer.time}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-white/40 mb-1">через</p>
-                <p className="text-2xl font-mono font-bold text-emerald-400 tabular-nums tracking-tight">
-                  {countdown}
-                </p>
-              </div>
-            </div>
-
-            {/* "Прочитал" button right here on the dashboard */}
-            {nextPrayerAlreadyDone ? (
-              <div className="w-full py-3 rounded-2xl text-sm font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center gap-2 cursor-default">
-                <Check size={18} strokeWidth={2.5} />
-                Прочитано
-              </div>
-            ) : (
-              <button
-                onClick={() => markPrayerDone(nextPrayer.key)}
-                className="w-full py-3 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-white transition-all duration-200 active:scale-[0.97] shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2"
-              >
-                <Check size={18} strokeWidth={2.5} />
-                Прочитал
-              </button>
-            )}
-          </>
-        ) : (
-          <p className="t-text-m text-sm text-center py-4">
-            Не удалось загрузить время намазов
-          </p>
-        )}
-      </div>
-
-      {/* ================================================================ */}
-      {/* 4. TODAY'S ACTIVITY FEED                                         */}
-      {/* ================================================================ */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between px-1 mb-2">
-          <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">
-            Активность сегодня
-          </h3>
-          <span className="text-[10px] text-white/20">
-            {activityItems.filter((a) => a.status === "done").length}/
-            {activityItems.length} выполнено
-          </span>
-        </div>
-
-        {/* Prayer items */}
-        {activityItems
-          .filter((a) => a.type === "prayer")
-          .map((item) => (
-            <ActivityRow
-              key={item.key}
-              item={item}
-              onTap={() => {
-                if (item.status === "done") {
-                  navigate("/prayers");
-                } else {
-                  markPrayerDone(item.key as PrayerKey);
-                }
-              }}
-              floatingPts={
-                floatingPts && floatingPts.id.includes(item.key)
-                  ? floatingPts
-                  : null
-              }
-              onClearFloat={() => setFloatingPts(null)}
-            />
-          ))}
-
-        {/* Divider */}
-        <div className="flex items-center gap-2 py-1.5 px-1">
-          <div className="flex-1 h-px t-bg" />
-          <span className="text-[9px] text-white/20 uppercase tracking-widest">
-            Привычки
-          </span>
-          <div className="flex-1 h-px t-bg" />
-        </div>
-
-        {/* Habit items */}
-        {activityItems
-          .filter((a) => a.type === "habit")
-          .map((item) => (
-            <ActivityRow
-              key={item.key}
-              item={item}
-              onTap={() => {
-                const habit = HABITS.find((h) => h.key === item.key);
-                if (habit) toggleHabit(habit);
-              }}
-              floatingPts={
-                floatingPts && floatingPts.id.includes(item.key)
-                  ? floatingPts
-                  : null
-              }
-              onClearFloat={() => setFloatingPts(null)}
-            />
-          ))}
-      </div>
-
-      {/* ================================================================ */}
-      {/* 5. STREAK + LEVEL PROGRESS (Duolingo-style)                      */}
+      {/* 7. STREAK (полоска прогресса)                                    */}
       {/* ================================================================ */}
       <div className="glass-card p-4 relative overflow-hidden">
-        {/* Fire glow for streak > 7 */}
         {streak > 7 && (
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-32 h-32 bg-amber-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
         )}
 
-        {/* Streak hero */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className={`relative flex items-center justify-center w-14 h-14 rounded-2xl ${
+              className={`relative flex items-center justify-center w-12 h-12 rounded-xl ${
                 streak > 7
                   ? "bg-gradient-to-br from-amber-500/30 to-orange-500/20 border border-amber-500/30"
                   : streak > 0
@@ -1301,7 +1110,7 @@ export default function Dashboard() {
               }`}
             >
               <Flame
-                size={30}
+                size={26}
                 className={
                   streak > 7
                     ? "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]"
@@ -1310,20 +1119,10 @@ export default function Dashboard() {
                       : "text-white/20"
                 }
                 fill={streak > 0 ? "currentColor" : "none"}
-                style={
-                  streak > 7
-                    ? { animation: "streak-flame 1.5s ease-in-out infinite" }
-                    : {}
-                }
               />
-              {streak > 7 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center text-[9px] font-bold text-white border-2 border-slate-900">
-                  {streak > 99 ? "99" : streak}
-                </div>
-              )}
             </div>
             <div>
-              <p className="text-2xl font-black text-white tabular-nums leading-none">
+              <p className="text-2xl font-bold text-white tabular-nums leading-none">
                 {streak}
               </p>
               <p className="text-xs text-white/40 mt-0.5">
@@ -1347,138 +1146,31 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Weekly dots (like Duolingo) */}
-        <div className="flex items-center justify-between mb-4 px-1">
-          {weeklyBarData.map((day) => {
-            const active = day.points > 0;
-            const isFuture = day.isFuture;
-            return (
+        {/* Progress bar to next level */}
+        {nextLevel && (
+          <div className="mt-4 pt-3 border-t t-border">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] text-white/30">
+                {profile.totalPoints.toLocaleString()} очков
+              </p>
+              <p className="text-[10px] text-white/20">
+                Ещё{" "}
+                {(nextLevel.minPoints - profile.totalPoints).toLocaleString()}{" "}
+                до <span className="text-amber-400/40">{nextLevel.name}</span>
+              </p>
+            </div>
+            <div className="w-full h-1.5 t-bg rounded-full overflow-hidden">
               <div
-                key={day.date}
-                className="flex flex-col items-center gap-1.5"
-              >
-                <span className="text-[10px] text-white/30 font-medium">
-                  {day.dayLabel}
-                </span>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                    day.isToday
-                      ? active
-                        ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
-                        : "border-2 border-emerald-500/50 bg-emerald-500/10"
-                      : active
-                        ? "bg-emerald-500/25 border border-emerald-500/40"
-                        : isFuture
-                          ? "t-bg border t-border opacity-30"
-                          : "t-bg border t-border"
-                  }`}
-                >
-                  {active && (
-                    <Check
-                      size={14}
-                      className={
-                        day.isToday ? "text-white" : "text-emerald-400"
-                      }
-                    />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Motivational message */}
-        {streak > 0 && (
-          <p className="text-xs text-center text-white/30 mb-4">
-            {streak >= 30
-              ? "Субханаллах! Ты на пути к величию!"
-              : streak >= 7
-                ? "Отличная привычка! Не останавливайся!"
-                : streak >= 3
-                  ? "Хорошее начало! Продолжай каждый день"
-                  : "Начало положено! Завтра будет 2-й день"}
-          </p>
-        )}
-
-        {/* Divider */}
-        <div className="h-px t-bg mb-4" />
-
-        {/* Mini level ladder: prev → current → next */}
-        <div className="flex items-center gap-2 mb-3">
-          {prevLevel && (
-            <>
-              <div className="flex items-center gap-1 opacity-40">
-                <span className="text-sm">{prevLevel.icon}</span>
-                <span className="text-[10px] text-white/60">
-                  {prevLevel.name}
-                </span>
-              </div>
-              <ChevronRight size={12} className="text-white/15" />
-            </>
-          )}
-          <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-            <span className="text-base">{currentLevel.icon}</span>
-            <span className="text-xs font-bold text-emerald-400">
-              {currentLevel.name}
-            </span>
+                className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-500 to-emerald-400"
+                style={{ width: `${levelProgressPct}%` }}
+              />
+            </div>
           </div>
-          {nextLevel && (
-            <>
-              <ChevronRight size={12} className="text-white/15" />
-              <div className="flex items-center gap-1 opacity-40">
-                <span className="text-sm">{nextLevel.icon}</span>
-                <span className="text-[10px] text-white/60">
-                  {nextLevel.name}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Progress bar */}
-        <div className="w-full h-2.5 t-bg rounded-full overflow-hidden mb-2">
-          <div
-            className="h-full rounded-full transition-all duration-700 ease-out"
-            style={{
-              width: `${levelProgressPct}%`,
-              background:
-                levelProgressPct >= 100
-                  ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                  : "linear-gradient(90deg, #10b981, #34d399)",
-              boxShadow:
-                levelProgressPct >= 100
-                  ? "0 0 12px rgba(245,158,11,0.4)"
-                  : "0 0 12px rgba(16,185,129,0.4)",
-            }}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] text-white/30">
-            {profile.totalPoints.toLocaleString()} очков
-          </p>
-          {nextLevel ? (
-            <p className="text-[10px] text-white/20">
-              Ещё {(nextLevel.minPoints - profile.totalPoints).toLocaleString()}{" "}
-              до <span className="text-amber-400/40">{nextLevel.name}</span>
-            </p>
-          ) : (
-            <p className="text-[10px] text-amber-400/70">MAX</p>
-          )}
-        </div>
-
-        {/* Link to all levels */}
-        <button
-          onClick={() => navigate("/guide#levels")}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg t-bg text-white/40 text-[11px] font-medium hover:text-white/60 transition-colors"
-        >
-          Все уровни
-          <ChevronRight size={12} />
-        </button>
+        )}
       </div>
 
       {/* ================================================================ */}
-      {/* 6. HADITH OF THE DAY                                             */}
+      {/* 8. HADITH OF THE DAY                                             */}
       {/* ================================================================ */}
       <div className="glass-card p-5 relative overflow-hidden">
         <div className="absolute -top-8 -left-8 w-32 h-32 bg-amber-500/8 rounded-full blur-3xl pointer-events-none" />
@@ -1505,7 +1197,7 @@ export default function Dashboard() {
       </div>
 
       {/* ================================================================ */}
-      {/* 7. WEEKLY OVERVIEW — Mini 7-day bar chart                        */}
+      {/* 9. WEEKLY OVERVIEW (график)                                      */}
       {/* ================================================================ */}
       <div className="glass-card p-4">
         <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">

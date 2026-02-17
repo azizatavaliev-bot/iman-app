@@ -36,6 +36,7 @@ const Quiz = lazy(() => import("./pages/Quiz"));
 const Seerah = lazy(() => import("./pages/Seerah"));
 const Beginners = lazy(() => import("./pages/Beginners"));
 const Guide = lazy(() => import("./pages/Guide"));
+const AboutApp = lazy(() => import("./pages/AboutApp"));
 
 function PageLoader() {
   return (
@@ -124,6 +125,7 @@ function AppContent() {
             <Route path="/seerah" element={<Seerah />} />
             <Route path="/beginners" element={<Beginners />} />
             <Route path="/guide" element={<Guide />} />
+            <Route path="/about-app" element={<AboutApp />} />
           </Routes>
         </Suspense>
       </div>

@@ -2,7 +2,9 @@
 
 @theme {
     --font-arabic: "Amiri", serif;
-    --font-sans: "Inter", system-ui, sans-serif;
+    --font-sans:
+        -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+        "Inter", system-ui, sans-serif;
     --color-emerald-glow: oklch(0.76 0.18 160);
     --color-gold: oklch(0.82 0.15 85);
     --color-islamic-green: oklch(0.65 0.2 155);
