@@ -3,8 +3,7 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, createHmac } from "crypto";
-import pkg from "pg";
-const { Pool } = pkg;
+import Database from "better-sqlite3";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(__dirname, "dist");
@@ -16,126 +15,58 @@ const APP_URL =
 const WEBHOOK_PATH = `/webhook-${BOT_TOKEN.split(":")[0]}`;
 
 // =========================================================================
-// PostgreSQL DATABASE — User data persistence
+// SQLite DATABASE — User data persistence
 // =========================================================================
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!DATABASE_URL) {
-  console.error("❌ ERROR: DATABASE_URL environment variable is not set!");
-  console.error("Please add DATABASE_URL in Railway Variables.");
-  process.exit(1);
-}
-
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
-});
-
-// Test connection and init DB
-(async () => {
-  const client = await pool.connect();
-  try {
-    const res = await client.query("SELECT NOW()");
-    console.log("✅ Database connected:", res.rows[0].now);
-
-    // Create users table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        telegram_id BIGINT PRIMARY KEY,
-        data JSONB NOT NULL,
-        updated_at BIGINT NOT NULL
-      )
-    `);
-
-    // Create analytics table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS analytics (
-        id SERIAL PRIMARY KEY,
-        telegram_id BIGINT NOT NULL REFERENCES users(telegram_id) ON DELETE CASCADE,
-        type TEXT NOT NULL,
-        page TEXT,
-        action TEXT,
-        metadata JSONB,
-        timestamp BIGINT NOT NULL
-      )
-    `);
-
-    // Create indexes
-    await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_analytics_telegram_id ON analytics(telegram_id)`,
-    );
-    await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics(type)`,
-    );
-    await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp)`,
-    );
-    await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_users_updated_at ON users(updated_at)`,
-    );
-
-    console.log("✅ Database schema initialized");
-  } catch (err) {
-    console.error("❌ Database error:", err.message);
-    process.exit(1);
-  } finally {
-    client.release();
-  }
-})();
-
-// Database helper functions (replacing prepared statements)
-const stmtGetUser = {
-  get: async (telegramId) => {
-    const result = await pool.query(
-      "SELECT data, updated_at FROM users WHERE telegram_id = $1",
-      [telegramId],
-    );
-    if (result.rows.length === 0) return null;
-    const row = result.rows[0];
-    return {
-      data: typeof row.data === "string" ? row.data : JSON.stringify(row.data),
-      updated_at: row.updated_at,
-    };
-  },
-};
-
-const stmtUpsertUser = {
-  run: async (telegramId, dataStr, updatedAt) => {
-    await pool.query(
-      `INSERT INTO users (telegram_id, data, updated_at)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (telegram_id)
-       DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
-      [telegramId, dataStr, updatedAt],
-    );
-  },
-};
-
-const stmtInsertAnalytics = {
-  run: async (telegramId, type, page, action, metadata, timestamp) => {
-    await pool.query(
-      `INSERT INTO analytics (telegram_id, type, page, action, metadata, timestamp)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        telegramId,
-        type,
-        page || null,
-        action || null,
-        metadata || null,
-        timestamp,
-      ],
-    );
-  },
-};
-
-// Keep DATA_DIR for subscribers.json
+// Use /data for Railway persistent volume, fallback to ./data for local dev
 const DATA_DIR = process.env.RAILWAY_ENVIRONMENT
   ? "/data"
   : join(__dirname, "data");
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+
+const db = new Database(join(DATA_DIR, "iman.db"));
+db.pragma("journal_mode = WAL");
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    telegram_id INTEGER PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )
+`);
+
+// Analytics table — track user activity
+db.exec(`
+  CREATE TABLE IF NOT EXISTS analytics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    page TEXT,
+    action TEXT,
+    metadata TEXT,
+    timestamp INTEGER NOT NULL,
+    FOREIGN KEY(telegram_id) REFERENCES users(telegram_id)
+  )
+`);
+
+// Index for faster queries
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_analytics_telegram_id ON analytics(telegram_id)`,
+);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics(type)`);
+db.exec(
+  `CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp)`,
+);
+
+const stmtGetUser = db.prepare(
+  "SELECT data, updated_at FROM users WHERE telegram_id = ?",
+);
+const stmtUpsertUser = db.prepare(`
+  INSERT INTO users (telegram_id, data, updated_at) VALUES (?, ?, ?)
+  ON CONFLICT(telegram_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+`);
+const stmtInsertAnalytics = db.prepare(`
+  INSERT INTO analytics (telegram_id, type, page, action, metadata, timestamp)
+  VALUES (?, ?, ?, ?, ?, ?)
+`);
 
 // =========================================================================
 // ADMIN AUTHORIZATION
@@ -219,7 +150,7 @@ function sanitizeText(text) {
 // =========================================================================
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "ALLOW-FROM https://web.telegram.org",
+  "X-Frame-Options": "DENY",
   "X-XSS-Protection": "1; mode=block",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
@@ -231,7 +162,7 @@ const SECURITY_HEADERS = {
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://cdn.jsdelivr.net https://api.quran.com https://cdn.islamic.network https://server8.mp3quran.net",
     "media-src 'self' https://cdn.islamic.network https://server8.mp3quran.net blob: data:",
-    "frame-ancestors https://web.telegram.org https://telegram.org",
+    "frame-ancestors 'none'",
   ].join("; "),
 };
 
@@ -913,53 +844,6 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // ── Database status endpoint ──────────────────────────────────────────
-  if (req.url === "/api/db-status" && req.method === "GET") {
-    (async () => {
-      try {
-        const dbCheck = await pool.query(
-          "SELECT NOW(), pg_database_size(current_database()) as size",
-        );
-        const usersCount = await pool.query(
-          "SELECT COUNT(*) as count FROM users",
-        );
-        const analyticsCount = await pool.query(
-          "SELECT COUNT(*) as count FROM analytics",
-        );
-
-        res.writeHead(200, {
-          ...SECURITY_HEADERS,
-          "Content-Type": "application/json",
-        });
-        res.end(
-          JSON.stringify({
-            status: "connected",
-            database: "PostgreSQL",
-            timestamp: dbCheck.rows[0].now,
-            size_bytes: parseInt(dbCheck.rows[0].size),
-            tables: {
-              users: parseInt(usersCount.rows[0].count),
-              analytics: parseInt(analyticsCount.rows[0].count),
-            },
-          }),
-        );
-      } catch (err) {
-        res.writeHead(500, {
-          ...SECURITY_HEADERS,
-          "Content-Type": "application/json",
-        });
-        res.end(
-          JSON.stringify({
-            status: "error",
-            database: "unknown",
-            error: err.message,
-          }),
-        );
-      }
-    })();
-    return;
-  }
-
   // ── Admin API — Get all users ─────────────────────────────────────────
   if (req.url === "/api/admin/users" && req.method === "GET") {
     const corsHeaders = {
@@ -989,26 +873,19 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    (async () => {
-      try {
-        const result = await pool.query(
-          "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC",
-        );
-        const rows = result.rows.map((row) => ({
-          telegram_id: row.telegram_id,
-          data:
-            typeof row.data === "string" ? row.data : JSON.stringify(row.data),
-          updated_at: row.updated_at,
-        }));
+    try {
+      const stmtGetAllUsers = db.prepare(
+        "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC",
+      );
+      const rows = stmtGetAllUsers.all();
 
-        res.writeHead(200, corsHeaders);
-        res.end(JSON.stringify({ users: rows }));
-      } catch (e) {
-        console.error("Admin API error:", e);
-        res.writeHead(500, corsHeaders);
-        res.end('{"error":"internal_error"}');
-      }
-    })();
+      res.writeHead(200, corsHeaders);
+      res.end(JSON.stringify({ users: rows }));
+    } catch (e) {
+      console.error("Admin API error:", e);
+      res.writeHead(500, corsHeaders);
+      res.end('{"error":"internal_error"}');
+    }
     return;
   }
 
@@ -1041,7 +918,7 @@ const server = createServer(async (req, res) => {
       body += chunk;
     });
 
-    req.on("end", async () => {
+    req.on("end", () => {
       if (bodySize > MAX) {
         res.writeHead(413, corsHeaders);
         res.end('{"error":"too_large"}');
@@ -1057,17 +934,21 @@ const server = createServer(async (req, res) => {
           return;
         }
 
-        // Insert all events
-        for (const evt of events) {
-          await stmtInsertAnalytics.run(
-            telegramId,
-            evt.type || "unknown",
-            evt.page || null,
-            evt.action || null,
-            evt.metadata ? JSON.stringify(evt.metadata) : null,
-            evt.timestamp || Date.now(),
-          );
-        }
+        // Insert all events in a transaction
+        const insertMany = db.transaction((evts) => {
+          for (const evt of evts) {
+            stmtInsertAnalytics.run(
+              telegramId,
+              evt.type || "unknown",
+              evt.page || null,
+              evt.action || null,
+              evt.metadata ? JSON.stringify(evt.metadata) : null,
+              evt.timestamp || Date.now(),
+            );
+          }
+        });
+
+        insertMany(events);
 
         res.writeHead(200, corsHeaders);
         res.end('{"ok":true}');
@@ -1077,64 +958,6 @@ const server = createServer(async (req, res) => {
         res.end('{"error":"internal_error"}');
       }
     });
-    return;
-  }
-
-  // ── Leaderboard API — Public endpoint ─────────────────────────────────
-  if (req.url === "/api/leaderboard" && req.method === "GET") {
-    const corsHeaders = {
-      ...SECURITY_HEADERS,
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-    };
-
-    if (req.method === "OPTIONS") {
-      res.writeHead(204, corsHeaders);
-      res.end();
-      return;
-    }
-
-    (async () => {
-      try {
-        // Получаем всех пользователей с баллами
-        const result = await pool.query(
-          `SELECT
-            telegram_id,
-            data
-           FROM users
-           WHERE data IS NOT NULL
-           ORDER BY (data->>'totalPoints')::int DESC
-           LIMIT 100`,
-        );
-
-        const users = result.rows.map((row, index) => {
-          const userData =
-            typeof row.data === "string" ? JSON.parse(row.data) : row.data;
-          return {
-            telegram_id: row.telegram_id,
-            name: userData.name || "Пользователь",
-            totalPoints: userData.totalPoints || 0,
-            level: userData.level || "Новичок",
-            streak: userData.streak || 0,
-            rank: index + 1,
-          };
-        });
-
-        // Всего пользователей (минимум 44)
-        const countResult = await pool.query(
-          "SELECT COUNT(*) as count FROM users",
-        );
-        const totalUsers = Math.max(44, parseInt(countResult.rows[0].count));
-
-        res.writeHead(200, corsHeaders);
-        res.end(JSON.stringify({ users, totalUsers }));
-      } catch (e) {
-        console.error("Leaderboard error:", e);
-        res.writeHead(500, corsHeaders);
-        res.end('{"error":"internal_error"}');
-      }
-    })();
     return;
   }
 
@@ -1167,95 +990,88 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    (async () => {
-      try {
-        const now = Date.now();
-        const FIVE_MIN = 5 * 60 * 1000;
-        const ONE_DAY = 24 * 60 * 60 * 1000;
+    try {
+      const now = Date.now();
+      const FIVE_MIN = 5 * 60 * 1000;
+      const ONE_DAY = 24 * 60 * 60 * 1000;
 
-        // Online users (active in last 5 min)
-        const onlineResult = await pool.query(
-          `SELECT COUNT(DISTINCT telegram_id) as count
-           FROM analytics
-           WHERE timestamp > $1`,
-          [now - FIVE_MIN],
-        );
-        const online = parseInt(onlineResult.rows[0].count);
+      // Online users (active in last 5 min)
+      const onlineStmt = db.prepare(`
+        SELECT COUNT(DISTINCT telegram_id) as count
+        FROM analytics
+        WHERE timestamp > ?
+      `);
+      const online = onlineStmt.get(now - FIVE_MIN).count;
 
-        // Active today (active in last 24h)
-        const activeTodayResult = await pool.query(
-          `SELECT COUNT(DISTINCT telegram_id) as count
-           FROM analytics
-           WHERE timestamp > $1`,
-          [now - ONE_DAY],
-        );
-        const activeToday = parseInt(activeTodayResult.rows[0].count);
+      // Active today (active in last 24h)
+      const activeTodayStmt = db.prepare(`
+        SELECT COUNT(DISTINCT telegram_id) as count
+        FROM analytics
+        WHERE timestamp > ?
+      `);
+      const activeToday = activeTodayStmt.get(now - ONE_DAY).count;
 
-        // Top pages (last 7 days)
-        const topPagesResult = await pool.query(
-          `SELECT page, COUNT(*) as count
-           FROM analytics
-           WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > $1
-           GROUP BY page
-           ORDER BY count DESC
-           LIMIT 10`,
-          [now - 7 * ONE_DAY],
-        );
-        const topPages = topPagesResult.rows;
+      // Top pages (last 7 days)
+      const topPagesStmt = db.prepare(`
+        SELECT page, COUNT(*) as count
+        FROM analytics
+        WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > ?
+        GROUP BY page
+        ORDER BY count DESC
+        LIMIT 10
+      `);
+      const topPages = topPagesStmt.all(now - 7 * ONE_DAY);
 
-        // Top actions (last 7 days)
-        const topActionsResult = await pool.query(
-          `SELECT action, COUNT(*) as count
-           FROM analytics
-           WHERE type = 'action' AND action IS NOT NULL AND timestamp > $1
-           GROUP BY action
-           ORDER BY count DESC
-           LIMIT 10`,
-          [now - 7 * ONE_DAY],
-        );
-        const topActions = topActionsResult.rows;
+      // Top actions (last 7 days)
+      const topActionsStmt = db.prepare(`
+        SELECT action, COUNT(*) as count
+        FROM analytics
+        WHERE type = 'action' AND action IS NOT NULL AND timestamp > ?
+        GROUP BY action
+        ORDER BY count DESC
+        LIMIT 10
+      `);
+      const topActions = topActionsStmt.all(now - 7 * ONE_DAY);
 
-        // Average session duration (last 7 days)
-        const avgSessionResult = await pool.query(
-          `SELECT AVG((metadata->>'duration')::INTEGER) as avg_duration
-           FROM analytics
-           WHERE type = 'session_end' AND timestamp > $1 AND metadata IS NOT NULL`,
-          [now - 7 * ONE_DAY],
-        );
-        const avgDuration = avgSessionResult.rows[0].avg_duration
-          ? Math.round(avgSessionResult.rows[0].avg_duration / 1000)
-          : 0; // convert to seconds
+      // Average session duration (last 7 days)
+      const avgSessionStmt = db.prepare(`
+        SELECT AVG(CAST(json_extract(metadata, '$.duration') AS INTEGER)) as avg_duration
+        FROM analytics
+        WHERE type = 'session_end' AND timestamp > ? AND metadata IS NOT NULL
+      `);
+      const avgSession = avgSessionStmt.get(now - 7 * ONE_DAY);
+      const avgDuration = avgSession.avg_duration
+        ? Math.round(avgSession.avg_duration / 1000)
+        : 0; // convert to seconds
 
-        // User activity timeline (last 24h, grouped by hour)
-        const timelineResult = await pool.query(
-          `SELECT
-            EXTRACT(HOUR FROM to_timestamp(timestamp / 1000)) as hour,
-            COUNT(DISTINCT telegram_id) as users
-           FROM analytics
-           WHERE timestamp > $1
-           GROUP BY hour
-           ORDER BY hour`,
-          [now - ONE_DAY],
-        );
-        const timeline = timelineResult.rows;
+      // User activity timeline (last 24h, grouped by hour)
+      const timelineStmt = db.prepare(`
+        SELECT
+          strftime('%H', datetime(timestamp / 1000, 'unixepoch')) as hour,
+          COUNT(DISTINCT telegram_id) as users
+        FROM analytics
+        WHERE timestamp > ?
+        GROUP BY hour
+        ORDER BY hour
+      `);
+      const timeline = timelineStmt.all(now - ONE_DAY);
 
-        res.writeHead(200, corsHeaders);
-        res.end(
-          JSON.stringify({
-            online,
-            activeToday,
-            topPages,
-            topActions,
-            avgSessionDuration: avgDuration,
-            timeline,
-          }),
-        );
-      } catch (e) {
-        console.error("Admin analytics error:", e);
-        res.writeHead(500, corsHeaders);
-        res.end('{"error":"internal_error"}');
-      }
-    })();
+      res.writeHead(200, corsHeaders);
+      res.end(
+        JSON.stringify({
+          online,
+          activeToday,
+          topPages,
+          topActions,
+          avgSessionDuration: avgDuration,
+          timeline,
+        }),
+      );
+    } catch (e) {
+      console.error("Admin analytics error:", e);
+      res.writeHead(500, corsHeaders);
+      res.end('{"error":"internal_error"}');
+    }
     return;
   }
 
@@ -1278,24 +1094,18 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET") {
-      try {
-        const row = await stmtGetUser.get(telegramId);
-        if (!row) {
-          res.writeHead(404, corsHeaders);
-          res.end('{"error":"not_found"}');
-        } else {
-          res.writeHead(200, corsHeaders);
-          res.end(
-            JSON.stringify({
-              data: JSON.parse(row.data),
-              updated_at: row.updated_at,
-            }),
-          );
-        }
-      } catch (e) {
-        console.error("User GET error:", e);
-        res.writeHead(500, corsHeaders);
-        res.end('{"error":"internal_error"}');
+      const row = stmtGetUser.get(telegramId);
+      if (!row) {
+        res.writeHead(404, corsHeaders);
+        res.end('{"error":"not_found"}');
+      } else {
+        res.writeHead(200, corsHeaders);
+        res.end(
+          JSON.stringify({
+            data: JSON.parse(row.data),
+            updated_at: row.updated_at,
+          }),
+        );
       }
       return;
     }
@@ -1314,7 +1124,7 @@ const server = createServer(async (req, res) => {
         body += chunk;
       });
 
-      req.on("end", async () => {
+      req.on("end", () => {
         if (bodySize > MAX) {
           res.writeHead(413, corsHeaders);
           res.end('{"error":"too_large"}');
@@ -1328,11 +1138,7 @@ const server = createServer(async (req, res) => {
             return;
           }
           const now = Date.now();
-          await stmtUpsertUser.run(
-            telegramId,
-            JSON.stringify(parsed.data),
-            now,
-          );
+          stmtUpsertUser.run(telegramId, JSON.stringify(parsed.data), now);
           res.writeHead(200, corsHeaders);
           res.end(JSON.stringify({ ok: true, updated_at: now }));
         } catch (e) {

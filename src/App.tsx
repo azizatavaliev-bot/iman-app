@@ -38,6 +38,7 @@ const Seerah = lazy(() => import("./pages/Seerah"));
 const Beginners = lazy(() => import("./pages/Beginners"));
 const Guide = lazy(() => import("./pages/Guide"));
 const AboutApp = lazy(() => import("./pages/AboutApp"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Admin = lazy(() => import("./pages/AdminNew"));
 
 function PageLoader() {
@@ -70,6 +71,12 @@ function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-50 glass"
       style={{ borderTop: "1px solid var(--border-secondary)" }}
     >
+      {/* Брендинг */}
+      <div className="text-center py-1 text-[10px] text-slate-500">
+        by{" "}
+        <span className="font-semibold text-emerald-400">Aziz Atavaliev</span>
+      </div>
+
       <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-1">
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path;
@@ -135,6 +142,7 @@ function AppContent() {
             <Route path="/beginners" element={<Beginners />} />
             <Route path="/guide" element={<Guide />} />
             <Route path="/about-app" element={<AboutApp />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<Admin />} />
           </Routes>
         </Suspense>

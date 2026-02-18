@@ -1027,6 +1027,13 @@ export default function Dashboard() {
               color: "text-lime-400",
               bg: "bg-lime-400/10",
             },
+            {
+              icon: Trophy,
+              label: "Лидеры",
+              path: "/leaderboard",
+              color: "text-yellow-400",
+              bg: "bg-yellow-400/10",
+            },
           ].map(({ icon: Icon, label, path, color, bg }) => (
             <button
               key={path}
