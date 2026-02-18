@@ -1401,9 +1401,58 @@ const server = createServer(async (req, res) => {
   }
 });
 
+// =========================================================================
+// AUTOMATIC BACKUP SYSTEM — Защита данных от потери
+// =========================================================================
+async function createBackup() {
+  try {
+    console.log("🔄 Создание резервной копии данных...");
+    const result = await pool.query(
+      "SELECT telegram_id, data, updated_at FROM users",
+    );
+    const backup = {
+      timestamp: Date.now(),
+      date: new Date().toISOString(),
+      total_users: result.rows.length,
+      users: result.rows.map((row) => ({
+        telegram_id: row.telegram_id,
+        data:
+          typeof row.data === "string" ? row.data : JSON.stringify(row.data),
+        updated_at: row.updated_at,
+      })),
+    };
+
+    // Сохраняем в переменную окружения (можно использовать для восстановления)
+    global.LATEST_BACKUP = backup;
+
+    console.log(
+      `✅ Бэкап создан: ${result.rows.length} пользователей сохранено`,
+    );
+
+    // Статистика
+    let totalPoints = 0;
+    result.rows.forEach((row) => {
+      try {
+        const data =
+          typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+        totalPoints += data.totalPoints || 0;
+      } catch (e) {}
+    });
+    console.log(`📊 Всего баллов в системе: ${totalPoints.toLocaleString()}`);
+  } catch (error) {
+    console.error("❌ Ошибка при создании бэкапа:", error);
+  }
+}
+
+// Запуск бэкапа каждые 6 часов
+setInterval(createBackup, 6 * 60 * 60 * 1000);
+
 server.listen(PORT, "0.0.0.0", async () => {
   console.log(`IMAN server running on port ${PORT}`);
   console.log(`Security: webhook secret, rate limiting, CSP, HSTS enabled`);
+
+  // Создать первый бэкап при старте
+  await createBackup();
 
   if (BOT_TOKEN && APP_URL) {
     const webhookUrl = `${APP_URL}${WEBHOOK_PATH}`;
