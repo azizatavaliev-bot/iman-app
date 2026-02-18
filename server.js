@@ -944,17 +944,40 @@ const server = createServer(async (req, res) => {
 
   // ── Health check ──────────────────────────────────────────────────────
   if (req.url === "/health" && req.method === "GET") {
-    res.writeHead(200, {
-      ...SECURITY_HEADERS,
-      "Content-Type": "application/json",
-    });
-    res.end(
-      JSON.stringify({
-        status: "ok",
-        subscribers: subscribers.size,
-        uptime: Math.floor(process.uptime()),
-      }),
-    );
+    (async () => {
+      try {
+        const usersCount = await pool.query(
+          "SELECT COUNT(*) as count FROM users",
+        );
+        const subsCount = await pool.query(
+          "SELECT COUNT(*) as count FROM subscribers",
+        );
+        res.writeHead(200, {
+          ...SECURITY_HEADERS,
+          "Content-Type": "application/json",
+        });
+        res.end(
+          JSON.stringify({
+            status: "ok",
+            subscribers: parseInt(subsCount.rows[0].count),
+            users: parseInt(usersCount.rows[0].count),
+            uptime: Math.floor(process.uptime()),
+          }),
+        );
+      } catch (e) {
+        res.writeHead(200, {
+          ...SECURITY_HEADERS,
+          "Content-Type": "application/json",
+        });
+        res.end(
+          JSON.stringify({
+            status: "ok",
+            subscribers: subscribers.size,
+            uptime: Math.floor(process.uptime()),
+          }),
+        );
+      }
+    })();
     return;
   }
 
@@ -1149,31 +1172,36 @@ const server = createServer(async (req, res) => {
             data
            FROM users
            WHERE data IS NOT NULL
-           ORDER BY (data->>'totalPoints')::int DESC
+           ORDER BY COALESCE((data->'iman_profile'->>'totalPoints')::int, (data->>'totalPoints')::int, 0) DESC
            LIMIT 100`,
         );
 
         const users = result.rows.map((row, index) => {
           const userData =
             typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+          const profile = userData.iman_profile || userData;
           return {
             telegram_id: row.telegram_id,
-            name: userData.name || "Пользователь",
-            totalPoints: userData.totalPoints || 0,
-            level: userData.level || "Новичок",
-            streak: userData.streak || 0,
+            name: profile.name || "Пользователь",
+            totalPoints: profile.totalPoints || 0,
+            level: profile.level || "Новичок",
+            streak: profile.streak || 0,
             rank: index + 1,
           };
         });
 
-        // Всего пользователей (минимум 44)
+        // Real user count + subscribers count
         const countResult = await pool.query(
           "SELECT COUNT(*) as count FROM users",
         );
-        const totalUsers = Math.max(44, parseInt(countResult.rows[0].count));
+        const subsResult = await pool.query(
+          "SELECT COUNT(*) as count FROM subscribers",
+        );
+        const totalUsers = parseInt(countResult.rows[0].count);
+        const totalSubscribers = parseInt(subsResult.rows[0].count);
 
         res.writeHead(200, corsHeaders);
-        res.end(JSON.stringify({ users, totalUsers }));
+        res.end(JSON.stringify({ users, totalUsers, totalSubscribers }));
       } catch (e) {
         console.error("Leaderboard error:", e);
         res.writeHead(500, corsHeaders);
@@ -1284,17 +1312,18 @@ const server = createServer(async (req, res) => {
         );
         const timeline = timelineResult.rows;
 
-        // ✨ NEW: Top 5 users by points (with username!)
+        // Top 5 users by points (data is nested in iman_profile)
         const topUsersResult = await pool.query(
           `SELECT
             telegram_id,
-            data->>'name' as name,
-            data->>'telegramUsername' as username,
-            (data->>'totalPoints')::int as points,
-            data->>'level' as level
+            COALESCE(data->'iman_profile'->>'name', data->>'name') as name,
+            COALESCE(data->'iman_profile'->>'telegramUsername', data->>'telegramUsername') as username,
+            COALESCE((data->'iman_profile'->>'totalPoints')::int, (data->>'totalPoints')::int, 0) as points,
+            COALESCE(data->'iman_profile'->>'level', data->>'level') as level
            FROM users
-           WHERE data->>'totalPoints' IS NOT NULL
-           ORDER BY (data->>'totalPoints')::int DESC
+           WHERE data->'iman_profile'->>'totalPoints' IS NOT NULL
+              OR data->>'totalPoints' IS NOT NULL
+           ORDER BY COALESCE((data->'iman_profile'->>'totalPoints')::int, (data->>'totalPoints')::int, 0) DESC
            LIMIT 5`,
         );
         const topUsers = topUsersResult.rows.map((row) => ({
