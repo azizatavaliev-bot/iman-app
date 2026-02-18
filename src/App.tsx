@@ -14,6 +14,7 @@ import { initAudioUnlock } from "./lib/audioUnlock";
 import { syncUserData } from "./lib/sync";
 import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
+import ChannelGate from "./components/ChannelGate";
 import "./index.css";
 
 // Dashboard загружается сразу (главная страница)
@@ -210,11 +211,13 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <AudioProvider>
-          <AppContent />
-        </AudioProvider>
-      </BrowserRouter>
+      <ChannelGate>
+        <BrowserRouter>
+          <AudioProvider>
+            <AppContent />
+          </AudioProvider>
+        </BrowserRouter>
+      </ChannelGate>
     </ThemeProvider>
   );
 }
