@@ -95,6 +95,28 @@ const pool = new Pool({
 
   // Load subscribers AFTER table is created and client is released
   await loadSubscribers();
+
+  // Auto-restore: add all existing users + known admins as subscribers
+  try {
+    // All app users came via bot /start, so they are subscribers
+    await pool.query(
+      `INSERT INTO subscribers (telegram_id)
+       SELECT telegram_id FROM users
+       ON CONFLICT (telegram_id) DO NOTHING`,
+    );
+    // Admin Telegram IDs (definitely used /start)
+    for (const adminId of [508698471, 542914483]) {
+      await pool.query(
+        `INSERT INTO subscribers (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING`,
+        [adminId],
+      );
+    }
+    // Reload into memory with all restored subscribers
+    await loadSubscribers();
+    console.log(`✅ Subscribers restored/synced: ${subscribers.size} total`);
+  } catch (e) {
+    console.error("Failed to restore subscribers:", e);
+  }
 })();
 
 // Database helper functions (replacing prepared statements)
