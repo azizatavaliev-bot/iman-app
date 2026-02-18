@@ -17,6 +17,7 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Moon,
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import { useAudio } from "../components/AudioPlayer";
@@ -154,9 +155,57 @@ const SURAH_NAMES: Record<number, { ru: string; ar: string; ayahs: number }> = {
 // Popular surahs for memorization
 // ============================================================
 
+// Essential surahs for prayer (namaz) — must be memorized first
+const PRAYER_SURAHS = [
+  1, // Аль-Фатиха — обязательна в каждом ракаате
+  112, // Аль-Ихлас — читается в намазе
+  113, // Аль-Фалак — читается в намазе
+  114, // Ан-Нас — читается в намазе
+  108, // Аль-Каусар — короткая для намаза
+  109, // Аль-Кафирун — читается в сунне фаджра
+  110, // Ан-Наср — короткая для намаза
+  111, // Аль-Масад — короткая для намаза
+  103, // Аль-Аср — короткая для намаза
+  105, // Аль-Филь — короткая для намаза
+  106, // Курайш — короткая для намаза
+  107, // Аль-Маун — короткая для намаза
+];
+
+// Sorted by ayah count: easiest (fewest ayahs) → hardest (most ayahs)
 const POPULAR_SURAHS = [
-  1, 36, 55, 56, 67, 78, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 99, 100,
-  101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+  108, // Изобилие — 3 аята
+  103, // Время — 3 аята
+  110, // Помощь — 3 аята
+  106, // Курайш — 4 аята
+  112, // Искренность — 4 аята
+  97, // Предопределение — 5 аята
+  105, // Слон — 5 аятов
+  111, // Пальмовые волокна — 5 аятов
+  113, // Рассвет — 5 аятов
+  109, // Неверующие — 6 аятов
+  114, // Люди — 6 аятов
+  1, // Открывающая — 7 аятов
+  107, // Мелочь — 7 аятов
+  94, // Раскрытие — 8 аятов
+  95, // Смоковница — 8 аятов
+  99, // Землетрясение — 8 аятов
+  102, // Приумножение — 8 аятов
+  104, // Хулитель — 9 аятов
+  93, // Утро — 11 аятов
+  100, // Скачущие — 11 аятов
+  101, // Великое бедствие — 11 аятов
+  91, // Солнце — 15 аятов
+  87, // Высочайший — 19 аятов
+  96, // Сгусток — 19 аятов
+  90, // Город — 20 аятов
+  92, // Ночь — 21 аятов
+  88, // Покрывающее — 26 аятов
+  89, // Заря — 30 аятов
+  67, // Власть — 30 аятов
+  78, // Весть — 40 аятов
+  55, // Милостивый — 78 аятов
+  36, // Йа Син — 83 аята
+  56, // Событие — 96 аятов
 ];
 
 // ============================================================
@@ -987,11 +1036,64 @@ export default function Memorize() {
         </div>
       </div>
 
-      {/* ---- Add Surah Section ---- */}
+      {/* ---- Prayer Surahs Section ---- */}
       <div className="max-w-lg mx-auto px-4 mt-8">
         <div className="flex items-center gap-2 mb-3">
+          <Moon className="w-4 h-4 text-amber-400" />
+          <h2 className="text-white text-sm font-semibold">Для намаза</h2>
+          <span className="text-slate-500 text-xs ml-auto">обязательные</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {PRAYER_SURAHS.map((num) => {
+            const info = SURAH_NAMES[num];
+            if (!info) return null;
+            const isAdded = addedSet.has(num);
+
+            return (
+              <button
+                key={`prayer-${num}`}
+                onClick={() => !isAdded && handleAdd(num)}
+                disabled={isAdded}
+                className={`relative flex items-center gap-2.5 p-3 rounded-xl text-left
+                            transition-all duration-200 border
+                            ${
+                              isAdded
+                                ? "bg-emerald-500/5 border-emerald-500/15 opacity-60 cursor-default"
+                                : "bg-amber-500/5 border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/25 active:scale-[0.98]"
+                            }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold
+                    ${isAdded ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}
+                >
+                  {isAdded ? (
+                    <Check className="w-4 h-4 text-emerald-400" />
+                  ) : (
+                    num
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`text-xs font-medium truncate ${isAdded ? "text-emerald-400/70" : "text-white"}`}
+                  >
+                    {info.ru}
+                  </p>
+                  <p className="text-slate-600 text-[10px]">
+                    {info.ayahs} аятов
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ---- Add Surah Section ---- */}
+      <div className="max-w-lg mx-auto px-4 mt-4">
+        <div className="flex items-center gap-2 mb-3">
           <Plus className="w-4 h-4 text-emerald-400" />
-          <h2 className="text-white text-sm font-semibold">Добавить суру</h2>
+          <h2 className="text-white text-sm font-semibold">Все суры</h2>
         </div>
 
         {/* Search */}

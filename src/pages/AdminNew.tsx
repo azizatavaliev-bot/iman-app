@@ -33,6 +33,22 @@ interface AnalyticsData {
   topActions: Array<{ action: string; count: number }>;
   avgSessionDuration: number;
   timeline: Array<{ hour: string; users: number }>;
+  topUsers: Array<{
+    telegram_id: number;
+    name: string;
+    username: string | null;
+    points: number;
+    level: string;
+  }>;
+  prayers: {
+    today: number;
+    week: number;
+  };
+  newUsers: {
+    today: number;
+    week: number;
+  };
+  quranViews: number;
 }
 
 // ----------------------------------------------------------------
@@ -360,6 +376,120 @@ export default function AdminNew() {
             />
           </div>
         </div>
+
+        {/* ============================================================ */}
+        {/* GROWTH & ACTIVITY STATS                                      */}
+        {/* ============================================================ */}
+        <div>
+          <h2
+            className="text-sm uppercase tracking-wider mb-3"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Рост и активность
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              icon={Users}
+              label="Новых сегодня"
+              value={analytics?.newUsers?.today || 0}
+              subtitle={`${analytics?.newUsers?.week || 0} за неделю`}
+              color="text-cyan-400"
+              bgColor="bg-cyan-400/10"
+            />
+            <StatCard
+              icon={Activity}
+              label="Намазов сегодня"
+              value={analytics?.prayers?.today || 0}
+              subtitle={`${analytics?.prayers?.week || 0} за неделю`}
+              color="text-emerald-400"
+              bgColor="bg-emerald-400/10"
+            />
+            <StatCard
+              icon={Eye}
+              label="Просмотров Корана"
+              value={analytics?.quranViews || 0}
+              subtitle="За последние 7 дней"
+              color="text-indigo-400"
+              bgColor="bg-indigo-400/10"
+            />
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* TOP 5 USERS BY POINTS                                        */}
+        {/* ============================================================ */}
+        {analytics?.topUsers && analytics.topUsers.length > 0 && (
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={18} className="text-amber-400" />
+              <h3
+                className="font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Топ-5 по баллам
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {analytics.topUsers.map((user, i) => (
+                <div
+                  key={user.telegram_id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      i === 0
+                        ? "bg-amber-400/20"
+                        : i === 1
+                          ? "bg-slate-400/20"
+                          : i === 2
+                            ? "bg-orange-400/20"
+                            : "bg-purple-400/20"
+                    }`}
+                  >
+                    <span
+                      className={`text-sm font-bold ${
+                        i === 0
+                          ? "text-amber-400"
+                          : i === 1
+                            ? "text-slate-400"
+                            : i === 2
+                              ? "text-orange-400"
+                              : "text-purple-400"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="font-medium truncate"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {user.name}
+                    </p>
+                    <p
+                      className="text-xs truncate"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {user.username ? `@${user.username}` : "—"} • {user.level}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-amber-400">
+                      {user.points}
+                    </p>
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--text-faint)" }}
+                    >
+                      баллов
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ============================================================ */}
         {/* TOP PAGES & ACTIONS                                          */}

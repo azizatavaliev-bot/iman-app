@@ -41,6 +41,8 @@ const Guide = lazy(() => import("./pages/Guide"));
 const AboutApp = lazy(() => import("./pages/AboutApp"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Admin = lazy(() => import("./pages/AdminNew"));
+const NamazGuide = lazy(() => import("./pages/NamazGuide"));
+const Recommended = lazy(() => import("./pages/Recommended"));
 
 function PageLoader() {
   return (
@@ -145,6 +147,8 @@ function AppContent() {
             <Route path="/about-app" element={<AboutApp />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/namaz-guide" element={<NamazGuide />} />
+            <Route path="/recommended" element={<Recommended />} />
           </Routes>
         </Suspense>
       </div>

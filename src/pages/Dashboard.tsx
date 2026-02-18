@@ -25,6 +25,10 @@ import {
   Scroll,
   Sparkles,
   Info,
+  Trophy,
+  CalendarDays,
+  Bookmark,
+  Landmark,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { useAudio } from "../components/AudioPlayer";
@@ -482,9 +486,70 @@ const POPULAR_SURAHS = [
   { number: 56, name: "Аль-Вакиа", ar: "الواقعة" },
 ];
 
+// ---------------------------------------------------------------------------
+// Welcome Modal (first visit)
+// ---------------------------------------------------------------------------
+
+function WelcomeModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl">
+        {/* Header gradient */}
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/15 flex items-center justify-center">
+            <span className="text-4xl">☪️</span>
+          </div>
+          <h2 className="text-2xl font-bold text-white">Ас-саляму алейкум!</h2>
+          <p className="text-emerald-100/80 mt-2 text-sm">
+            Добро пожаловать в приложение IMAN
+          </p>
+        </div>
+
+        {/* Content */}
+        <div className="bg-[#1a1a2e] p-6 space-y-4">
+          <p className="text-white/80 text-sm leading-relaxed">
+            IMAN — ваш помощник в ибадате. Здесь вы можете:
+          </p>
+          <div className="space-y-2.5">
+            {[
+              { emoji: "🕌", text: "Отслеживать намазы и получать баллы" },
+              { emoji: "📖", text: "Читать и заучивать суры Корана" },
+              { emoji: "📿", text: "Делать зикры и дуа" },
+              { emoji: "🌙", text: "Вести трекер Рамадана" },
+              { emoji: "🧠", text: "Проверять знания в викторине" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-lg">{item.emoji}</span>
+                <span className="text-white/70 text-sm">{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full mt-4 py-3.5 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/30"
+          >
+            Начать
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const audio = useAudio();
+
+  // Welcome modal state
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return !localStorage.getItem("iman_welcome_shown");
+  });
+
+  const dismissWelcome = () => {
+    localStorage.setItem("iman_welcome_shown", "1");
+    setShowWelcome(false);
+  };
 
   // Core state
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
@@ -781,6 +846,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pb-8 px-4 pt-6 max-w-lg mx-auto space-y-5 animate-fade-in">
+      {/* Welcome modal (first visit) */}
+      {showWelcome && <WelcomeModal onClose={dismissWelcome} />}
+
       {/* Celebration overlay */}
       {celebrating && <CelebrationBurst onDone={() => setCelebrating(false)} />}
 
@@ -807,10 +875,22 @@ export default function Dashboard() {
       </header>
 
       {/* ================================================================ */}
-      {/* 2. ДВЕ БОЛЬШИЕ КНОПКИ (Новичкам + О приложении)                 */}
+      {/* 2. ДВЕ БОЛЬШИЕ КНОПКИ (Инструкция + Новичкам)                   */}
       {/* ================================================================ */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Большая кнопка "Новичкам" */}
+        {/* Большая кнопка "Инструкция" — первый */}
+        <Link
+          to="/guide"
+          className="col-span-1 h-28 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
+        >
+          <Info className="w-8 h-8 text-white" strokeWidth={2} />
+          <div>
+            <h3 className="text-base font-bold text-white">Инструкция</h3>
+            <p className="text-xs text-white/80 mt-0.5">Как пользоваться</p>
+          </div>
+        </Link>
+
+        {/* Большая кнопка "Новичкам" — второй */}
         <Link
           to="/beginners"
           className="col-span-1 h-28 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
@@ -819,20 +899,6 @@ export default function Dashboard() {
           <div>
             <h3 className="text-base font-bold text-white">Новичкам</h3>
             <p className="text-xs text-white/80 mt-0.5">Начните здесь</p>
-          </div>
-        </Link>
-
-        {/* Большая кнопка "О приложении IMAN" */}
-        <Link
-          to="/about-app"
-          className="col-span-1 h-28 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
-        >
-          <Info className="w-8 h-8 text-white" strokeWidth={2} />
-          <div>
-            <h3 className="text-base font-bold text-white">
-              О приложении IMAN
-            </h3>
-            <p className="text-xs text-white/80 mt-0.5">Узнайте больше</p>
           </div>
         </Link>
       </div>
@@ -935,6 +1001,124 @@ export default function Dashboard() {
       </div>
 
       {/* ================================================================ */}
+      {/* 4.5 PRAYER STATUS BAR (все 5 намазов мини)                      */}
+      {/* ================================================================ */}
+      {prayerTimes && (
+        <div className="glass-card p-3">
+          <div className="flex items-center justify-between gap-1">
+            {PRAYER_KEYS.map((pk) => {
+              const apiKey = PRAYER_KEY_TO_API[pk];
+              const entry = prayerLog.prayers[pk];
+              const timeStr =
+                prayerTimes[apiKey]?.replace(/\s*\(.*\)/, "").trim() || "";
+              const isDone =
+                entry.status === "ontime" || entry.status === "late";
+              const isMissed = entry.status === "missed";
+              const isNext = nextPrayer?.key === pk;
+
+              return (
+                <button
+                  key={pk}
+                  onClick={() => {
+                    if (!isDone && !isMissed) markPrayerDone(pk);
+                  }}
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl transition-all duration-200 ${
+                    isDone
+                      ? "bg-emerald-500/15 border border-emerald-500/25"
+                      : isMissed
+                        ? "bg-red-500/10 border border-red-500/20"
+                        : isNext
+                          ? "bg-amber-500/10 border border-amber-500/25 ring-1 ring-amber-500/20"
+                          : "t-bg border t-border-s"
+                  }`}
+                >
+                  <span className="text-xs">{PRAYER_ICONS[pk]}</span>
+                  <span
+                    className={`text-[10px] font-semibold ${
+                      isDone
+                        ? "text-emerald-400"
+                        : isMissed
+                          ? "text-red-400"
+                          : isNext
+                            ? "text-amber-400"
+                            : "text-white/50"
+                    }`}
+                  >
+                    {PRAYER_NAMES_MAP[apiKey]?.slice(0, 3)}
+                  </span>
+                  <span className="text-[9px] text-white/30 tabular-nums">
+                    {timeStr}
+                  </span>
+                  {isDone && <Check size={10} className="text-emerald-400" />}
+                  {isMissed && <X size={10} className="text-red-400" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================ */}
+      {/* 4.6 RAMADAN BLOCK (countdown or progress)                        */}
+      {/* ================================================================ */}
+      {(() => {
+        const RAMADAN_START = new Date(2026, 2, 19); // Mar 19, 2026
+        const RAMADAN_END = new Date(2026, 3, 17); // Apr 17, 2026
+        const now = new Date();
+        const isBeforeRamadan = now < RAMADAN_START;
+        const isDuringRamadan = now >= RAMADAN_START && now <= RAMADAN_END;
+
+        if (!isBeforeRamadan && !isDuringRamadan) return null;
+
+        const daysUntil = isBeforeRamadan
+          ? Math.ceil(
+              (RAMADAN_START.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+            )
+          : 0;
+        const currentDay = isDuringRamadan
+          ? Math.min(
+              30,
+              Math.ceil(
+                (now.getTime() - RAMADAN_START.getTime()) /
+                  (1000 * 60 * 60 * 24),
+              ),
+            )
+          : 0;
+
+        return (
+          <Link
+            to="/ramadan"
+            className="glass-card glow-green p-4 flex items-center gap-4 hover:scale-[1.01] active:scale-[0.99] transition-transform"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-teal-500/20 border border-emerald-500/25 flex items-center justify-center shrink-0">
+              <CalendarDays className="w-7 h-7 text-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-white">
+                {isBeforeRamadan
+                  ? "Рамадан 2026"
+                  : `Рамадан — день ${currentDay}/30`}
+              </h3>
+              <p className="text-sm text-white/50 mt-0.5">
+                {isBeforeRamadan
+                  ? `Через ${daysUntil} ${daysUntil === 1 ? "день" : daysUntil >= 2 && daysUntil <= 4 ? "дня" : "дней"} — 19 марта`
+                  : "Откройте трекер поста и целей"}
+              </p>
+              {isDuringRamadan && (
+                <div className="mt-2 w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+                    style={{ width: `${(currentDay / 30) * 100}%` }}
+                  />
+                </div>
+              )}
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/20 shrink-0" />
+          </Link>
+        );
+      })()}
+
+      {/* ================================================================ */}
       {/* 5. QUICK ACTIONS GRID (12 функций)                              */}
       {/* ================================================================ */}
       <div>
@@ -952,17 +1136,52 @@ export default function Dashboard() {
             },
             {
               icon: BookOpen,
-              label: "Коран",
+              label: "Чтение Корана",
               path: "/quran",
               color: "text-sky-400",
               bg: "bg-sky-400/10",
             },
             {
+              icon: Headphones,
+              label: "Заучивание сур",
+              path: "/memorize",
+              color: "text-violet-400",
+              bg: "bg-violet-400/10",
+            },
+            {
+              icon: Timer,
+              label: "Помидоро",
+              path: "/ibadah",
+              color: "text-cyan-400",
+              bg: "bg-cyan-400/10",
+            },
+            {
+              icon: Star,
+              label: "99 имён Аллаха",
+              path: "/names",
+              color: "text-purple-400",
+              bg: "bg-purple-400/10",
+            },
+            {
+              icon: Heart,
+              label: "Дуа на все случаи",
+              path: "/dua",
+              color: "text-pink-400",
+              bg: "bg-pink-400/10",
+            },
+            {
               icon: Target,
-              label: "Привычки",
+              label: "Полезные привычки",
               path: "/habits",
               color: "text-rose-400",
               bg: "bg-rose-400/10",
+            },
+            {
+              icon: Repeat,
+              label: "Зикры на все случаи",
+              path: "/dhikr",
+              color: "text-teal-400",
+              bg: "bg-teal-400/10",
             },
             {
               icon: Quote,
@@ -972,39 +1191,11 @@ export default function Dashboard() {
               bg: "bg-amber-400/10",
             },
             {
-              icon: Star,
-              label: "99 Имён",
-              path: "/names",
-              color: "text-purple-400",
-              bg: "bg-purple-400/10",
-            },
-            {
               icon: Scroll,
-              label: "Сира",
+              label: "История пророка",
               path: "/seerah",
               color: "text-rose-400",
               bg: "bg-rose-400/10",
-            },
-            {
-              icon: Heart,
-              label: "Дуа",
-              path: "/dua",
-              color: "text-pink-400",
-              bg: "bg-pink-400/10",
-            },
-            {
-              icon: Repeat,
-              label: "Зикры",
-              path: "/dhikr",
-              color: "text-teal-400",
-              bg: "bg-teal-400/10",
-            },
-            {
-              icon: Timer,
-              label: "Поклонение",
-              path: "/ibadah",
-              color: "text-cyan-400",
-              bg: "bg-cyan-400/10",
             },
             {
               icon: Brain,
@@ -1014,11 +1205,25 @@ export default function Dashboard() {
               bg: "bg-orange-400/10",
             },
             {
-              icon: Headphones,
-              label: "Заучивание",
-              path: "/memorize",
-              color: "text-violet-400",
-              bg: "bg-violet-400/10",
+              icon: CalendarDays,
+              label: "Рамадан",
+              path: "/ramadan",
+              color: "text-emerald-300",
+              bg: "bg-emerald-300/10",
+            },
+            {
+              icon: Landmark,
+              label: "Гид по намазу",
+              path: "/namaz-guide",
+              color: "text-indigo-400",
+              bg: "bg-indigo-400/10",
+            },
+            {
+              icon: Bookmark,
+              label: "Рекомендуемые аяты",
+              path: "/recommended",
+              color: "text-amber-300",
+              bg: "bg-amber-300/10",
             },
             {
               icon: BarChart3,
@@ -1210,24 +1415,36 @@ export default function Dashboard() {
       {/* ================================================================ */}
       {/* 9. WEEKLY OVERVIEW (график)                                      */}
       {/* ================================================================ */}
-      <div className="glass-card p-4">
-        <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">
-          Неделя
-        </h3>
+      <div className="glass-card p-5 relative overflow-hidden">
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">
+            Ваша неделя
+          </h3>
+          <span className="text-xs text-emerald-400/60 font-medium tabular-nums">
+            {weeklyBarData.reduce((s, d) => s + (d.isFuture ? 0 : d.points), 0)}{" "}
+            очков
+          </span>
+        </div>
 
         <div
-          className="flex items-end justify-between gap-2"
-          style={{ height: 80 }}
+          className="flex items-end justify-between gap-2.5"
+          style={{ height: 100 }}
         >
           {weeklyBarData.map((day) => {
             const barHeight = day.isFuture
               ? 0
-              : Math.max(4, (day.points / maxWeekPoints) * 64);
-            let barColor = "t-bg";
+              : day.points === 0
+                ? 4
+                : Math.max(8, (day.points / maxWeekPoints) * 72);
+            let barBg = "bg-white/6";
             if (!day.isFuture && day.points > 0) {
-              if (day.points >= 50) barColor = "bg-emerald-500/70";
-              else if (day.points >= 20) barColor = "bg-amber-500/60";
-              else barColor = "bg-white/20";
+              if (day.points >= 50)
+                barBg = "bg-gradient-to-t from-emerald-600 to-emerald-400";
+              else if (day.points >= 20)
+                barBg = "bg-gradient-to-t from-amber-600 to-amber-400";
+              else barBg = "bg-gradient-to-t from-white/20 to-white/30";
             }
 
             return (
@@ -1236,50 +1453,73 @@ export default function Dashboard() {
                 className="flex-1 flex flex-col items-center gap-1.5"
               >
                 {/* Points label */}
-                <span className="text-[9px] text-white/20 tabular-nums">
-                  {day.isFuture ? "" : day.points > 0 ? day.points : ""}
+                <span
+                  className={`text-[10px] font-bold tabular-nums ${
+                    day.isFuture
+                      ? "text-transparent"
+                      : day.points >= 50
+                        ? "text-emerald-400"
+                        : day.points >= 20
+                          ? "text-amber-400"
+                          : day.points > 0
+                            ? "text-white/40"
+                            : "text-transparent"
+                  }`}
+                >
+                  {day.points || ""}
                 </span>
 
                 {/* Bar */}
                 <div
-                  className={`w-full max-w-[28px] rounded-t-md transition-all duration-500 ease-out ${barColor} ${
-                    day.isToday ? "ring-1 ring-emerald-400/40" : ""
+                  className={`w-full max-w-[32px] rounded-lg transition-all duration-700 ease-out ${barBg} ${
+                    day.isToday
+                      ? "ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/20"
+                      : ""
                   }`}
                   style={{ height: barHeight }}
                 />
 
                 {/* Day label */}
                 <span
-                  className={`text-[10px] font-medium ${
-                    day.isToday ? "text-emerald-400" : "t-text-f"
+                  className={`text-[11px] font-semibold ${
+                    day.isToday
+                      ? "text-emerald-400"
+                      : day.isFuture
+                        ? "text-white/15"
+                        : "text-white/40"
                   }`}
                 >
                   {day.dayLabel}
                 </span>
 
-                {/* Today dot */}
+                {/* Today indicator */}
                 {day.isToday && (
-                  <div className="w-1 h-1 rounded-full bg-emerald-400 -mt-1" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 -mt-1 shadow-lg shadow-emerald-400/50" />
                 )}
               </div>
             );
           })}
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t t-border">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" />
-            <span className="text-[9px] text-white/25">&gt;50 очков</span>
+        {/* Summary row */}
+        <div className="flex items-center justify-between mt-4 pt-3 border-t t-border">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-emerald-600 to-emerald-400" />
+              <span className="text-[10px] text-white/30">Отлично</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-amber-600 to-amber-400" />
+              <span className="text-[10px] text-white/30">Хорошо</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-amber-500/60" />
-            <span className="text-[9px] text-white/25">&gt;20 очков</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-white/20" />
-            <span className="text-[9px] text-white/25">&lt;20 очков</span>
-          </div>
+          <button
+            onClick={() => navigate("/stats")}
+            className="text-[10px] text-emerald-400/60 font-medium hover:text-emerald-400 transition-colors flex items-center gap-1"
+          >
+            Подробнее
+            <ChevronRight size={12} />
+          </button>
         </div>
       </div>
 

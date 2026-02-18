@@ -1240,6 +1240,70 @@ const server = createServer(async (req, res) => {
         );
         const timeline = timelineResult.rows;
 
+        // ✨ NEW: Top 5 users by points (with username!)
+        const topUsersResult = await pool.query(
+          `SELECT
+            telegram_id,
+            data->>'name' as name,
+            data->>'telegramUsername' as username,
+            (data->>'totalPoints')::int as points,
+            data->>'level' as level
+           FROM users
+           WHERE data->>'totalPoints' IS NOT NULL
+           ORDER BY (data->>'totalPoints')::int DESC
+           LIMIT 5`,
+        );
+        const topUsers = topUsersResult.rows.map((row) => ({
+          telegram_id: row.telegram_id,
+          name: row.name || "Пользователь",
+          username: row.username || null,
+          points: row.points || 0,
+          level: row.level || "Новичок",
+        }));
+
+        // ✨ NEW: Prayer statistics (today & this week)
+        const prayersTodayResult = await pool.query(
+          `SELECT COUNT(*) as count
+           FROM analytics
+           WHERE action = 'prayer_marked' AND timestamp > $1`,
+          [now - ONE_DAY],
+        );
+        const prayersToday = parseInt(prayersTodayResult.rows[0].count);
+
+        const prayersWeekResult = await pool.query(
+          `SELECT COUNT(*) as count
+           FROM analytics
+           WHERE action = 'prayer_marked' AND timestamp > $1`,
+          [now - 7 * ONE_DAY],
+        );
+        const prayersWeek = parseInt(prayersWeekResult.rows[0].count);
+
+        // ✨ NEW: New users (today & this week)
+        const newUsersTodayResult = await pool.query(
+          `SELECT COUNT(*) as count
+           FROM users
+           WHERE updated_at > $1`,
+          [now - ONE_DAY],
+        );
+        const newUsersToday = parseInt(newUsersTodayResult.rows[0].count);
+
+        const newUsersWeekResult = await pool.query(
+          `SELECT COUNT(*) as count
+           FROM users
+           WHERE updated_at > $1`,
+          [now - 7 * ONE_DAY],
+        );
+        const newUsersWeek = parseInt(newUsersWeekResult.rows[0].count);
+
+        // ✨ NEW: Quran reading stats (page views on /quran)
+        const quranViewsResult = await pool.query(
+          `SELECT COUNT(*) as count
+           FROM analytics
+           WHERE page = '/quran' AND timestamp > $1`,
+          [now - 7 * ONE_DAY],
+        );
+        const quranViews = parseInt(quranViewsResult.rows[0].count);
+
         res.writeHead(200, corsHeaders);
         res.end(
           JSON.stringify({
@@ -1249,6 +1313,17 @@ const server = createServer(async (req, res) => {
             topActions,
             avgSessionDuration: avgDuration,
             timeline,
+            // ✨ NEW extended stats:
+            topUsers,
+            prayers: {
+              today: prayersToday,
+              week: prayersWeek,
+            },
+            newUsers: {
+              today: newUsersToday,
+              week: newUsersWeek,
+            },
+            quranViews,
           }),
         );
       } catch (e) {

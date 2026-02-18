@@ -19,10 +19,10 @@ const KEYS = {
 // ---- Points System ----
 
 export const POINTS = {
-  PRAYER_ONTIME: 15,
-  PRAYER_LATE: 7,
+  PRAYER_ONTIME: 10,
+  PRAYER_LATE: 3,
   QURAN: 5,
-  HADITH: 3,
+  HADITH: 2,
   AZKAR: 3,
   CHARITY: 8,
   FASTING: 20,
