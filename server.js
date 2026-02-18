@@ -774,6 +774,11 @@ async function handleWebhook(body) {
   const text = sanitizeText(msg.text);
   const name = sanitizeName(msg.from?.first_name);
 
+  // Auto-subscribe: any message from user = they are a subscriber
+  if (!subscribers.has(chatId)) {
+    await addSubscriber(chatId);
+  }
+
   const appButton = {
     inline_keyboard: [
       [{ text: "\u{1F55C} Открыть IMAN", web_app: { url: APP_URL } }],
@@ -781,8 +786,6 @@ async function handleWebhook(body) {
   };
 
   if (text === "/start") {
-    await addSubscriber(chatId);
-
     await sendMessage(
       chatId,
       `Ас-саляму алейкум, ${name}! \u2728\n\n` +
