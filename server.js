@@ -1,3 +1,4 @@
+// IMAN App Server — all data persisted in PostgreSQL
 import { createServer } from "http";
 import { readFileSync, existsSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
