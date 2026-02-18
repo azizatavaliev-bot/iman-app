@@ -492,25 +492,25 @@ const POPULAR_SURAHS = [
 
 function WelcomeModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-start pt-8 px-5 bg-black/70 backdrop-blur-sm animate-fade-in overflow-auto">
       <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl">
-        {/* Header gradient */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/15 flex items-center justify-center">
-            <span className="text-4xl">☪️</span>
+        {/* Header */}
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-5 text-center">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-white/15 flex items-center justify-center">
+            <span className="text-3xl">☪️</span>
           </div>
-          <h2 className="text-2xl font-bold text-white">Ас-саляму алейкум!</h2>
-          <p className="text-emerald-100/80 mt-2 text-sm">
+          <h2 className="text-xl font-bold text-white">Ас-саляму алейкум!</h2>
+          <p className="text-emerald-100/80 mt-1 text-xs">
             Добро пожаловать в приложение IMAN
           </p>
         </div>
 
         {/* Content */}
-        <div className="bg-[#1a1a2e] p-6 space-y-4">
-          <p className="text-white/80 text-sm leading-relaxed">
-            IMAN — ваш помощник в ибадате. Здесь вы можете:
+        <div className="bg-[#1a1a2e] px-5 py-4 space-y-3">
+          <p className="text-white/80 text-sm">
+            IMAN — ваш помощник в ибадате:
           </p>
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             {[
               { emoji: "🕌", text: "Отслеживать намазы и получать баллы" },
               { emoji: "📖", text: "Читать и заучивать суры Корана" },
@@ -518,16 +518,16 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
               { emoji: "🌙", text: "Вести трекер Рамадана" },
               { emoji: "🧠", text: "Проверять знания в викторине" },
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-lg">{item.emoji}</span>
-                <span className="text-white/70 text-sm">{item.text}</span>
+              <div key={i} className="flex items-center gap-2.5">
+                <span className="text-base">{item.emoji}</span>
+                <span className="text-white/70 text-xs">{item.text}</span>
               </div>
             ))}
           </div>
 
           <button
             onClick={onClose}
-            className="w-full mt-4 py-3.5 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/30"
+            className="w-full mt-2 py-3 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/30"
           >
             Начать
           </button>
