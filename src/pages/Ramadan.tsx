@@ -20,8 +20,8 @@ const DEFAULT_LAT = 42.8746; // Bishkek
 const DEFAULT_LNG = 74.5698;
 
 // Ramadan 1447 approximate dates (Kyrgyzstan)
-const RAMADAN_START = new Date(2026, 2, 19); // Mar 19, 2026
-const RAMADAN_END = new Date(2026, 3, 17); // Apr 17, 2026
+const RAMADAN_START = new Date(2026, 1, 19); // Feb 19, 2026
+const RAMADAN_END = new Date(2026, 2, 20); // Mar 20, 2026
 const RAMADAN_DAYS = 30;
 
 const STORAGE_KEY = "iman_ramadan_2026";

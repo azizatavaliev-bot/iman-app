@@ -1062,8 +1062,8 @@ export default function Dashboard() {
       {/* 4.6 RAMADAN BLOCK (countdown or progress)                        */}
       {/* ================================================================ */}
       {(() => {
-        const RAMADAN_START = new Date(2026, 2, 19); // Mar 19, 2026
-        const RAMADAN_END = new Date(2026, 3, 17); // Apr 17, 2026
+        const RAMADAN_START = new Date(2026, 1, 19); // Feb 19, 2026
+        const RAMADAN_END = new Date(2026, 2, 20); // Mar 20, 2026
         const now = new Date();
         const isBeforeRamadan = now < RAMADAN_START;
         const isDuringRamadan = now >= RAMADAN_START && now <= RAMADAN_END;
@@ -1101,7 +1101,7 @@ export default function Dashboard() {
               </h3>
               <p className="text-sm text-white/50 mt-0.5">
                 {isBeforeRamadan
-                  ? `Через ${daysUntil} ${daysUntil === 1 ? "день" : daysUntil >= 2 && daysUntil <= 4 ? "дня" : "дней"} — 19 марта`
+                  ? `Через ${daysUntil} ${daysUntil === 1 ? "день" : daysUntil >= 2 && daysUntil <= 4 ? "дня" : "дней"} — 19 февраля`
                   : "Откройте трекер поста и целей"}
               </p>
               {isDuringRamadan && (
