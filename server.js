@@ -1,5 +1,5 @@
 import { createServer } from "http";
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
+import { readFileSync, existsSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, createHmac } from "crypto";
@@ -60,6 +60,14 @@ const pool = new Pool({
         action TEXT,
         metadata JSONB,
         timestamp BIGINT NOT NULL
+      )
+    `);
+
+    // Create subscribers table (persistent across deploys!)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS subscribers (
+        telegram_id BIGINT PRIMARY KEY,
+        subscribed_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT * 1000
       )
     `);
 
@@ -131,7 +139,7 @@ const stmtInsertAnalytics = {
   },
 };
 
-// Keep DATA_DIR for subscribers.json
+// DATA_DIR kept for any local file needs
 const DATA_DIR = process.env.RAILWAY_ENVIRONMENT
   ? "/data"
   : join(__dirname, "data");
@@ -254,32 +262,45 @@ const MIME = {
 };
 
 // =========================================================================
-// SUBSCRIBERS — in-memory + persist to subscribers.json
+// SUBSCRIBERS — in-memory Set + PostgreSQL persistence (survives deploys)
 // =========================================================================
 
-const SUBSCRIBERS_FILE = join(DATA_DIR, "subscribers.json");
 const subscribers = new Set();
 
-function loadSubscribers() {
+async function loadSubscribers() {
   try {
-    if (existsSync(SUBSCRIBERS_FILE)) {
-      const data = JSON.parse(readFileSync(SUBSCRIBERS_FILE, "utf-8"));
-      if (Array.isArray(data)) data.forEach((id) => subscribers.add(id));
-      console.log(`Loaded ${subscribers.size} subscribers`);
-    }
+    const result = await pool.query("SELECT telegram_id FROM subscribers");
+    result.rows.forEach((row) => subscribers.add(Number(row.telegram_id)));
+    console.log(`✅ Loaded ${subscribers.size} subscribers from PostgreSQL`);
   } catch (e) {
-    console.error("Failed to load subscribers:", e);
+    console.error("Failed to load subscribers from DB:", e);
   }
 }
 
-function saveSubscribers() {
+async function addSubscriber(chatId) {
+  subscribers.add(chatId);
   try {
-    writeFileSync(SUBSCRIBERS_FILE, JSON.stringify([...subscribers]));
+    await pool.query(
+      `INSERT INTO subscribers (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING`,
+      [chatId],
+    );
   } catch (e) {
-    console.error("Failed to save subscribers:", e);
+    console.error("Failed to save subscriber:", e);
   }
 }
 
+async function removeSubscriber(chatId) {
+  subscribers.delete(chatId);
+  try {
+    await pool.query("DELETE FROM subscribers WHERE telegram_id = $1", [
+      chatId,
+    ]);
+  } catch (e) {
+    console.error("Failed to remove subscriber:", e);
+  }
+}
+
+// Load subscribers at startup (async — will complete after server starts)
 loadSubscribers();
 
 // =========================================================================
@@ -681,7 +702,7 @@ async function sendDailyBroadcast() {
       );
       const data = await res.json();
       if (!data.ok && (data.error_code === 403 || data.error_code === 400)) {
-        subscribers.delete(ids[i]);
+        await removeSubscriber(ids[i]);
       }
     } catch (e) {
       console.error(`Failed to send to ${ids[i]}:`, e);
@@ -691,7 +712,6 @@ async function sendDailyBroadcast() {
     }
   }
 
-  saveSubscribers();
   console.log(
     `Daily broadcast complete, ${subscribers.size} active subscribers`,
   );
@@ -737,8 +757,7 @@ async function handleWebhook(body) {
   };
 
   if (text === "/start") {
-    subscribers.add(chatId);
-    saveSubscribers();
+    await addSubscriber(chatId);
 
     await sendMessage(
       chatId,
@@ -792,15 +811,13 @@ async function handleWebhook(body) {
       `\u{1F64F} *Дуа:*\n\n${d.text}\n\n_Источник: ${d.source}_`,
     );
   } else if (text === "/remind") {
-    subscribers.add(chatId);
-    saveSubscribers();
+    await addSubscriber(chatId);
     await sendMessage(
       chatId,
       `\u{1F514} Вы подписаны на ежедневные напоминания!\n\nКаждый день в 7:00 (Бишкек) вы будете получать хадис, аят, дуа и время намаза.\n\nДля отписки: /stop`,
     );
   } else if (text === "/stop") {
-    subscribers.delete(chatId);
-    saveSubscribers();
+    await removeSubscriber(chatId);
     await sendMessage(
       chatId,
       `\u{1F515} Вы отписались от ежедневных напоминаний.\n\nЧтобы подписаться снова: /remind`,
