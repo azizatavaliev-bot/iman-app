@@ -141,12 +141,13 @@ if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 // ADMIN AUTHORIZATION
 // =========================================================================
 const ADMIN_TELEGRAM_IDS = [
-  // Add your Telegram ID here after first login
-  // Example: 123456789
+  508698471, // Aziz Atavaliev (основной admin)
+  542914483, // Akylai (второй admin)
 ];
 
 const ADMIN_USERNAMES = [
   "atavaliev", // @atavaliev - fallback (less secure than ID)
+  "atavaliev", // альтернативное написание
 ];
 
 function isAdmin(telegramId, username) {
