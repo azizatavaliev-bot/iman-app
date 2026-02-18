@@ -92,6 +92,9 @@ const pool = new Pool({
   } finally {
     client.release();
   }
+
+  // Load subscribers AFTER table is created and client is released
+  await loadSubscribers();
 })();
 
 // Database helper functions (replacing prepared statements)
@@ -300,8 +303,7 @@ async function removeSubscriber(chatId) {
   }
 }
 
-// Load subscribers at startup (async — will complete after server starts)
-loadSubscribers();
+// Subscribers loaded after DB schema init (see below in IIFE)
 
 // =========================================================================
 // PRAYER TIMES — Fetch from Aladhan API (method 3 = MWL for Central Asia)
