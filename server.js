@@ -1089,6 +1089,70 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── User Data API — Save/Load user data ──────────────────────────────
+  // GET /api/user/:telegramId - Load user data
+  if (req.url?.match(/^\/api\/user\/(\d+)$/) && req.method === "GET") {
+    const telegramId = parseInt(RegExp.$1, 10);
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    };
+
+    (async () => {
+      try {
+        const row = await stmtGetUser.get(telegramId);
+        if (!row) {
+          res.writeHead(404, corsHeaders);
+          res.end(JSON.stringify({ error: "not_found" }));
+          return;
+        }
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify(row));
+      } catch (err) {
+        console.error("User load error:", err);
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ error: "internal_error" }));
+      }
+    })();
+    return;
+  }
+
+  // POST /api/user/:telegramId - Save user data
+  if (req.url?.match(/^\/api\/user\/(\d+)$/) && req.method === "POST") {
+    const telegramId = parseInt(RegExp.$1, 10);
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    };
+
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      try {
+        const { data } = JSON.parse(body);
+        const dataStr = typeof data === "string" ? data : JSON.stringify(data);
+        const updatedAt = Date.now();
+
+        await stmtUpsertUser.run(telegramId, dataStr, updatedAt);
+
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({ ok: true, updated_at: updatedAt }));
+        console.log(
+          `✅ User ${telegramId} data saved (${dataStr.length} bytes)`,
+        );
+      } catch (err) {
+        console.error("User save error:", err);
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ error: "save_failed" }));
+      }
+    });
+    return;
+  }
+
   // ── Admin API — Get all users ─────────────────────────────────────────
   if (req.url === "/api/admin/users" && req.method === "GET") {
     const corsHeaders = {
