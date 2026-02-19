@@ -88,14 +88,16 @@ function BottomNav() {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all duration-200 ${
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all duration-200 ${
                 isActive
                   ? "text-emerald-400 scale-105"
                   : "text-slate-500 hover:text-slate-300"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[9px] font-medium leading-tight truncate max-w-[50px]">
+                {item.label}
+              </span>
               {isActive && (
                 <div className="w-1 h-1 rounded-full bg-emerald-400 mt-0.5" />
               )}

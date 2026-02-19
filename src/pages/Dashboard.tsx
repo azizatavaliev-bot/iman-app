@@ -1243,14 +1243,14 @@ export default function Dashboard() {
             <button
               key={path}
               onClick={() => navigate(path)}
-              className="glass-card p-3 flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+              className="glass-card p-2.5 flex flex-col items-center gap-1.5 hover:scale-105 active:scale-95 transition-transform"
             >
               <div
-                className={`${bg} w-11 h-11 rounded-xl flex items-center justify-center`}
+                className={`${bg} w-10 h-10 rounded-xl flex items-center justify-center`}
               >
-                <Icon size={20} className={color} />
+                <Icon size={18} className={color} />
               </div>
-              <span className="text-[11px] text-white/70 font-medium text-center leading-tight">
+              <span className="text-[9px] text-white/70 font-medium text-center leading-tight line-clamp-2 px-0.5">
                 {label}
               </span>
             </button>
