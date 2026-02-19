@@ -96,51 +96,77 @@ export default function ChannelGate({ children }: ChannelGateProps) {
 
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Добро пожаловать в IMAN
+            Ассаламу алейкум! ☪️
           </h1>
-          <p className="text-slate-300 text-sm">
+          <p className="text-slate-300 text-base">
+            Добро пожаловать в{" "}
+            <span className="text-emerald-400 font-bold">IMAN</span>
+          </p>
+          <p className="text-slate-400 text-sm mt-1">
             Приложение для мусульман Кыргызстана
           </p>
         </div>
 
-        {/* Призыв к подписке */}
-        <div className="w-full bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border-2 border-emerald-400/30 rounded-2xl p-6">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-              <Check className="w-6 h-6 text-emerald-400" />
+        {/* Мотивирующий призыв к подписке */}
+        <div className="w-full bg-gradient-to-br from-emerald-900/50 to-teal-900/50 border-2 border-emerald-400/40 rounded-2xl p-6 shadow-xl">
+          <div className="flex items-start gap-4 mb-5">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500/30 to-teal-500/30 flex items-center justify-center shrink-0 shadow-lg">
+              <Users className="w-7 h-7 text-emerald-300" />
             </div>
             <div>
-              <h3 className="text-white font-semibold text-lg mb-1">
-                Присоединяйтесь к нам!
+              <h3 className="text-white font-bold text-xl mb-2">
+                Присоединяйтесь к нашему сообществу! 🤲
               </h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Подпишитесь на наш Telegram-канал и получайте полезные материалы
+              <p className="text-slate-200 text-sm leading-relaxed">
+                Подпишитесь на наш Telegram-канал и станьте частью дружной уммы
+                Кыргызстана
               </p>
             </div>
           </div>
 
-          <div className="bg-black/20 rounded-xl p-4 mb-4">
-            <p className="text-emerald-400 font-semibold mb-2">
-              📱 Что вы получите:
+          <div className="bg-black/30 rounded-xl p-5 border border-emerald-400/20">
+            <p className="text-emerald-300 font-bold mb-3 text-base">
+              🌟 Что вы получите в канале:
             </p>
-            <div className="grid grid-cols-2 gap-2 text-sm text-slate-300">
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span>
-                <span>Обновления</span>
+            <div className="space-y-2.5 text-sm text-slate-200">
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 text-lg shrink-0">✓</span>
+                <span>
+                  <strong>Ежедневные напоминания</strong> о намазах и важных
+                  деяниях
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span>
-                <span>Материалы</span>
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 text-lg shrink-0">✓</span>
+                <span>
+                  <strong>Исламские знания</strong> от проверенных источников
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span>
-                <span>Напоминания</span>
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 text-lg shrink-0">✓</span>
+                <span>
+                  <strong>Мотивацию и поддержку</strong> на пути к Аллаху
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-400">✓</span>
-                <span>Сообщество</span>
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 text-lg shrink-0">✓</span>
+                <span>
+                  <strong>Обновления приложения</strong> и новые функции
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-emerald-400 text-lg shrink-0">✓</span>
+                <span>
+                  <strong>Общение с братьями и сестрами</strong> по вере
+                </span>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-emerald-400/20">
+            <p className="text-center text-emerald-200 text-xs italic">
+              "Верующие — братья друг другу" (Коран 49:10)
+            </p>
           </div>
         </div>
 
@@ -151,26 +177,32 @@ export default function ChannelGate({ children }: ChannelGateProps) {
           </div>
         )}
 
-        {/* Subscribe button */}
+        {/* Subscribe button - основная кнопка */}
         <button
           onClick={handleSubscribeClick}
-          className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 px-6 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:from-emerald-600 hover:to-teal-600 transition-all active:scale-95 shadow-lg shadow-emerald-500/30"
+          className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-5 px-6 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:from-emerald-600 hover:to-teal-600 transition-all active:scale-95 shadow-2xl shadow-emerald-500/40 border-2 border-emerald-300/20"
         >
           <ExternalLink className="w-6 h-6" />
           Подписаться на канал
         </button>
 
-        {/* Skip button */}
+        <div className="w-full flex items-center gap-3">
+          <div className="flex-1 h-px bg-slate-600"></div>
+          <span className="text-slate-500 text-xs">или</span>
+          <div className="flex-1 h-px bg-slate-600"></div>
+        </div>
+
+        {/* Skip button - второстепенная */}
         <button
           onClick={handleSkip}
-          className="w-full bg-slate-700/50 hover:bg-slate-600/50 text-white py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-2 border border-slate-600 transition-all active:scale-95"
+          className="w-full bg-slate-800/40 hover:bg-slate-700/50 text-slate-300 py-3 px-6 rounded-xl font-medium flex items-center justify-center gap-2 border border-slate-700/50 transition-all active:scale-95"
         >
-          Продолжить без подписки
+          Пропустить (начать без подписки)
         </button>
 
-        <p className="text-slate-500 text-xs text-center max-w-xs">
-          Подписка добровольная. Вы можете начать пользоваться приложением прямо
-          сейчас.
+        <p className="text-slate-500 text-xs text-center max-w-sm leading-relaxed">
+          Подписка добровольная, но мы очень рекомендуем присоединиться к нашему
+          сообществу для получения пользы и баракята 🌙
         </p>
 
         <p className="text-[10px] text-slate-600 mt-4">
