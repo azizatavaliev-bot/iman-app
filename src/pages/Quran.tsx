@@ -26,6 +26,10 @@ import {
 import { storage, POINTS } from "../lib/storage";
 import { useAudio } from "../components/AudioPlayer";
 import { hasTafsir, getTafsir } from "../data/tafsir";
+import {
+  getTransliteration,
+  hasTransliteration,
+} from "../data/quran-transliteration";
 import type { Surah, SurahDetail, Reciter } from "../lib/api";
 import type { QuranBookmark } from "../lib/storage";
 
@@ -1143,6 +1147,20 @@ export default function Quran() {
                   <p className="arabic-text text-xl sm:text-2xl text-amber-50 text-right leading-[2.2] mb-4">
                     {ayah.arabic}
                   </p>
+
+                  {/* Transliteration (cyrillic) - если есть */}
+                  {hasTransliteration(selectedSurah, ayah.numberInSurah) && (
+                    <div className="mb-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400/70">
+                          Произношение
+                        </span>
+                      </div>
+                      <p className="text-emerald-200 text-sm leading-relaxed italic">
+                        {getTransliteration(selectedSurah, ayah.numberInSurah)}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Divider */}
                   <div className="w-full h-px t-bg mb-3" />

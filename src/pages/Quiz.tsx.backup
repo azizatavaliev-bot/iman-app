@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   ArrowLeft,
   X,
@@ -7,11 +7,13 @@ import {
   ChevronUp,
   RotateCcw,
   Trophy,
+  Clock,
   Sparkles,
   Zap,
+  TrendingUp,
 } from "lucide-react";
 import { QUIZ_CATEGORIES, QUIZ_DATA } from "../data/quiz";
-import type { QuizQuestion } from "../data/quiz";
+import type { QuizQuestion, QuizCategory } from "../data/quiz";
 import { storage, POINTS } from "../lib/storage";
 
 // ============================================================
@@ -20,10 +22,39 @@ import { storage, POINTS } from "../lib/storage";
 
 const STORAGE_KEY = "iman_quiz_scores";
 
+// Timer per difficulty
+const TIMER_MAP = { easy: 20, medium: 15, hard: 10 } as const;
+const DEFAULT_TIMER = 15;
+
+// Difficulty display
+const DIFFICULTY_CONFIG = {
+  easy: {
+    label: "Лёгкий",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/15",
+    border: "border-emerald-500/30",
+  },
+  medium: {
+    label: "Средний",
+    color: "text-amber-400",
+    bg: "bg-amber-500/15",
+    border: "border-amber-500/30",
+  },
+  hard: {
+    label: "Сложный",
+    color: "text-red-400",
+    bg: "bg-red-500/15",
+    border: "border-red-500/30",
+  },
+} as const;
+
+type Difficulty = "easy" | "medium" | "hard";
+
 // ============================================================
 // Types
 // ============================================================
 
+type GameMode = "all" | "easy" | "medium" | "hard" | "adaptive";
 type ViewMode = "home" | "playing" | "finished";
 
 interface HighScores {
@@ -37,6 +68,12 @@ interface HighScores {
 interface WrongAnswer {
   question: QuizQuestion;
   selectedIndex: number;
+}
+
+interface DifficultyBreakdown {
+  easy: { correct: number; total: number };
+  medium: { correct: number; total: number };
+  hard: { correct: number; total: number };
 }
 
 // ============================================================
@@ -117,6 +154,96 @@ function getColorClasses(color: string) {
   return map[color] || map.emerald;
 }
 
+function getTimerForQuestion(q: QuizQuestion): number {
+  const diff = (q as QuizQuestion & { difficulty?: Difficulty }).difficulty;
+  return diff ? TIMER_MAP[diff] : DEFAULT_TIMER;
+}
+
+function getDifficulty(q: QuizQuestion): Difficulty {
+  return (
+    (q as QuizQuestion & { difficulty?: Difficulty }).difficulty || "medium"
+  );
+}
+
+// ============================================================
+// Adaptive Engine
+// ============================================================
+
+function pickNextAdaptive(
+  currentLevel: Difficulty,
+  usedIds: Set<number>,
+  categoryKey: string | null,
+): QuizQuestion | null {
+  const pool = categoryKey
+    ? QUIZ_DATA.filter((q) => q.category === categoryKey)
+    : QUIZ_DATA;
+
+  // Try current level first
+  const levels: Difficulty[] = [currentLevel];
+  // Fallback to adjacent levels
+  if (currentLevel === "easy") levels.push("medium", "hard");
+  else if (currentLevel === "medium") levels.push("easy", "hard");
+  else levels.push("medium", "easy");
+
+  for (const lvl of levels) {
+    const candidates = pool.filter(
+      (q) => getDifficulty(q) === lvl && !usedIds.has(q.id),
+    );
+    if (candidates.length > 0) {
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+  }
+  return null;
+}
+
+// ============================================================
+// Game Modes Config
+// ============================================================
+
+const GAME_MODES: {
+  key: GameMode;
+  label: string;
+  icon: string;
+  desc: string;
+  color: string;
+}[] = [
+  {
+    key: "all",
+    label: "Все",
+    icon: "🎯",
+    desc: "Все уровни вместе",
+    color: "emerald",
+  },
+  {
+    key: "easy",
+    label: "Лёгкий",
+    icon: "🌱",
+    desc: "Базовые знания",
+    color: "emerald",
+  },
+  {
+    key: "medium",
+    label: "Средний",
+    icon: "📚",
+    desc: "Углублённые знания",
+    color: "amber",
+  },
+  {
+    key: "hard",
+    label: "Сложный",
+    icon: "🔥",
+    desc: "Для экспертов",
+    color: "rose",
+  },
+  {
+    key: "adaptive",
+    label: "Адаптивный",
+    icon: "🧠",
+    desc: "Подстраивается под тебя",
+    color: "violet",
+  },
+];
+
 // ============================================================
 // Main Component
 // ============================================================
@@ -127,12 +254,23 @@ export default function Quiz() {
 
   // Quiz state
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [gameMode, setGameMode] = useState<GameMode>("all");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswer[]>([]);
+  const [timer, setTimer] = useState(DEFAULT_TIMER);
+  const [timerMax, setTimerMax] = useState(DEFAULT_TIMER);
+  const [timerActive, setTimerActive] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+
+  // Adaptive state
+  const [adaptiveLevel, setAdaptiveLevel] = useState<Difficulty>("easy");
+  const [adaptiveStreak, setAdaptiveStreak] = useState(0); // positive = correct streak, negative = wrong streak
+  const [usedIds, setUsedIds] = useState<Set<number>>(new Set());
+  const [adaptiveQuestionCount, setAdaptiveQuestionCount] = useState(0);
+  const ADAPTIVE_TOTAL = 20; // number of questions in adaptive mode
 
   // Scoring: first attempt only
   const [isFirstAttempt, setIsFirstAttempt] = useState(true);
@@ -141,6 +279,8 @@ export default function Quiz() {
   // Animations
   const [shakeAnswer, setShakeAnswer] = useState(false);
   const [flashCorrect, setFlashCorrect] = useState(false);
+
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Count questions per category
   const categoryQuestionCounts = useMemo(() => {
@@ -151,32 +291,138 @@ export default function Quiz() {
     return counts;
   }, []);
 
+  // Timer logic
+  useEffect(() => {
+    if (!timerActive || selectedAnswer !== null) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    timerRef.current = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          handleTimeUp();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [timerActive, selectedAnswer]);
+
+  const handleTimeUp = useCallback(() => {
+    setTimerActive(false);
+    setSelectedAnswer(-1);
+    setShowExplanation(true);
+    setShakeAnswer(true);
+    navigator.vibrate?.(100);
+    setTimeout(() => setShakeAnswer(false), 500);
+
+    const currentQ = questions[currentIndex];
+    if (currentQ) {
+      setWrongAnswers((prev) => [
+        ...prev,
+        { question: currentQ, selectedIndex: -1 },
+      ]);
+    }
+
+    // Adaptive: wrong
+    if (gameMode === "adaptive") {
+      setAdaptiveStreak((s) => (s > 0 ? -1 : s - 1));
+    }
+  }, [questions, currentIndex, gameMode]);
+
+  // Helper: build storage key for quiz used IDs
+  const getUsedIdsKey = useCallback(
+    (categoryKey: string | null, mode: GameMode) =>
+      `${categoryKey || "_all"}_${mode}`,
+    [],
+  );
+
   // Start quiz
-  const startQuiz = useCallback((categoryKey: string | null) => {
-    setActiveCategory(categoryKey);
-    setCurrentIndex(0);
-    setSelectedAnswer(null);
-    setCorrectCount(0);
-    setWrongAnswers([]);
-    setShowExplanation(false);
-    setShakeAnswer(false);
-    setFlashCorrect(false);
-    setPointsEarned(0);
+  const startQuiz = useCallback(
+    (categoryKey: string | null, mode: GameMode) => {
+      setActiveCategory(categoryKey);
+      setGameMode(mode);
+      setCurrentIndex(0);
+      setSelectedAnswer(null);
+      setCorrectCount(0);
+      setWrongAnswers([]);
+      setShowExplanation(false);
+      setShakeAnswer(false);
+      setFlashCorrect(false);
+      setPointsEarned(0);
 
-    // Check if this quiz was already scored
-    const scoreKey = categoryKey || "_all";
-    setIsFirstAttempt(!storage.isQuizScored(scoreKey));
+      // Check if this quiz combination was already scored
+      const scoreKey = `${categoryKey || "_all"}_${mode}`;
+      setIsFirstAttempt(!storage.isQuizScored(scoreKey));
 
-    // Get question pool
-    const pool = categoryKey
-      ? QUIZ_DATA.filter((q) => q.category === categoryKey)
-      : [...QUIZ_DATA];
+      // Load persisted usedIds for this category+mode
+      const persistKey = `${categoryKey || "_all"}_${mode}`;
+      let savedUsedIds = storage.getQuizUsedIds(persistKey);
 
-    // Shuffle questions
-    const shuffled = shuffle(pool);
-    setQuestions(shuffled);
-    setView("playing");
-  }, []);
+      if (mode === "adaptive") {
+        // Adaptive: start with easy, pick first question
+        const firstQ = pickNextAdaptive("easy", savedUsedIds, categoryKey);
+        if (firstQ) {
+          savedUsedIds.add(firstQ.id);
+          setQuestions([firstQ]);
+          setUsedIds(savedUsedIds);
+          storage.setQuizUsedIds(persistKey, savedUsedIds);
+          setAdaptiveLevel("easy");
+          setAdaptiveStreak(0);
+          setAdaptiveQuestionCount(1);
+          const t = getTimerForQuestion(firstQ);
+          setTimer(t);
+          setTimerMax(t);
+        }
+      } else {
+        let pool: QuizQuestion[];
+        if (mode === "easy" || mode === "medium" || mode === "hard") {
+          const base = categoryKey
+            ? QUIZ_DATA.filter((q) => q.category === categoryKey)
+            : QUIZ_DATA;
+          pool = base.filter((q) => getDifficulty(q) === mode);
+        } else {
+          pool = categoryKey
+            ? QUIZ_DATA.filter((q) => q.category === categoryKey)
+            : [...QUIZ_DATA];
+        }
+
+        // Filter out already-seen questions
+        let unseen = pool.filter((q) => !savedUsedIds.has(q.id));
+        if (unseen.length === 0) {
+          // All questions seen — reset and start fresh
+          storage.clearQuizUsedIds(persistKey);
+          savedUsedIds = new Set();
+          unseen = pool;
+        }
+
+        const shuffled = shuffle(unseen);
+        setQuestions(shuffled);
+        setUsedIds(savedUsedIds);
+
+        if (shuffled.length > 0) {
+          const t = getTimerForQuestion(shuffled[0]);
+          setTimer(t);
+          setTimerMax(t);
+        }
+      }
+
+      setTimerActive(true);
+      setView("playing");
+    },
+    [],
+  );
 
   // Handle answer
   const handleAnswer = useCallback(
@@ -187,12 +433,27 @@ export default function Quiz() {
       const isCorrect = optionIndex === currentQ.correctIndex;
 
       setSelectedAnswer(optionIndex);
+      setTimerActive(false);
       setShowExplanation(true);
+
+      // Persist this question as "used" so it won't repeat next session
+      const persistKey = getUsedIdsKey(activeCategory, gameMode);
+      setUsedIds((prev) => {
+        const next = new Set(prev);
+        next.add(currentQ.id);
+        storage.setQuizUsedIds(persistKey, next);
+        return next;
+      });
 
       if (isCorrect) {
         setCorrectCount((prev) => prev + 1);
         setFlashCorrect(true);
         setTimeout(() => setFlashCorrect(false), 600);
+
+        // Adaptive: correct streak
+        if (gameMode === "adaptive") {
+          setAdaptiveStreak((s) => (s < 0 ? 1 : s + 1));
+        }
       } else {
         setShakeAnswer(true);
         navigator.vibrate?.(100);
@@ -201,21 +462,38 @@ export default function Quiz() {
           ...prev,
           { question: currentQ, selectedIndex: optionIndex },
         ]);
+
+        // Adaptive: wrong streak
+        if (gameMode === "adaptive") {
+          setAdaptiveStreak((s) => (s > 0 ? -1 : s - 1));
+        }
       }
     },
-    [selectedAnswer, questions, currentIndex],
+    [
+      selectedAnswer,
+      questions,
+      currentIndex,
+      gameMode,
+      activeCategory,
+      getUsedIdsKey,
+    ],
   );
 
   // Next question
   const nextQuestion = useCallback(() => {
-    const isLast = currentIndex + 1 >= questions.length;
+    const isLastNonAdaptive =
+      gameMode !== "adaptive" && currentIndex + 1 >= questions.length;
+    const isLastAdaptive =
+      gameMode === "adaptive" && adaptiveQuestionCount >= ADAPTIVE_TOTAL;
 
-    if (isLast) {
+    if (isLastNonAdaptive || isLastAdaptive) {
       // Finish — save scores
-      const total = questions.length;
+      const total =
+        gameMode === "adaptive" ? adaptiveQuestionCount : questions.length;
       const correct = correctCount;
       const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
-      const key = activeCategory || "_all";
+      const catPart = activeCategory || "_all";
+      const key = `${catPart}_${gameMode}`;
 
       const updated = { ...loadHighScores() };
       const prev = updated[key];
@@ -225,7 +503,7 @@ export default function Quiz() {
         setHighScores(updated);
       }
 
-      // Award points only on first attempt
+      // Award points only on first attempt for this category+mode
       if (isFirstAttempt && correct > 0) {
         const earned = correct * POINTS.QUIZ_CORRECT;
         storage.addPoints(earned);
@@ -237,20 +515,84 @@ export default function Quiz() {
       return;
     }
 
-    setCurrentIndex((prev) => prev + 1);
+    if (gameMode === "adaptive") {
+      // Determine next level
+      let nextLevel = adaptiveLevel;
+      const currentQ = questions[currentIndex];
+      const wasCorrect =
+        selectedAnswer !== null &&
+        selectedAnswer >= 0 &&
+        selectedAnswer === currentQ?.correctIndex;
+
+      // Check streaks for level changes
+      const newStreak = adaptiveStreak;
+      if (newStreak >= 3 && adaptiveLevel !== "hard") {
+        nextLevel = adaptiveLevel === "easy" ? "medium" : "hard";
+        setAdaptiveStreak(0);
+      } else if (newStreak <= -2 && adaptiveLevel !== "easy") {
+        nextLevel = adaptiveLevel === "hard" ? "medium" : "easy";
+        setAdaptiveStreak(0);
+      }
+
+      setAdaptiveLevel(nextLevel);
+
+      // Pick next question
+      const nextQ = pickNextAdaptive(nextLevel, usedIds, activeCategory);
+      if (nextQ) {
+        const newUsed = new Set(usedIds);
+        newUsed.add(nextQ.id);
+        setUsedIds(newUsed);
+        const persistKey = getUsedIdsKey(activeCategory, gameMode);
+        storage.setQuizUsedIds(persistKey, newUsed);
+        setQuestions((prev) => [...prev, nextQ]);
+        setCurrentIndex((prev) => prev + 1);
+        setAdaptiveQuestionCount((prev) => prev + 1);
+
+        const t = getTimerForQuestion(nextQ);
+        setTimer(t);
+        setTimerMax(t);
+      } else {
+        // No more questions available
+        setView("finished");
+        return;
+      }
+    } else {
+      setCurrentIndex((prev) => prev + 1);
+      const nextQ = questions[currentIndex + 1];
+      if (nextQ) {
+        const t = getTimerForQuestion(nextQ);
+        setTimer(t);
+        setTimerMax(t);
+      }
+    }
+
     setSelectedAnswer(null);
     setShowExplanation(false);
+    setTimerActive(true);
     setShakeAnswer(false);
     setFlashCorrect(false);
-  }, [currentIndex, questions, correctCount, activeCategory, isFirstAttempt]);
+  }, [
+    currentIndex,
+    questions,
+    correctCount,
+    activeCategory,
+    gameMode,
+    adaptiveLevel,
+    adaptiveStreak,
+    usedIds,
+    selectedAnswer,
+    adaptiveQuestionCount,
+    isFirstAttempt,
+  ]);
 
   // Go back to home
   const goHome = useCallback(() => {
     setView("home");
+    setTimerActive(false);
   }, []);
 
   // ============================================================
-  // VIEW 1: Category Selection
+  // VIEW 1: Category & Mode Selection
   // ============================================================
   if (view === "home") {
     return (
@@ -271,6 +613,54 @@ export default function Quiz() {
           </div>
         </div>
 
+        {/* Game Mode Selector */}
+        <div className="px-4 mt-2">
+          <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">
+            Режим игры
+          </h3>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            {GAME_MODES.map((mode) => {
+              const isActive = gameMode === mode.key;
+              return (
+                <button
+                  key={mode.key}
+                  onClick={() => setGameMode(mode.key)}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    isActive
+                      ? mode.key === "adaptive"
+                        ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                        : mode.key === "hard"
+                          ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                          : mode.key === "medium"
+                            ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                            : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "t-bg t-text-m border t-border"
+                  }`}
+                >
+                  <span className="mr-1.5">{mode.icon}</span>
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Adaptive mode description */}
+          {gameMode === "adaptive" && (
+            <div className="mt-3 glass-card p-3 flex items-start gap-3 border border-violet-500/20">
+              <Zap size={18} className="text-violet-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-white/70">
+                  Начинает с лёгких вопросов. 3 правильных подряд — уровень
+                  повышается. 2 ошибки подряд — понижается.
+                </p>
+                <p className="text-xs t-text-f mt-1">
+                  20 вопросов, таймер зависит от сложности
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Category Grid */}
         <div className="px-4 mt-5">
           <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">
@@ -280,13 +670,13 @@ export default function Quiz() {
             {QUIZ_CATEGORIES.map((cat) => {
               const colors = getColorClasses(cat.color);
               const count = categoryQuestionCounts[cat.key] || 0;
-              const scoreKey = cat.key;
+              const scoreKey = `${cat.key}_${gameMode}`;
               const score = highScores[scoreKey];
 
               return (
                 <button
                   key={cat.key}
-                  onClick={() => startQuiz(cat.key)}
+                  onClick={() => startQuiz(cat.key, gameMode)}
                   className={`relative glass-card p-4 text-left border-l-4 ${colors.border} active:scale-[0.97] transition-all duration-200 hover:shadow-lg ${colors.glow}`}
                 >
                   <div
@@ -331,28 +721,30 @@ export default function Quiz() {
 
           {/* All Questions Button */}
           <button
-            onClick={() => startQuiz(null)}
+            onClick={() => startQuiz(null, gameMode)}
             className="w-full mt-4 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-lg flex items-center justify-center gap-3 active:scale-[0.97] transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40"
           >
             <Sparkles className="w-5 h-5" />
-            Все вопросы ({QUIZ_DATA.length})
+            {gameMode === "adaptive"
+              ? `Адаптивный (${ADAPTIVE_TOTAL} вопросов)`
+              : `Все вопросы (${QUIZ_DATA.length})`}
           </button>
 
-          {highScores["_all"] && (
+          {highScores[`_all_${gameMode}`] && (
             <div className="flex items-center justify-center gap-2 mt-3 text-sm">
               <Trophy className="w-4 h-4 text-amber-400" />
               <span className="text-gray-400">
                 Лучший результат:{" "}
                 <span
                   className={`font-medium ${
-                    highScores["_all"].percentage >= 70
+                    highScores[`_all_${gameMode}`].percentage >= 70
                       ? "text-emerald-400"
-                      : highScores["_all"].percentage >= 40
+                      : highScores[`_all_${gameMode}`].percentage >= 40
                         ? "text-amber-400"
                         : "text-red-400"
                   }`}
                 >
-                  {highScores["_all"].percentage}%
+                  {highScores[`_all_${gameMode}`].percentage}%
                 </span>
               </span>
             </div>
@@ -369,21 +761,35 @@ export default function Quiz() {
   // ============================================================
   if (view === "playing") {
     const currentQ = questions[currentIndex];
-    if (!currentQ) {
-      // Safety check - if no question, go to results
-      setView("finished");
-      return null;
-    }
-
-    const totalQ = questions.length;
+    const totalQ = gameMode === "adaptive" ? ADAPTIVE_TOTAL : questions.length;
     const progress = ((currentIndex + 1) / totalQ) * 100;
+    const timerPct = timerMax > 0 ? (timer / timerMax) * 100 : 0;
+    const isTimedOut = selectedAnswer === -1;
     const categoryName = activeCategory
       ? QUIZ_CATEGORIES.find((c) => c.key === activeCategory)?.name ||
         "Викторина"
       : "Все вопросы";
+    const qDifficulty = currentQ ? getDifficulty(currentQ) : "medium";
+    const diffConfig = DIFFICULTY_CONFIG[qDifficulty];
 
     return (
       <div className="min-h-screen pb-24">
+        {/* Timer bar at very top */}
+        {selectedAnswer === null && (
+          <div className="fixed top-0 left-0 right-0 z-50 h-1 t-bg">
+            <div
+              className={`h-full transition-all duration-1000 linear rounded-r-full ${
+                timer <= 5
+                  ? "bg-red-500"
+                  : timer <= 10
+                    ? "bg-amber-500"
+                    : "bg-emerald-500"
+              }`}
+              style={{ width: `${timerPct}%` }}
+            />
+          </div>
+        )}
+
         {/* Top Bar */}
         <div className="flex items-center justify-between px-4 pt-6 pb-2">
           <div className="flex-1">
@@ -392,6 +798,30 @@ export default function Quiz() {
               Вопрос {currentIndex + 1} из {totalQ}
             </p>
           </div>
+
+          {/* Difficulty badge */}
+          <div
+            className={`px-2.5 py-1 rounded-full text-[10px] font-semibold ${diffConfig.bg} ${diffConfig.color} ${diffConfig.border} border mr-3`}
+          >
+            {diffConfig.label}
+          </div>
+
+          {selectedAnswer === null && (
+            <div className="flex items-center gap-1.5 mr-3">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <span
+                className={`text-sm font-mono font-bold ${
+                  timer <= 5
+                    ? "text-red-400"
+                    : timer <= 10
+                      ? "text-amber-400"
+                      : "text-gray-300"
+                }`}
+              >
+                {timer}
+              </span>
+            </div>
+          )}
 
           <button
             onClick={goHome}
@@ -408,6 +838,27 @@ export default function Quiz() {
             <span className="text-xs text-slate-500">
               Тренировка (без очков)
             </span>
+          </div>
+        )}
+
+        {/* Adaptive level indicator */}
+        {gameMode === "adaptive" && (
+          <div className="flex items-center justify-center gap-2 px-4 mb-2">
+            <TrendingUp size={14} className="text-violet-400" />
+            <span className="text-xs text-white/40">Уровень:</span>
+            <span
+              className={`text-xs font-semibold ${DIFFICULTY_CONFIG[adaptiveLevel].color}`}
+            >
+              {DIFFICULTY_CONFIG[adaptiveLevel].label}
+            </span>
+            {adaptiveStreak !== 0 && (
+              <span
+                className={`text-[10px] ${adaptiveStreak > 0 ? "text-emerald-400/60" : "text-red-400/60"}`}
+              >
+                ({adaptiveStreak > 0 ? `+${adaptiveStreak}` : adaptiveStreak}{" "}
+                подряд)
+              </span>
+            )}
           </div>
         )}
 
@@ -491,6 +942,23 @@ export default function Quiz() {
           })}
         </div>
 
+        {/* Timed out message */}
+        {isTimedOut && (
+          <div className="px-4 mt-4 animate-fade-in">
+            <div className="glass-card p-4 border border-red-500/20">
+              <p className="text-red-400 text-sm font-medium mb-1">
+                Время вышло!
+              </p>
+              <p className="text-gray-400 text-sm">
+                Правильный ответ:{" "}
+                <span className="text-emerald-400 font-medium">
+                  {currentQ?.options[currentQ.correctIndex]}
+                </span>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Explanation */}
         {showExplanation && currentQ?.explanation && (
           <div className="px-4 mt-4 animate-fade-in">
@@ -512,7 +980,10 @@ export default function Quiz() {
               onClick={nextQuestion}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-lg active:scale-[0.97] transition-all shadow-lg shadow-emerald-500/20"
             >
-              {currentIndex + 1 >= questions.length
+              {(gameMode !== "adaptive" &&
+                currentIndex + 1 >= questions.length) ||
+              (gameMode === "adaptive" &&
+                adaptiveQuestionCount >= ADAPTIVE_TOTAL)
                 ? "Показать результаты"
                 : "Далее"}
             </button>
@@ -527,12 +998,32 @@ export default function Quiz() {
   // ============================================================
   // VIEW 3: Results
   // ============================================================
-  const total = questions.length;
+  const total =
+    gameMode === "adaptive" ? adaptiveQuestionCount : questions.length;
   const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const wrongCount = total - correctCount;
   const categoryName = activeCategory
     ? QUIZ_CATEGORIES.find((c) => c.key === activeCategory)?.name || "Викторина"
     : "Все вопросы";
+  const modeLabel = GAME_MODES.find((m) => m.key === gameMode)?.label || "";
+
+  // Difficulty breakdown
+  const diffBreakdown = useMemo<DifficultyBreakdown>(() => {
+    const bd: DifficultyBreakdown = {
+      easy: { correct: 0, total: 0 },
+      medium: { correct: 0, total: 0 },
+      hard: { correct: 0, total: 0 },
+    };
+    const wrongIds = new Set(wrongAnswers.map((w) => w.question.id));
+    questions.forEach((q) => {
+      const d = getDifficulty(q);
+      bd[d].total++;
+      if (!wrongIds.has(q.id)) {
+        bd[d].correct++;
+      }
+    });
+    return bd;
+  }, [questions, wrongAnswers]);
 
   // Category breakdown for "all" mode
   const categoryBreakdown = useMemo(() => {
@@ -587,7 +1078,9 @@ export default function Quiz() {
     <div className="min-h-screen pb-24 animate-fade-in">
       {/* Header */}
       <div className="px-4 pt-6 pb-4 text-center">
-        <h2 className="text-gray-400 text-sm">{categoryName}</h2>
+        <h2 className="text-gray-400 text-sm">
+          {categoryName} / {modeLabel}
+        </h2>
         <h1 className="text-xl font-bold text-white mt-1">Результаты</h1>
       </div>
 
@@ -672,6 +1165,33 @@ export default function Quiz() {
         ) : null}
       </div>
 
+      {/* Difficulty Breakdown */}
+      <div className="px-4 mt-6">
+        <h3 className="text-gray-400 text-sm font-medium mb-3">По сложности</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {(["easy", "medium", "hard"] as const).map((d) => {
+            const data = diffBreakdown[d];
+            if (data.total === 0) return null;
+            const pct = Math.round((data.correct / data.total) * 100);
+            const cfg = DIFFICULTY_CONFIG[d];
+            return (
+              <div
+                key={d}
+                className={`glass-card p-3 text-center border ${cfg.border}`}
+              >
+                <p className={`text-xs font-semibold ${cfg.color}`}>
+                  {cfg.label}
+                </p>
+                <p className="text-white font-bold text-lg mt-1">{pct}%</p>
+                <p className="text-gray-500 text-[10px]">
+                  {data.correct}/{data.total}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Category Breakdown */}
       {categoryBreakdown && (
         <div className="px-4 mt-6">
@@ -734,7 +1254,7 @@ export default function Quiz() {
       {/* Action Buttons */}
       <div className="px-4 mt-6 space-y-3">
         <button
-          onClick={() => startQuiz(activeCategory)}
+          onClick={() => startQuiz(activeCategory, gameMode)}
           className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-lg flex items-center justify-center gap-2 active:scale-[0.97] transition-all shadow-lg shadow-emerald-500/20"
         >
           <RotateCcw className="w-5 h-5" />
@@ -780,6 +1300,8 @@ function WrongAnswersReview({ wrongAnswers }: { wrongAnswers: WrongAnswer[] }) {
       {expanded && (
         <div className="space-y-3 animate-fade-in">
           {wrongAnswers.map((wa, idx) => {
+            const d = getDifficulty(wa.question);
+            const cfg = DIFFICULTY_CONFIG[d];
             return (
               <div
                 key={idx}
@@ -789,14 +1311,27 @@ function WrongAnswersReview({ wrongAnswers }: { wrongAnswers: WrongAnswer[] }) {
                   <p className="text-white text-sm font-medium flex-1">
                     {wa.question.question}
                   </p>
-                </div>
-
-                <div className="flex items-center gap-2 mb-1">
-                  <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                  <span className="text-red-400 text-xs">
-                    {wa.question.options[wa.selectedIndex]}
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color} flex-shrink-0`}
+                  >
+                    {cfg.label}
                   </span>
                 </div>
+
+                {wa.selectedIndex >= 0 && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <span className="text-red-400 text-xs">
+                      {wa.question.options[wa.selectedIndex]}
+                    </span>
+                  </div>
+                )}
+                {wa.selectedIndex === -1 && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <span className="text-red-400 text-xs">Время вышло</span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 mb-2">
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
