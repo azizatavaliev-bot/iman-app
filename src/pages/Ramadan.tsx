@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { getPrayerTimes } from "../lib/api";
 import { storage, POINTS } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 
 // =============================================================================
 // Constants
@@ -64,6 +65,7 @@ function loadRamadanData(): RamadanData {
 
 function saveRamadanData(data: RamadanData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  scheduleSyncPush(); // Trigger sync to server
 }
 
 /** Parse "HH:MM" or "HH:MM (TZ)" into today's Date */
@@ -566,15 +568,75 @@ export default function Ramadan() {
       </div>
 
       {/* ================================================================ */}
-      {/* Iftar Dua                                                        */}
+      {/* Suhur Dua                                                        */}
       {/* ================================================================ */}
       <div
         className="glass-card p-5 mb-5 relative overflow-hidden animate-fade-in"
         style={{ animationDelay: "240ms" }}
       >
+        {/* Decorative emerald glow */}
+        <div className="absolute -top-10 -left-10 w-36 h-36 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-8 -right-8 w-28 h-28 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/20 flex items-center justify-center">
+              <Moon className="w-4 h-4 text-emerald-400" fill="currentColor" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">
+                Дуа для сухура
+              </h3>
+              <p className="text-[10px] t-text-f">Намерение перед рассветом</p>
+            </div>
+          </div>
+
+          {/* Arabic */}
+          <div className="t-bg rounded-2xl p-4 mb-3 border t-border">
+            <p
+              className="text-xl text-white/90 leading-loose text-center"
+              style={{ fontFamily: "'Amiri', 'Noto Naskh Arabic', serif" }}
+              dir="rtl"
+            >
+              نَوَيْتُ صَوْمَ غَدٍ عَنْ أَدَاءِ فَرْضِ شَهْرِ رَمَضَانَ هَذِهِ
+              السَّنَةِ لِلَّهِ تَعَالَى
+            </p>
+          </div>
+
+          {/* Transliteration (Cyrillic) */}
+          <div className="mb-3">
+            <p className="text-[10px] text-emerald-400/60 uppercase tracking-wider mb-1">
+              Произношение
+            </p>
+            <p className="text-sm text-white/70 leading-relaxed italic">
+              Навайту саума гадин 'ан ада'и фарды шахри Рамадана хазихис-санати
+              лилляхи та'аля
+            </p>
+          </div>
+
+          {/* Russian translation */}
+          <div className="pt-3 border-t t-border">
+            <p className="text-[10px] text-emerald-400/60 uppercase tracking-wider mb-1">
+              Перевод
+            </p>
+            <p className="text-sm t-text-s leading-relaxed">
+              Я намереваюсь держать пост завтрашнего дня во исполнение
+              обязательного поста месяца Рамадан в этом году ради Аллаха
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================================ */}
+      {/* Iftar Dua                                                        */}
+      {/* ================================================================ */}
+      <div
+        className="glass-card p-5 mb-5 relative overflow-hidden animate-fade-in"
+        style={{ animationDelay: "280ms" }}
+      >
         {/* Decorative gold glow */}
         <div className="absolute -top-10 -left-10 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-8 -right-8 w-28 h-28 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-8 -right-8 w-28 h-28 bg-amber-500/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
           <div className="flex items-center gap-2 mb-4">
@@ -596,19 +658,17 @@ export default function Ramadan() {
               style={{ fontFamily: "'Amiri', 'Noto Naskh Arabic', serif" }}
               dir="rtl"
             >
-              ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ
-              شَاءَ اللَّهُ
+              اللَّهُمَّ لَكَ صُمْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ
             </p>
           </div>
 
-          {/* Transliteration */}
+          {/* Transliteration (Cyrillic) */}
           <div className="mb-3">
-            <p className="text-[10px] text-emerald-400/60 uppercase tracking-wider mb-1">
-              Транслитерация
+            <p className="text-[10px] text-amber-400/60 uppercase tracking-wider mb-1">
+              Произношение
             </p>
             <p className="text-sm text-white/70 leading-relaxed italic">
-              Захаба аз-зама'у ва-бталлати-ль-'уруку ва сабата-ль-аджру ин
-              ша'а-Ллах
+              Аллахумма ляка сумту ва 'аля ризкыка афтарту
             </p>
           </div>
 
@@ -618,8 +678,7 @@ export default function Ramadan() {
               Перевод
             </p>
             <p className="text-sm t-text-s leading-relaxed">
-              Ушла жажда, жилы наполнились влагой, и награда утвердилась, если
-              пожелает Аллах
+              О Аллах! Ради Тебя я постился и Твоим пропитанием разговляюсь
             </p>
           </div>
         </div>
@@ -630,7 +689,7 @@ export default function Ramadan() {
       {/* ================================================================ */}
       <div
         className="glass-card p-5 animate-fade-in"
-        style={{ animationDelay: "320ms" }}
+        style={{ animationDelay: "360ms" }}
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

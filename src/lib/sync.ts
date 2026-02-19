@@ -20,6 +20,7 @@ const SYNC_KEYS = [
   "iman_memorization",
   "iman_quiz_scores",
   "iman_onboarded",
+  "iman_ramadan_2026",
 ] as const;
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;

@@ -126,38 +126,25 @@ export default function ChannelGate({ children }: ChannelGateProps) {
 
           <div className="bg-black/30 rounded-xl p-5 border border-emerald-400/20">
             <p className="text-emerald-300 font-bold mb-3 text-base">
-              🌟 Что вы получите в канале:
+              🌟 Что вы получите:
             </p>
             <div className="space-y-2.5 text-sm text-slate-200">
               <div className="flex items-start gap-3">
                 <span className="text-emerald-400 text-lg shrink-0">✓</span>
                 <span>
-                  <strong>Ежедневные напоминания</strong> о намазах и важных
-                  деяниях
+                  <strong>Полезные материалы</strong> для мусульман
                 </span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-emerald-400 text-lg shrink-0">✓</span>
                 <span>
-                  <strong>Исламские знания</strong> от проверенных источников
+                  <strong>Новости приложения</strong> и обновления
                 </span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-emerald-400 text-lg shrink-0">✓</span>
                 <span>
-                  <strong>Мотивацию и поддержку</strong> на пути к Аллаху
-                </span>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-emerald-400 text-lg shrink-0">✓</span>
-                <span>
-                  <strong>Обновления приложения</strong> и новые функции
-                </span>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-emerald-400 text-lg shrink-0">✓</span>
-                <span>
-                  <strong>Общение с братьями и сестрами</strong> по вере
+                  <strong>Общение</strong> с братьями и сестрами
                 </span>
               </div>
             </div>

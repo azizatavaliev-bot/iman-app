@@ -21,14 +21,10 @@ import {
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import { useAudio } from "../components/AudioPlayer";
-import {
-  getSurah,
-  getSurahTranslation,
-  getSurahTransliteration,
-  hapticImpact,
-} from "../lib/api";
+import { getSurah, getSurahTranslation, hapticImpact } from "../lib/api";
 import type { Ayah } from "../lib/api";
 import type { MemorizationSurah } from "../lib/storage";
+import { getTransliteration } from "../data/quran-transliteration";
 
 // ============================================================
 // Complete Surah Names Map (all 114)
@@ -350,7 +346,6 @@ export default function Memorize() {
   const [studySurah, setStudySurah] = useState<number | null>(null);
   const [studyData, setStudyData] = useState<{
     arabic: Ayah[];
-    translit: Ayah[];
     translation: Ayah[];
   } | null>(null);
   const [studyLoading, setStudyLoading] = useState(false);
@@ -457,14 +452,12 @@ export default function Memorize() {
     setShowTranslation(true);
 
     try {
-      const [arabic, translit, translation] = await Promise.all([
+      const [arabic, translation] = await Promise.all([
         getSurah(surahNumber),
-        getSurahTransliteration(surahNumber),
         getSurahTranslation(surahNumber),
       ]);
       setStudyData({
         arabic: arabic.ayahs,
-        translit: translit.ayahs,
         translation: translation.ayahs,
       });
     } catch (err) {
@@ -659,7 +652,9 @@ export default function Memorize() {
             <div className="space-y-3">
               {studyData.arabic.map((ayah, idx) => {
                 const globalAyahNumber = ayahOffset + ayah.numberInSurah;
-                const translitAyah = studyData.translit[idx];
+                const translitText = studySurah
+                  ? getTransliteration(studySurah, ayah.numberInSurah)
+                  : null;
                 const translationAyah = studyData.translation[idx];
                 const isAyahPlaying = playingAyah === globalAyahNumber;
                 const isAyahLoading =
@@ -714,10 +709,10 @@ export default function Memorize() {
                       </p>
                     )}
 
-                    {/* Transliteration */}
-                    {showTranslit && translitAyah && (
+                    {/* Transliteration (Cyrillic) */}
+                    {showTranslit && translitText && (
                       <p className="text-violet-300/70 text-sm italic leading-relaxed mb-2">
-                        {translitAyah.text}
+                        {translitText}
                       </p>
                     )}
 
