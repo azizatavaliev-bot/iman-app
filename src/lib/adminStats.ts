@@ -21,6 +21,8 @@ export interface UserStats {
   totalHabits: number;
   joinedAt: Date;
   city: string;
+  totalTimeInApp: number; // milliseconds
+  sessionsToday: number;
 }
 
 export interface AdminDashboard {
@@ -170,10 +172,29 @@ export async function getAllUsers(): Promise<UserStats[]> {
       totalHabits: countTotalHabits(habitLogs),
       joinedAt: new Date(profile.joinedAt || Date.now()),
       city: profile.city || "",
+      totalTimeInApp: 0, // Will be fetched from analytics API
+      sessionsToday: 0, // Will be fetched from analytics API
     });
   }
 
   return users;
+}
+
+/**
+ * Get user time statistics from analytics
+ */
+async function fetchUserTimeStats(telegramId: number): Promise<{
+  totalTime: number;
+  sessionsToday: number;
+}> {
+  try {
+    const response = await fetch(`/api/user/${telegramId}/time-stats`);
+    if (!response.ok) return { totalTime: 0, sessionsToday: 0 };
+    const data = await response.json();
+    return data;
+  } catch {
+    return { totalTime: 0, sessionsToday: 0 };
+  }
 }
 
 /**

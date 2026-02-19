@@ -1029,6 +1029,66 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── Subscription Check API — Check if user subscribed to channel ──────
+  if (req.url?.startsWith("/api/check-subscription") && req.method === "GET") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+    };
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const telegramId = url.searchParams.get("telegram_id");
+    const channelUsername = url.searchParams.get("channel") || "atavaliev";
+
+    if (!telegramId) {
+      res.writeHead(400, corsHeaders);
+      res.end(JSON.stringify({ error: "telegram_id required" }));
+      return;
+    }
+
+    (async () => {
+      try {
+        // Check subscription via Telegram Bot API
+        const checkUrl = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=@${channelUsername}&user_id=${telegramId}`;
+        const response = await fetch(checkUrl);
+        const data = await response.json();
+
+        if (!data.ok) {
+          res.writeHead(200, corsHeaders);
+          res.end(JSON.stringify({ subscribed: false, reason: "not_found" }));
+          return;
+        }
+
+        const status = data.result.status;
+        const isSubscribed = ["creator", "administrator", "member"].includes(
+          status,
+        );
+
+        res.writeHead(200, corsHeaders);
+        res.end(
+          JSON.stringify({
+            subscribed: isSubscribed,
+            status: status,
+            channel: `@${channelUsername}`,
+          }),
+        );
+      } catch (err) {
+        console.error("Subscription check error:", err);
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ error: "check_failed" }));
+      }
+    })();
+    return;
+  }
+
   // ── Admin API — Get all users ─────────────────────────────────────────
   if (req.url === "/api/admin/users" && req.method === "GET") {
     const corsHeaders = {
