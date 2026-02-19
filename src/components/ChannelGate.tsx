@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { Users, ExternalLink, RefreshCw, Check } from "lucide-react";
 import { getTelegramUser } from "../lib/telegram";
 
-// ОБЯЗАТЕЛЬНАЯ подписка на канал - БЕЗ возможности пропустить!
+// ДОБРОВОЛЬНАЯ подписка на канал - с возможностью пропустить
+// Приватный канал не может быть проверен через Bot API, поэтому делаем добровольно
 const CHANNEL_LINK = "https://t.me/+UcggjLlqNuAyN2Qy";
-const CHANNEL_USERNAME = "iman_kyrgyzstan"; // Используем username для проверки
-const STORAGE_KEY = "iman_channel_verified";
+const STORAGE_KEY = "iman_channel_skipped";
 
 interface ChannelGateProps {
   children: React.ReactNode;
@@ -26,9 +26,9 @@ export default function ChannelGate({ children }: ChannelGateProps) {
     setError(null);
 
     try {
-      // Проверяем сохранённый статус
-      const verified = localStorage.getItem(STORAGE_KEY);
-      if (verified === "true") {
+      // Проверяем — пользователь уже пропустил или подписался
+      const skipped = localStorage.getItem(STORAGE_KEY);
+      if (skipped === "true") {
         setHasAccess(true);
         setChecking(false);
         return;
@@ -42,45 +42,30 @@ export default function ChannelGate({ children }: ChannelGateProps) {
         return;
       }
 
-      // Реальная проверка подписки через API
-      const response = await fetch(
-        `/api/check-subscription?telegram_id=${tgUser.id}&channel=${CHANNEL_USERNAME}`,
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to check subscription");
-      }
-
-      const data = await response.json();
-
-      if (data.subscribed) {
-        // Сохраняем что пользователь подписан
-        localStorage.setItem(STORAGE_KEY, "true");
-        setHasAccess(true);
-      } else {
-        // НЕ подписан - доступа НЕТ
-        setHasAccess(false);
-      }
+      // Показываем экран призыва к подписке
+      setHasAccess(false);
     } catch (err) {
       console.error("Subscription check error:", err);
-      setError("Не удалось проверить подписку. Попробуйте снова.");
+      setError("Ошибка при проверке. Можете продолжить.");
     } finally {
       setChecking(false);
     }
+  }
+
+  function handleSkip() {
+    // Пользователь решил пропустить подписку
+    localStorage.setItem(STORAGE_KEY, "true");
+    setHasAccess(true);
   }
 
   function handleSubscribeClick() {
     // Открываем канал
     window.open(CHANNEL_LINK, "_blank");
 
-    // Автопроверка через 3 секунды
+    // После клика — автоматически пропускаем (приватный канал нельзя проверить)
     setTimeout(() => {
-      checkSubscription();
-    }, 3000);
-  }
-
-  function handleCheckClick() {
-    checkSubscription();
+      handleSkip();
+    }, 1000);
   }
 
   // Показываем загрузку
@@ -118,7 +103,7 @@ export default function ChannelGate({ children }: ChannelGateProps) {
           </p>
         </div>
 
-        {/* ОБЯЗАТЕЛЬНОЕ требование */}
+        {/* Призыв к подписке */}
         <div className="w-full bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border-2 border-emerald-400/30 rounded-2xl p-6">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
@@ -126,11 +111,10 @@ export default function ChannelGate({ children }: ChannelGateProps) {
             </div>
             <div>
               <h3 className="text-white font-semibold text-lg mb-1">
-                Обязательное условие
+                Присоединяйтесь к нам!
               </h3>
               <p className="text-slate-300 text-sm leading-relaxed">
-                Для доступа к приложению необходимо подписаться на наш
-                Telegram-канал
+                Подпишитесь на наш Telegram-канал и получайте полезные материалы
               </p>
             </div>
           </div>
@@ -176,27 +160,17 @@ export default function ChannelGate({ children }: ChannelGateProps) {
           Подписаться на канал
         </button>
 
-        {/* Check button */}
+        {/* Skip button */}
         <button
-          onClick={handleCheckClick}
-          disabled={checking}
-          className="w-full bg-slate-700/50 hover:bg-slate-600/50 text-white py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-2 border border-slate-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleSkip}
+          className="w-full bg-slate-700/50 hover:bg-slate-600/50 text-white py-3 px-6 rounded-xl font-semibold flex items-center justify-center gap-2 border border-slate-600 transition-all active:scale-95"
         >
-          {checking ? (
-            <>
-              <RefreshCw className="w-5 h-5 animate-spin" />
-              Проверяем...
-            </>
-          ) : (
-            <>
-              <Check className="w-5 h-5" />Я подписался
-            </>
-          )}
+          Продолжить без подписки
         </button>
 
         <p className="text-slate-500 text-xs text-center max-w-xs">
-          После подписки нажмите кнопку "Я подписался" для проверки. Без
-          подписки доступ к приложению невозможен.
+          Подписка добровольная. Вы можете начать пользоваться приложением прямо
+          сейчас.
         </p>
 
         <p className="text-[10px] text-slate-600 mt-4">
