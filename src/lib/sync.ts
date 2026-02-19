@@ -49,7 +49,11 @@ function gatherLocalData(): Record<string, unknown> {
     if (k && k.startsWith("iman_quiz_used_")) {
       const raw = localStorage.getItem(k);
       if (raw) {
-        try { data[k] = JSON.parse(raw); } catch { data[k] = raw; }
+        try {
+          data[k] = JSON.parse(raw);
+        } catch {
+          data[k] = raw;
+        }
       }
     }
   }
@@ -70,7 +74,9 @@ function restoreToLocal(data: Record<string, unknown>): void {
 }
 
 /** Fetch user data from server */
-async function fetchServerData(telegramId: number): Promise<{ data: Record<string, unknown>; updated_at: number } | null> {
+async function fetchServerData(
+  telegramId: number,
+): Promise<{ data: Record<string, unknown>; updated_at: number } | null> {
   try {
     const res = await fetch(`${API_BASE}/api/user/${telegramId}`);
     if (res.status === 404) return null;
@@ -102,7 +108,11 @@ async function pushToServer(telegramId: number): Promise<boolean> {
 
 /**
  * Main sync function — call on app startup.
- * Compares server vs local timestamps and syncs the newer version.
+ * ЖЕЛЕЗНАЯ ГАРАНТИЯ: всегда загружаем из базы при старте!
+ *
+ * КРИТИЧНО: НЕ перезаписываем базу сразу после загрузки!
+ * Сохранение произойдёт автоматически через scheduleSyncPush()
+ * когда пользователь что-то изменит.
  */
 export async function syncUserData(): Promise<void> {
   if (!isTelegramWebApp()) return;
@@ -114,24 +124,28 @@ export async function syncUserData(): Promise<void> {
     const server = await fetchServerData(telegramId);
 
     if (!server) {
-      // No server data yet — push local to server
+      // No server data yet — push local to server (first time user)
+      console.log("[sync] ✅ First time user, pushing local to server");
       await pushToServer(telegramId);
       return;
     }
 
-    const localData = gatherLocalData();
-    const localUpdatedAt = (localData._updated_at as number) || 0;
-    const serverUpdatedAt = server.updated_at || 0;
+    // ВСЕГДА загружаем из базы при старте
+    // Это гарантирует что баллы НЕ потеряются
+    console.log("[sync] ✅ Loading data from server (restoring saved points)");
+    restoreToLocal(server.data);
 
-    if (serverUpdatedAt > localUpdatedAt) {
-      // Server is newer — restore to localStorage
-      restoreToLocal(server.data);
-    } else {
-      // Local is newer — push to server
-      await pushToServer(telegramId);
-    }
+    // ❌ НЕ делаем pushToServer здесь!
+    // Иначе мы затрём хорошие данные из базы пустым localStorage
+    //
+    // Сохранение произойдёт автоматически когда пользователь:
+    // - Отметит намаз → storage.write() → notifySync() → scheduleSyncPush()
+    // - Прочитает Коран → storage.write() → scheduleSyncPush()
+    // - И т.д.
+
+    console.log("[sync] ✅ Sync complete. Points restored from database.");
   } catch (e) {
-    console.error("[sync] Initial sync failed:", e);
+    console.error("[sync] ❌ Initial sync failed:", e);
   }
 }
 
