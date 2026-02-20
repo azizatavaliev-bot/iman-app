@@ -186,6 +186,34 @@ body {
 /* Bottom nav */
 [data-theme="light"] nav.glass { background: rgba(255, 255, 255, 0.92) !important; }
 
+/* ── Arabic text ────────────────────────────────────────────── */
+/* amber-50/100/200 are near-white — replace with dark amber */
+[data-theme="light"] .text-amber-50,
+[data-theme="light"] .text-amber-100,
+[data-theme="light"] [class*="text-amber-50"],
+[data-theme="light"] [class*="text-amber-100"],
+[data-theme="light"] [class*="text-amber-200"] { color: #92400e !important; }
+
+/* white/90 text on white bg */
+[data-theme="light"] .text-white\/90 { color: rgba(15, 23, 42, 0.85) !important; }
+
+/* slate-300 is too light */
+[data-theme="light"] .text-slate-300 { color: #475569 !important; }
+[data-theme="light"] .text-slate-400 { color: #64748b !important; }
+[data-theme="light"] .text-slate-500 { color: #475569 !important; }
+
+/* Arabic hadiths bg — amber pill */
+[data-theme="light"] .bg-amber-500\/20 { background-color: rgba(217, 119, 6, 0.15) !important; }
+[data-theme="light"] .bg-amber-400\/20 { background-color: rgba(217, 119, 6, 0.12) !important; }
+
+/* bg-slate dark tones */
+[data-theme="light"] [class*="bg-slate-700"],
+[data-theme="light"] [class*="bg-slate-800"],
+[data-theme="light"] [class*="bg-slate-900"] { background-color: #f1f5f9 !important; }
+
+[data-theme="light"] [class*="bg-slate-700\/"],
+[data-theme="light"] [class*="bg-slate-800\/"] { background-color: rgba(241, 245, 249, 0.9) !important; }
+
 /* Theme-aware utility classes */
 .t-text {
     color: var(--text-primary);
