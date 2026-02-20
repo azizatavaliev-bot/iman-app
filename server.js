@@ -106,7 +106,7 @@ const pool = new Pool({
        ON CONFLICT (telegram_id) DO NOTHING`,
     );
     // Admin Telegram IDs (definitely used /start)
-    for (const adminId of [508698471, 542914483]) {
+    for (const adminId of [508698471, 542914483, 526330944]) {
       await pool.query(
         `INSERT INTO iman_subscribers (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING`,
         [adminId],
@@ -177,6 +177,7 @@ if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 const ADMIN_TELEGRAM_IDS = [
   508698471, // Aziz Atavaliev (основной admin)
   542914483, // Akylai (второй admin)
+  526330944, // Aziz (второй TG аккаунт)
 ];
 
 const ADMIN_USERNAMES = [

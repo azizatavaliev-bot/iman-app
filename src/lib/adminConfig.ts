@@ -14,6 +14,7 @@
 export const ADMIN_TELEGRAM_IDS = [
   508698471, // Aziz Atavaliev
   542914483, // Akylai
+  526330944, // Aziz (второй TG аккаунт)
 ];
 
 /**
