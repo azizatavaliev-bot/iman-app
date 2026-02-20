@@ -1194,8 +1194,13 @@ const server = createServer(async (req, res) => {
           updated_at: row.updated_at,
         }));
 
+        const countResult = await pool.query("SELECT COUNT(*) as count FROM iman_users");
+        const subsResult = await pool.query("SELECT COUNT(*) as count FROM iman_subscribers").catch(() => ({ rows: [{ count: 0 }] }));
+        const totalUsers = parseInt(countResult.rows[0].count);
+        const totalSubscribers = parseInt(subsResult.rows[0].count);
+
         res.writeHead(200, corsHeaders);
-        res.end(JSON.stringify({ users: rows }));
+        res.end(JSON.stringify({ users: rows, totalUsers, totalSubscribers }));
       } catch (e) {
         console.error("Admin API error:", e);
         res.writeHead(500, corsHeaders);
@@ -1502,16 +1507,20 @@ const server = createServer(async (req, res) => {
         );
         const quranViews = parseInt(quranViewsResult.rows[0].count);
 
+        const totalUsersResult = await pool.query("SELECT COUNT(*) as count FROM iman_users");
+        const totalUsers = parseInt(totalUsersResult.rows[0].count);
+
         res.writeHead(200, corsHeaders);
         res.end(
           JSON.stringify({
+            totalUsers,
+            onlineNow: online,
             online,
             activeToday,
             topPages,
             topActions,
             avgSessionDuration: avgDuration,
             timeline,
-            // ✨ NEW extended stats:
             topUsers,
             prayers: {
               today: prayersToday,
