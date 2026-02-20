@@ -692,19 +692,9 @@ async function sendDailyBroadcast() {
   const ayat = AYATS[dayIndex % AYATS.length];
   const dua = DUAS[dayIndex % DUAS.length];
 
-  // Fetch today's prayer times for broadcast
-  const prayerTimes = await fetchPrayerTimes();
-  const prayerSection = prayerTimes
-    ? `\n\u{1F54C} *Время намаза:*\n` +
-      `  Фаджр: ${prayerTimes.Fajr} | Восход: ${prayerTimes.Sunrise}\n` +
-      `  Зухр: ${prayerTimes.Dhuhr} | Аср: ${prayerTimes.Asr}\n` +
-      `  Магриб: ${prayerTimes.Maghrib} | Иша: ${prayerTimes.Isha}\n`
-    : "";
-
   const message =
     `\u2728 *Доброе утро!*\n` +
     `\u{1F4A1} _Удели 5-10 минут дину сегодня — это лучшая инвестиция в Ахират_\n` +
-    prayerSection +
     `\n\u{1F4D6} *Хадис дня:*\n${hadith.text}\n_${hadith.source}_\n\n` +
     `\u{1F4D6} *Аят дня:*\n${ayat.text}\n_${ayat.surah}_\n\n` +
     `\u{1F64F} *Дуа дня:*\n${dua.text}\n_${dua.source}_\n\n` +

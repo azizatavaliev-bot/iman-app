@@ -573,7 +573,7 @@ export default function AdminNew() {
         </div>
 
         {/* ============================================================ */}
-        {/* AVERAGE STATS                                                */}
+        {/* AVERAGE STATS + ACTIVE MONTH                                 */}
         {/* ============================================================ */}
         <div>
           <h2
@@ -582,30 +582,117 @@ export default function AdminNew() {
           >
             Средние показатели
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              icon={Users}
+              label="Активны за месяц"
+              value={dashboard.activeMonth}
+              subtitle="уникальных пользователей"
+              color="text-teal-400"
+              bgColor="bg-teal-400/10"
+            />
             <StatCard
               icon={TrendingUp}
-              label="Уровень"
+              label="Ср. уровень"
               value={dashboard.averageLevel}
               color="text-violet-400"
               bgColor="bg-violet-400/10"
             />
             <StatCard
               icon={BarChart3}
-              label="Очки"
+              label="Ср. очки"
               value={Math.round(dashboard.averagePoints)}
               color="text-amber-400"
               bgColor="bg-amber-400/10"
             />
             <StatCard
               icon={Activity}
-              label="Страйк"
+              label="Ср. страйк"
               value={`${Math.round(dashboard.averageStreak)} д.`}
               color="text-orange-400"
               bgColor="bg-orange-400/10"
             />
           </div>
         </div>
+
+        {/* ============================================================ */}
+        {/* TOP FEATURES                                                 */}
+        {/* ============================================================ */}
+        {dashboard.topFeatures && dashboard.topFeatures.length > 0 && (
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 size={18} className="text-violet-400" />
+              <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                Топ-фичи
+              </h3>
+              <span className="ml-auto text-xs" style={{ color: "var(--text-faint)" }}>
+                использований
+              </span>
+            </div>
+            <div className="space-y-3">
+              {dashboard.topFeatures.map((feat, i) => {
+                const maxUsage = Math.max(dashboard.topFeatures[0]?.usage || 1, 1);
+                const pct = Math.round((feat.usage / maxUsage) * 100);
+                const colors = ["bg-violet-400", "bg-blue-400", "bg-emerald-400", "bg-amber-400", "bg-pink-400"];
+                return (
+                  <div key={feat.name}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                        {feat.name}
+                      </span>
+                      <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+                        {feat.usage}
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--progress-bg)" }}>
+                      <div
+                        className={`h-full rounded-full ${colors[i % colors.length]}`}
+                        style={{ width: `${pct}%`, transition: "width 0.5s ease" }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* HOURLY ACTIVITY TIMELINE                                     */}
+        {/* ============================================================ */}
+        {analytics?.timeline && analytics.timeline.length > 0 && (
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock size={18} className="text-cyan-400" />
+              <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                Активность по часам (24ч)
+              </h3>
+            </div>
+            <div className="flex items-end gap-0.5 h-20">
+              {analytics.timeline.map((slot, i) => {
+                const maxUsers = Math.max(...analytics.timeline.map((s) => s.users), 1);
+                const heightPct = Math.round((slot.users / maxUsers) * 100);
+                const isNow = new Date().getHours() === parseInt(slot.hour);
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center">
+                    <div
+                      className={`w-full rounded-t-sm ${isNow ? "bg-cyan-400" : "bg-cyan-400/35"}`}
+                      style={{ height: `${Math.max(heightPct, 4)}%` }}
+                      title={`${slot.hour}:00 — ${slot.users} пользователей`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-between mt-1 px-0.5">
+              {[0, 6, 12, 18, 23].map((h) => (
+                <span key={h} className="text-xs" style={{ color: "var(--text-faint)", fontSize: "9px" }}>
+                  {h}:00
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ============================================================ */}
         {/* USER TABLE                                                   */}
@@ -697,10 +784,16 @@ export default function AdminNew() {
                     </button>
                   </th>
                   <th
-                    className="text-right py-2 px-2"
+                    className="text-right py-2 px-2 hidden sm:table-cell"
                     style={{ color: "var(--text-muted)" }}
                   >
                     Страйк
+                  </th>
+                  <th
+                    className="text-right py-2 px-2"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    Дата
                   </th>
                 </tr>
               </thead>
@@ -739,9 +832,14 @@ export default function AdminNew() {
                         {user.totalPrayers}
                       </span>
                     </td>
-                    <td className="text-right py-3 px-2">
+                    <td className="text-right py-3 px-2 hidden sm:table-cell">
                       <span className="font-mono text-orange-400">
                         {user.streak} д.
+                      </span>
+                    </td>
+                    <td className="text-right py-3 px-2">
+                      <span className="text-xs font-mono" style={{ color: "var(--text-faint)" }}>
+                        {new Date(user.joinedAt).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" })}
                       </span>
                     </td>
                   </tr>
