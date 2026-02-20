@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { storage } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 import { NAMAZ_GUIDE_SECTIONS, USEFUL_MATERIALS } from "../data/namazGuide";
 
 const STORAGE_KEY = "iman_namaz_guide_read";
@@ -17,6 +18,7 @@ function getReadSections(): number[] {
 
 function saveReadSections(ids: number[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  scheduleSyncPush();
 }
 
 export default function NamazGuide() {

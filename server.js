@@ -42,9 +42,9 @@ const pool = new Pool({
     const res = await client.query("SELECT NOW()");
     console.log("✅ Database connected:", res.rows[0].now);
 
-    // Create users table
+    // Create users table (renamed to iman_users to avoid conflict with Unity)
     await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS iman_users (
         telegram_id BIGINT PRIMARY KEY,
         data JSONB NOT NULL,
         updated_at BIGINT NOT NULL
@@ -53,9 +53,9 @@ const pool = new Pool({
 
     // Create analytics table
     await client.query(`
-      CREATE TABLE IF NOT EXISTS analytics (
+      CREATE TABLE IF NOT EXISTS iman_analytics (
         id SERIAL PRIMARY KEY,
-        telegram_id BIGINT NOT NULL REFERENCES users(telegram_id) ON DELETE CASCADE,
+        telegram_id BIGINT NOT NULL REFERENCES iman_users(telegram_id) ON DELETE CASCADE,
         type TEXT NOT NULL,
         page TEXT,
         action TEXT,
@@ -66,7 +66,7 @@ const pool = new Pool({
 
     // Create subscribers table (persistent across deploys!)
     await client.query(`
-      CREATE TABLE IF NOT EXISTS subscribers (
+      CREATE TABLE IF NOT EXISTS iman_subscribers (
         telegram_id BIGINT PRIMARY KEY,
         subscribed_at BIGINT NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())::BIGINT * 1000
       )
@@ -74,16 +74,16 @@ const pool = new Pool({
 
     // Create indexes
     await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_analytics_telegram_id ON analytics(telegram_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_iman_analytics_telegram_id ON iman_analytics(telegram_id)`,
     );
     await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics(type)`,
+      `CREATE INDEX IF NOT EXISTS idx_iman_analytics_type ON iman_analytics(type)`,
     );
     await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp)`,
+      `CREATE INDEX IF NOT EXISTS idx_iman_analytics_timestamp ON iman_analytics(timestamp)`,
     );
     await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_users_updated_at ON users(updated_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_iman_users_updated_at ON iman_users(updated_at)`,
     );
 
     console.log("✅ Database schema initialized");
@@ -101,14 +101,14 @@ const pool = new Pool({
   try {
     // All app users came via bot /start, so they are subscribers
     await pool.query(
-      `INSERT INTO subscribers (telegram_id)
-       SELECT telegram_id FROM users
+      `INSERT INTO iman_subscribers (telegram_id)
+       SELECT telegram_id FROM iman_users
        ON CONFLICT (telegram_id) DO NOTHING`,
     );
     // Admin Telegram IDs (definitely used /start)
     for (const adminId of [508698471, 542914483]) {
       await pool.query(
-        `INSERT INTO subscribers (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING`,
+        `INSERT INTO iman_subscribers (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING`,
         [adminId],
       );
     }
@@ -124,7 +124,7 @@ const pool = new Pool({
 const stmtGetUser = {
   get: async (telegramId) => {
     const result = await pool.query(
-      "SELECT data, updated_at FROM users WHERE telegram_id = $1",
+      "SELECT data, updated_at FROM iman_users WHERE telegram_id = $1",
       [telegramId],
     );
     if (result.rows.length === 0) return null;
@@ -139,7 +139,7 @@ const stmtGetUser = {
 const stmtUpsertUser = {
   run: async (telegramId, dataStr, updatedAt) => {
     await pool.query(
-      `INSERT INTO users (telegram_id, data, updated_at)
+      `INSERT INTO iman_users (telegram_id, data, updated_at)
        VALUES ($1, $2, $3)
        ON CONFLICT (telegram_id)
        DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
@@ -151,7 +151,7 @@ const stmtUpsertUser = {
 const stmtInsertAnalytics = {
   run: async (telegramId, type, page, action, metadata, timestamp) => {
     await pool.query(
-      `INSERT INTO analytics (telegram_id, type, page, action, metadata, timestamp)
+      `INSERT INTO iman_analytics (telegram_id, type, page, action, metadata, timestamp)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         telegramId,
@@ -295,7 +295,7 @@ const subscribers = new Set();
 
 async function loadSubscribers() {
   try {
-    const result = await pool.query("SELECT telegram_id FROM subscribers");
+    const result = await pool.query("SELECT telegram_id FROM iman_subscribers");
     result.rows.forEach((row) => subscribers.add(Number(row.telegram_id)));
     console.log(`✅ Loaded ${subscribers.size} subscribers from PostgreSQL`);
   } catch (e) {
@@ -307,7 +307,7 @@ async function addSubscriber(chatId) {
   subscribers.add(chatId);
   try {
     await pool.query(
-      `INSERT INTO subscribers (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING`,
+      `INSERT INTO iman_subscribers (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING`,
       [chatId],
     );
   } catch (e) {
@@ -318,7 +318,7 @@ async function addSubscriber(chatId) {
 async function removeSubscriber(chatId) {
   subscribers.delete(chatId);
   try {
-    await pool.query("DELETE FROM subscribers WHERE telegram_id = $1", [
+    await pool.query("DELETE FROM iman_subscribers WHERE telegram_id = $1", [
       chatId,
     ]);
   } catch (e) {
@@ -948,10 +948,10 @@ const server = createServer(async (req, res) => {
     (async () => {
       try {
         const usersCount = await pool.query(
-          "SELECT COUNT(*) as count FROM users",
+          "SELECT COUNT(*) as count FROM iman_users",
         );
         const subsCount = await pool.query(
-          "SELECT COUNT(*) as count FROM subscribers",
+          "SELECT COUNT(*) as count FROM iman_subscribers",
         );
         res.writeHead(200, {
           ...SECURITY_HEADERS,
@@ -990,10 +990,10 @@ const server = createServer(async (req, res) => {
           "SELECT NOW(), pg_database_size(current_database()) as size",
         );
         const usersCount = await pool.query(
-          "SELECT COUNT(*) as count FROM users",
+          "SELECT COUNT(*) as count FROM iman_users",
         );
         const analyticsCount = await pool.query(
-          "SELECT COUNT(*) as count FROM analytics",
+          "SELECT COUNT(*) as count FROM iman_analytics",
         );
 
         res.writeHead(200, {
@@ -1185,7 +1185,7 @@ const server = createServer(async (req, res) => {
     (async () => {
       try {
         const result = await pool.query(
-          "SELECT telegram_id, data, updated_at FROM users ORDER BY updated_at DESC",
+          "SELECT telegram_id, data, updated_at FROM iman_users ORDER BY updated_at DESC",
         );
         const rows = result.rows.map((row) => ({
           telegram_id: row.telegram_id,
@@ -1295,7 +1295,7 @@ const server = createServer(async (req, res) => {
           `SELECT
             telegram_id,
             data
-           FROM users
+           FROM iman_users
            WHERE data IS NOT NULL
            ORDER BY COALESCE((data->'iman_profile'->>'totalPoints')::int, (data->>'totalPoints')::int, 0) DESC
            LIMIT 100`,
@@ -1317,10 +1317,10 @@ const server = createServer(async (req, res) => {
 
         // Real user count + subscribers count
         const countResult = await pool.query(
-          "SELECT COUNT(*) as count FROM users",
+          "SELECT COUNT(*) as count FROM iman_users",
         );
         const subsResult = await pool.query(
-          "SELECT COUNT(*) as count FROM subscribers",
+          "SELECT COUNT(*) as count FROM iman_subscribers",
         );
         const totalUsers = parseInt(countResult.rows[0].count);
         const totalSubscribers = parseInt(subsResult.rows[0].count);
@@ -1374,7 +1374,7 @@ const server = createServer(async (req, res) => {
         // Online users (active in last 5 min)
         const onlineResult = await pool.query(
           `SELECT COUNT(DISTINCT telegram_id) as count
-           FROM analytics
+           FROM iman_analytics
            WHERE timestamp > $1`,
           [now - FIVE_MIN],
         );
@@ -1383,7 +1383,7 @@ const server = createServer(async (req, res) => {
         // Active today (active in last 24h)
         const activeTodayResult = await pool.query(
           `SELECT COUNT(DISTINCT telegram_id) as count
-           FROM analytics
+           FROM iman_analytics
            WHERE timestamp > $1`,
           [now - ONE_DAY],
         );
@@ -1392,7 +1392,7 @@ const server = createServer(async (req, res) => {
         // Top pages (last 7 days)
         const topPagesResult = await pool.query(
           `SELECT page, COUNT(*) as count
-           FROM analytics
+           FROM iman_analytics
            WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > $1
            GROUP BY page
            ORDER BY count DESC
@@ -1404,7 +1404,7 @@ const server = createServer(async (req, res) => {
         // Top actions (last 7 days)
         const topActionsResult = await pool.query(
           `SELECT action, COUNT(*) as count
-           FROM analytics
+           FROM iman_analytics
            WHERE type = 'action' AND action IS NOT NULL AND timestamp > $1
            GROUP BY action
            ORDER BY count DESC
@@ -1416,7 +1416,7 @@ const server = createServer(async (req, res) => {
         // Average session duration (last 7 days)
         const avgSessionResult = await pool.query(
           `SELECT AVG((metadata->>'duration')::INTEGER) as avg_duration
-           FROM analytics
+           FROM iman_analytics
            WHERE type = 'session_end' AND timestamp > $1 AND metadata IS NOT NULL`,
           [now - 7 * ONE_DAY],
         );
@@ -1429,7 +1429,7 @@ const server = createServer(async (req, res) => {
           `SELECT
             EXTRACT(HOUR FROM to_timestamp(timestamp / 1000)) as hour,
             COUNT(DISTINCT telegram_id) as users
-           FROM analytics
+           FROM iman_analytics
            WHERE timestamp > $1
            GROUP BY hour
            ORDER BY hour`,
@@ -1445,7 +1445,7 @@ const server = createServer(async (req, res) => {
             COALESCE(data->'iman_profile'->>'telegramUsername', data->>'telegramUsername') as username,
             COALESCE((data->'iman_profile'->>'totalPoints')::int, (data->>'totalPoints')::int, 0) as points,
             COALESCE(data->'iman_profile'->>'level', data->>'level') as level
-           FROM users
+           FROM iman_users
            WHERE data->'iman_profile'->>'totalPoints' IS NOT NULL
               OR data->>'totalPoints' IS NOT NULL
            ORDER BY COALESCE((data->'iman_profile'->>'totalPoints')::int, (data->>'totalPoints')::int, 0) DESC
@@ -1462,7 +1462,7 @@ const server = createServer(async (req, res) => {
         // ✨ NEW: Prayer statistics (today & this week)
         const prayersTodayResult = await pool.query(
           `SELECT COUNT(*) as count
-           FROM analytics
+           FROM iman_analytics
            WHERE action = 'prayer_marked' AND timestamp > $1`,
           [now - ONE_DAY],
         );
@@ -1470,7 +1470,7 @@ const server = createServer(async (req, res) => {
 
         const prayersWeekResult = await pool.query(
           `SELECT COUNT(*) as count
-           FROM analytics
+           FROM iman_analytics
            WHERE action = 'prayer_marked' AND timestamp > $1`,
           [now - 7 * ONE_DAY],
         );
@@ -1479,7 +1479,7 @@ const server = createServer(async (req, res) => {
         // ✨ NEW: New users (today & this week)
         const newUsersTodayResult = await pool.query(
           `SELECT COUNT(*) as count
-           FROM users
+           FROM iman_users
            WHERE updated_at > $1`,
           [now - ONE_DAY],
         );
@@ -1487,7 +1487,7 @@ const server = createServer(async (req, res) => {
 
         const newUsersWeekResult = await pool.query(
           `SELECT COUNT(*) as count
-           FROM users
+           FROM iman_users
            WHERE updated_at > $1`,
           [now - 7 * ONE_DAY],
         );
@@ -1496,7 +1496,7 @@ const server = createServer(async (req, res) => {
         // ✨ NEW: Quran reading stats (page views on /quran)
         const quranViewsResult = await pool.query(
           `SELECT COUNT(*) as count
-           FROM analytics
+           FROM iman_analytics
            WHERE page = '/quran' AND timestamp > $1`,
           [now - 7 * ONE_DAY],
         );
@@ -1681,7 +1681,7 @@ async function createBackup() {
   try {
     console.log("🔄 Создание резервной копии данных...");
     const result = await pool.query(
-      "SELECT telegram_id, data, updated_at FROM users",
+      "SELECT telegram_id, data, updated_at FROM iman_users",
     );
     const backup = {
       timestamp: Date.now(),
@@ -1724,8 +1724,8 @@ server.listen(PORT, "0.0.0.0", async () => {
   console.log(`IMAN server running on port ${PORT}`);
   console.log(`Security: webhook secret, rate limiting, CSP, HSTS enabled`);
 
-  // Создать первый бэкап при старте
-  await createBackup();
+  // Первый бэкап создастся автоматически через интервал (закомментировано чтобы не конфликтовало с инициализацией БД)
+  // await createBackup();
 
   if (BOT_TOKEN && APP_URL) {
     const webhookUrl = `${APP_URL}${WEBHOOK_PATH}`;

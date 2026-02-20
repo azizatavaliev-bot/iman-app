@@ -13,6 +13,7 @@ import {
 import { QUIZ_CATEGORIES, QUIZ_DATA } from "../data/quiz";
 import type { QuizQuestion } from "../data/quiz";
 import { storage, POINTS } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 
 // ============================================================
 // Constants
@@ -64,6 +65,7 @@ function loadHighScores(): HighScores {
 
 function saveHighScores(scores: HighScores): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+  scheduleSyncPush();
 }
 
 function getColorClasses(color: string) {

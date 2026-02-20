@@ -7,6 +7,7 @@ import {
   Check,
 } from "lucide-react";
 import { storage } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 import { SEERAH_CHAPTERS } from "../data/seerah";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ function getReadChapters(): number[] {
 
 function saveReadChapters(ids: number[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  scheduleSyncPush();
 }
 
 export default function Seerah() {

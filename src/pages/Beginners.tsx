@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { storage } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 import { BEGINNER_SECTIONS } from "../data/beginners";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ function getReadSections(): number[] {
 
 function saveReadSections(ids: number[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  scheduleSyncPush();
 }
 
 export default function Beginners() {

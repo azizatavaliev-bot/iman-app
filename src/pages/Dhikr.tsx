@@ -11,6 +11,7 @@ import {
 import { DHIKR_DATA, DHIKR_CATEGORIES } from "../data/dhikr";
 import type { Dhikr } from "../data/dhikr";
 import { storage, POINTS } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 
 // ============================================================
 // Types
@@ -47,6 +48,7 @@ function getProgress(): DhikrProgress {
 
 function saveProgress(progress: DhikrProgress): void {
   localStorage.setItem("iman_dhikr_progress", JSON.stringify(progress));
+  scheduleSyncPush();
 }
 
 function getCategoryProgress(categoryId: string): {

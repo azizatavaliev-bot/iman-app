@@ -13,6 +13,7 @@ import {
 import { DUA_CATEGORIES, DUA_DATA, SITUATIONS } from "../data/dua";
 import type { Dua } from "../data/dua";
 import { storage, POINTS } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 
 // ============================================================
 // Dua Collection Page
@@ -70,6 +71,7 @@ function getFavoriteDuas(): Set<number> {
 /** Save favorite dua IDs */
 function saveFavoriteDuas(ids: Set<number>): void {
   localStorage.setItem("iman_favorite_duas", JSON.stringify([...ids]));
+  scheduleSyncPush();
 }
 
 // ============================================================

@@ -11,7 +11,7 @@ import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
 import { getTelegramUser } from "./lib/telegram";
 import { initAudioUnlock } from "./lib/audioUnlock";
-import { syncUserData } from "./lib/sync";
+import { syncUserData, scheduleSyncPush, initSyncOnClose } from "./lib/sync";
 import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
 import ChannelGate from "./components/ChannelGate";
@@ -162,6 +162,9 @@ function AppContent() {
 // Initialize iOS audio unlock (must be called before any audio playback)
 initAudioUnlock();
 
+// Save data when user closes/hides the app
+initSyncOnClose();
+
 // Auto-skip onboarding for existing users or Telegram users
 function isOnboarded(): boolean {
   if (localStorage.getItem("iman_onboarded") === "true") return true;
@@ -186,6 +189,7 @@ function isOnboarded(): boolean {
       : autoProfile;
     localStorage.setItem("iman_profile", JSON.stringify(merged));
     localStorage.setItem("iman_onboarded", "true");
+    scheduleSyncPush();
     return true;
   }
   return false;

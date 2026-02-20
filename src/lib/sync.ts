@@ -21,6 +21,14 @@ const SYNC_KEYS = [
   "iman_quiz_scores",
   "iman_onboarded",
   "iman_ramadan_2026",
+  // Additional keys
+  "iman_dhikr_progress",
+  "iman_favorite_duas",
+  "iman_beginners_read",
+  "iman_namaz_guide_read",
+  "iman_seerah_read",
+  "iman_channel_skipped",
+  "iman_welcome_shown",
 ] as const;
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
@@ -164,4 +172,54 @@ export function scheduleSyncPush(): void {
       pushToServer(telegramId);
     }
   }, SYNC_DEBOUNCE_MS);
+}
+
+/**
+ * Immediate push (no debounce) — used on app close/hide.
+ */
+function immediateSync(): void {
+  if (!isTelegramWebApp()) return;
+  const telegramId = getTelegramId();
+  if (!telegramId) return;
+
+  // Cancel any pending debounced push
+  if (syncTimer) {
+    clearTimeout(syncTimer);
+    syncTimer = null;
+  }
+
+  // Use sendBeacon for reliable delivery on page close
+  const data = gatherLocalData();
+  const url = `/api/user/${telegramId}`;
+  const body = JSON.stringify({ data });
+
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
+  } else {
+    // Fallback: regular fetch (may not complete on close, but better than nothing)
+    pushToServer(telegramId).catch(() => {});
+  }
+}
+
+/**
+ * Initialize save-on-close listeners.
+ * Call once on app startup.
+ */
+export function initSyncOnClose(): void {
+  // visibilitychange fires when user switches apps in Telegram
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      immediateSync();
+    }
+  });
+
+  // pagehide fires on iOS Safari / some mobile browsers
+  window.addEventListener("pagehide", () => {
+    immediateSync();
+  });
+
+  // beforeunload for desktop browsers
+  window.addEventListener("beforeunload", () => {
+    immediateSync();
+  });
 }
