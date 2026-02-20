@@ -31,6 +31,8 @@ const SYNC_KEYS = [
   "iman_welcome_shown",
   "iman_quran_read_surahs",
   "iman_daily_bonus_date",
+  "iman_hadiths_nawawi_read",
+  "iman_hadiths_ext_read",
 ] as const;
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
@@ -54,10 +56,10 @@ function gatherLocalData(): Record<string, unknown> {
       }
     }
   }
-  // Also gather quiz used IDs
+  // Also gather dynamic keys (quiz used IDs, quiz scored, dua reads)
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith("iman_quiz_used_")) {
+    if (k && (k.startsWith("iman_quiz_used_") || k.startsWith("iman_quiz_scored_") || k.startsWith("iman_dua_read_"))) {
       const raw = localStorage.getItem(k);
       if (raw) {
         try {

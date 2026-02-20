@@ -24,6 +24,7 @@ import {
   hapticSelection,
 } from "../lib/api";
 import { storage, POINTS } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
 import { hasTafsir, getTafsir } from "../data/tafsir";
 import {
@@ -467,6 +468,7 @@ export default function Quran() {
     if (read.includes(num)) return false;
     read.push(num);
     localStorage.setItem(QURAN_READ_KEY, JSON.stringify(read));
+    scheduleSyncPush();
     return true;
   }
 

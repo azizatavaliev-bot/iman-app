@@ -16,7 +16,26 @@ import {
   hapticImpact,
 } from "../lib/api";
 import { storage, POINTS } from "../lib/storage";
+import { scheduleSyncPush } from "../lib/sync";
 import type { Hadith, ExtendedHadith, HadithCollection } from "../lib/api";
+
+// ── Persist read hadith IDs ──
+const NAWAWI_READ_KEY = "iman_hadiths_nawawi_read";
+const EXT_READ_KEY = "iman_hadiths_ext_read";
+
+function loadReadNawawi(): number[] {
+  try {
+    const raw = localStorage.getItem(NAWAWI_READ_KEY);
+    return raw ? (JSON.parse(raw) as number[]) : [];
+  } catch { return []; }
+}
+
+function loadReadExt(): string[] {
+  try {
+    const raw = localStorage.getItem(EXT_READ_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch { return []; }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hadiths Page — "40 хадисов ан-Навави" + Бухари + Муслим
@@ -57,7 +76,7 @@ export default function Hadiths() {
   const [hadiths, setHadiths] = useState<Hadith[]>([]);
   const [hadithOfDay, setHadithOfDay] = useState<Hadith | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [readIds, setReadIds] = useState<Set<number>>(new Set());
+  const [readIds, setReadIds] = useState<Set<number>>(() => new Set(loadReadNawawi()));
 
   // ── Extended collections state (Bukhari / Muslim) ──
   const [selectedSection, setSelectedSection] = useState<number>(1);
@@ -194,12 +213,15 @@ export default function Hadiths() {
 
     if (!isClosing && !readIds.has(hadith.id)) {
       storage.addExtraPoints(POINTS.HADITH);
-      setReadIds((prev) => new Set(prev).add(hadith.id));
+      const newSet = new Set(readIds).add(hadith.id);
+      setReadIds(newSet);
+      localStorage.setItem(NAWAWI_READ_KEY, JSON.stringify(Array.from(newSet)));
+      scheduleSyncPush();
     }
   };
 
   // ── Extended: Expand hadith ── (track read IDs to prevent double points)
-  const [readExtIds, setReadExtIds] = useState<Set<string>>(new Set());
+  const [readExtIds, setReadExtIds] = useState<Set<string>>(() => new Set(loadReadExt()));
 
   const handleExpandExt = (hadith: ExtendedHadith) => {
     const id = `${hadith.collection}_${hadith.hadithnumber}`;
@@ -208,7 +230,10 @@ export default function Hadiths() {
 
     if (!isClosing && !readExtIds.has(id)) {
       storage.addExtraPoints(POINTS.HADITH);
-      setReadExtIds((prev) => new Set(prev).add(id));
+      const newSet = new Set(readExtIds).add(id);
+      setReadExtIds(newSet);
+      localStorage.setItem(EXT_READ_KEY, JSON.stringify(Array.from(newSet)));
+      scheduleSyncPush();
     }
   };
 
