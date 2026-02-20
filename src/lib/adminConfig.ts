@@ -12,7 +12,8 @@
  * 3. Copy the "id" field
  */
 export const ADMIN_TELEGRAM_IDS = [
-  // Aziz Atavaliev - добавьте свой ID после первого входа в приложение
+  508698471, // Aziz Atavaliev
+  542914483, // Akylai
 ];
 
 /**
