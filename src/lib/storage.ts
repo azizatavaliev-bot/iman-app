@@ -107,6 +107,7 @@ export interface UserProfile {
   lng: number | null;
   level: string;
   totalPoints: number;
+  extraPoints: number; // Points from non-recalculable sources (quiz, hadiths, dua reads, seerah, etc.)
   streak: number;
   longestStreak: number;
   joinedAt: string;
@@ -235,6 +236,7 @@ function defaultProfile(): UserProfile {
     lng: null,
     level: LEVELS[0].name,
     totalPoints: 0,
+    extraPoints: 0,
     streak: 0,
     longestStreak: 0,
     joinedAt: new Date().toISOString(),
@@ -328,7 +330,18 @@ class Storage {
     return profile;
   }
 
-  /** Recalculate totalPoints from all stored prayer/habit logs (source of truth) */
+  /** Add points from non-recalculable sources (quiz, hadiths, dua reads, seerah, etc.)
+   *  These are stored in extraPoints and survive recalculation. */
+  addExtraPoints(amount: number): UserProfile {
+    const profile = this.getProfile();
+    profile.extraPoints = (profile.extraPoints || 0) + amount;
+    profile.totalPoints += amount;
+    profile.level = getCurrentLevel(profile.totalPoints).name;
+    this.write(KEYS.PROFILE, profile);
+    return profile;
+  }
+
+  /** Recalculate totalPoints from ALL stored data (single source of truth) */
   recalculateTotalPoints(): UserProfile {
     const profile = this.getProfile();
     const allPrayerLogs = this.getAllPrayerLogs();
@@ -336,7 +349,7 @@ class Storage {
 
     let total = 0;
 
-    // Sum points from all prayer logs
+    // 1. Prayer logs
     for (const log of Object.values(allPrayerLogs)) {
       for (const p of PRAYER_NAMES) {
         if (log.prayers[p].status === "ontime") total += POINTS.PRAYER_ONTIME;
@@ -344,7 +357,7 @@ class Storage {
       }
     }
 
-    // Sum points from all habit logs
+    // 2. Habit logs
     for (const log of Object.values(allHabitLogs)) {
       if (log.quran) total += POINTS.QURAN;
       if (log.azkar_morning) total += POINTS.AZKAR;
@@ -354,9 +367,49 @@ class Storage {
       if (log.dua) total += POINTS.DUA;
     }
 
-    // Add names quiz / hadith bonus points (keep extra points that came from these)
+    // 3. 99 Names learned
     const namesProgress = this.getNamesProgress();
     total += namesProgress.learned.length * POINTS.NAMES_QUIZ;
+
+    // 4. Ibadah timer sessions
+    const ibadahSessions = this.getIbadahSessions();
+    for (const session of ibadahSessions) {
+      total += session.pointsEarned;
+    }
+
+    // 5. Memorization reviews
+    const memorization = this.getMemorizationList();
+    for (const entry of memorization) {
+      total += entry.pointsEarned;
+    }
+
+    // 6. Dhikr progress (AZKAR points per completed dhikr)
+    try {
+      const dhikrRaw = localStorage.getItem("iman_dhikr_progress");
+      if (dhikrRaw) {
+        const dhikrProgress = JSON.parse(dhikrRaw) as Record<string, Record<string, { completed: number[]; totalTaps: number }>>;
+        for (const dayData of Object.values(dhikrProgress)) {
+          for (const catData of Object.values(dayData)) {
+            total += catData.completed.length * POINTS.AZKAR;
+          }
+        }
+      }
+    } catch { /* ignore */ }
+
+    // 7. Quiz scores (from iman_quiz_scored_ keys)
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("iman_quiz_scored_") && localStorage.getItem(k) === "1") {
+          // Each scored quiz category earned some points; we can't know exact amount
+          // so we skip quiz — it's handled by addPoints and preserved below
+        }
+      }
+    } catch { /* ignore */ }
+
+    // 8. Extra points from sources we can't recalculate (quiz, hadiths, dua reads, seerah, etc.)
+    // These are tracked in profile.extraPoints
+    total += profile.extraPoints || 0;
 
     profile.totalPoints = total;
     profile.level = getCurrentLevel(total).name;
@@ -460,6 +513,18 @@ class Storage {
     this.setProfile({ streak, longestStreak });
 
     return { streak, longestStreak };
+  }
+
+  /** Award daily bonus (25 points) on first app open each day.
+   *  Returns true if bonus was awarded, false if already claimed today. */
+  checkDailyBonus(): boolean {
+    const today = toDateKey();
+    const key = "iman_daily_bonus_date";
+    const lastBonusDate = localStorage.getItem(key);
+    if (lastBonusDate === today) return false;
+    localStorage.setItem(key, today);
+    this.addExtraPoints(POINTS.DAILY_BONUS);
+    return true;
   }
 
   // ---- Favorite Hadiths ----
@@ -676,11 +741,8 @@ class Storage {
     };
     sessions.push(entry);
     this.write(KEYS.IBADAH_SESSIONS, sessions);
-    // Add points to profile
-    const profile = this.getProfile();
-    profile.totalPoints += points;
-    profile.level = getCurrentLevel(profile.totalPoints).name;
-    this.write(KEYS.PROFILE, profile);
+    // Recalculate — ibadah sessions are included in recalculateTotalPoints
+    this.recalculateTotalPoints();
     return entry;
   }
 
@@ -745,11 +807,8 @@ class Storage {
     entry.pointsEarned += POINTS.MEMORIZE_REPEAT;
     this.write(KEYS.MEMORIZATION, list);
 
-    // Add points
-    const profile = this.getProfile();
-    profile.totalPoints += POINTS.MEMORIZE_REPEAT;
-    profile.level = getCurrentLevel(profile.totalPoints).name;
-    this.write(KEYS.PROFILE, profile);
+    // Recalculate — memorization points are included in recalculateTotalPoints
+    this.recalculateTotalPoints();
 
     return entry;
   }

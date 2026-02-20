@@ -450,6 +450,26 @@ export default function Quran() {
     }
   }, [audioState?.currentAyahIndex, audioState?.isPlaying, audioState?.mode]);
 
+  // --- Track read surahs for points ---
+  const QURAN_READ_KEY = "iman_quran_read_surahs";
+
+  function getReadSurahs(): number[] {
+    try {
+      const raw = localStorage.getItem(QURAN_READ_KEY);
+      return raw ? (JSON.parse(raw) as number[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function markSurahRead(num: number): boolean {
+    const read = getReadSurahs();
+    if (read.includes(num)) return false;
+    read.push(num);
+    localStorage.setItem(QURAN_READ_KEY, JSON.stringify(read));
+    return true;
+  }
+
   // --- Open surah ---
   async function openSurah(num: number) {
     // Stop any playing audio when switching surah
@@ -477,6 +497,11 @@ export default function Quran() {
       }));
 
       setAyahs(merged);
+
+      // Award points for first-time surah reading
+      if (markSurahRead(num)) {
+        storage.addExtraPoints(POINTS.QURAN);
+      }
     } catch (err) {
       console.error("Failed to load surah:", err);
     } finally {

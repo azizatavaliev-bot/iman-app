@@ -305,7 +305,8 @@ export default function Dhikr() {
     if (newCount >= currentDhikr.count) {
       const xp = POINTS.AZKAR;
       markDhikrCompleted(activeCategory!, currentDhikr.id, newCount);
-      storage.addPoints(xp);
+      // Dhikr points are now recalculated from iman_dhikr_progress
+      storage.recalculateTotalPoints();
       setTotalXpEarned((prev) => prev + xp);
       setCompletedInSession((prev) => [...prev, currentDhikr.id]);
       setXpAmount(xp);
@@ -318,9 +319,9 @@ export default function Dhikr() {
       );
       const updatedCompleted = [...completedInSession, currentDhikr.id];
       if (updatedCompleted.length >= catDhikr.length) {
-        // Category bonus
+        // Category bonus (not recalculable)
         const bonus = 10;
-        storage.addPoints(bonus);
+        storage.addExtraPoints(bonus);
         setTotalXpEarned((prev) => prev + xp + bonus);
         setTimeout(() => {
           setShowConfetti(true);

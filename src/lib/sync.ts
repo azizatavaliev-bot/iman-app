@@ -29,6 +29,8 @@ const SYNC_KEYS = [
   "iman_seerah_read",
   "iman_channel_skipped",
   "iman_welcome_shown",
+  "iman_quran_read_surahs",
+  "iman_daily_bonus_date",
 ] as const;
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;

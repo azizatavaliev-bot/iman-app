@@ -244,9 +244,11 @@ export default function Ramadan() {
       const current = next.fastingDays[day];
       if (!current) {
         next.fastingDays[day] = "fasted";
-        storage.addPoints(POINTS.FASTING);
+        storage.addExtraPoints(POINTS.FASTING);
       } else if (current === "fasted") {
         next.fastingDays[day] = "missed";
+        // Remove fasting points
+        storage.addExtraPoints(-POINTS.FASTING);
       } else {
         delete next.fastingDays[day];
       }

@@ -71,7 +71,8 @@ export default function NamesGame() {
 
   const handleMarkLearned = useCallback((nameId: number) => {
     const progress = storage.markNameLearned(nameId)
-    storage.addPoints(POINTS.NAMES_QUIZ)
+    // Points are calculated in recalculateTotalPoints via namesProgress.learned.length
+    storage.recalculateTotalPoints()
     setLearned([...progress.learned])
   }, [])
 
@@ -388,7 +389,7 @@ function QuizTab({
         const points = POINTS.NAMES_QUIZ
         setScore((s) => s + points)
         setStreak((s) => s + 1)
-        storage.addPoints(points)
+        storage.addExtraPoints(points)
       } else {
         setShakeWrong(true)
         setStreak(0)

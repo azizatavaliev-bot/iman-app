@@ -230,7 +230,7 @@ export default function Quiz() {
       // Award points only on first attempt
       if (isFirstAttempt && correct > 0) {
         const earned = correct * POINTS.QUIZ_CORRECT;
-        storage.addPoints(earned);
+        storage.addExtraPoints(earned);
         storage.markQuizScored(key);
         setPointsEarned(earned);
       }

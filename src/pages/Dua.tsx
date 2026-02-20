@@ -332,9 +332,8 @@ export default function DuaPage() {
     (duaId: number) => {
       if (readToday.has(duaId)) return;
 
-      // Award points
-      storage.addPoints(POINTS.DUA);
-      storage.recalculateTotalPoints();
+      // Award points (extra — not recalculable)
+      storage.addExtraPoints(POINTS.DUA);
       markDuaReadToday(duaId);
 
       setReadToday((prev) => new Set(prev).add(duaId));

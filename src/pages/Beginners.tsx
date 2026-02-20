@@ -50,7 +50,7 @@ export default function Beginners() {
         newReadIds.add(sectionId);
         setReadIds(newReadIds);
         saveReadSections(Array.from(newReadIds));
-        storage.addPoints(section.points);
+        storage.addExtraPoints(section.points);
       }
     }
   };

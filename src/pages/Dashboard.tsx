@@ -609,9 +609,12 @@ export default function Dashboard() {
     setHabitLog(storage.getHabitLog(todayKey));
   }, [todayKey]);
 
-  // ---------- Cleanup old logs on mount ----------
+  // ---------- Cleanup old logs + daily bonus on mount ----------
   useEffect(() => {
     storage.cleanupOldLogs();
+    if (storage.checkDailyBonus()) {
+      setProfile(storage.getProfile());
+    }
   }, []);
 
   // ---------- Fetch prayer times ----------

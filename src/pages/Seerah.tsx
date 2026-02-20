@@ -59,7 +59,7 @@ export default function Seerah() {
         newReadIds.add(chapterId);
         setReadIds(newReadIds);
         saveReadChapters(Array.from(newReadIds));
-        storage.addPoints(chapter.points);
+        storage.addExtraPoints(chapter.points);
       }
     }
   };

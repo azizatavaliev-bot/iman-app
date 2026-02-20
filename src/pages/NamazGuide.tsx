@@ -45,7 +45,7 @@ export default function NamazGuide() {
         newReadIds.add(sectionId);
         setReadIds(newReadIds);
         saveReadSections(Array.from(newReadIds));
-        storage.addPoints(section.points);
+        storage.addExtraPoints(section.points);
       }
     }
   };

@@ -193,19 +193,22 @@ export default function Hadiths() {
     setExpandedId(isClosing ? null : hadith.id);
 
     if (!isClosing && !readIds.has(hadith.id)) {
-      storage.addPoints(POINTS.HADITH);
+      storage.addExtraPoints(POINTS.HADITH);
       setReadIds((prev) => new Set(prev).add(hadith.id));
     }
   };
 
-  // ── Extended: Expand hadith ──
+  // ── Extended: Expand hadith ── (track read IDs to prevent double points)
+  const [readExtIds, setReadExtIds] = useState<Set<string>>(new Set());
+
   const handleExpandExt = (hadith: ExtendedHadith) => {
     const id = `${hadith.collection}_${hadith.hadithnumber}`;
     const isClosing = expandedExtId === id;
     setExpandedExtId(isClosing ? null : id);
 
-    if (!isClosing) {
-      storage.addPoints(POINTS.HADITH);
+    if (!isClosing && !readExtIds.has(id)) {
+      storage.addExtraPoints(POINTS.HADITH);
+      setReadExtIds((prev) => new Set(prev).add(id));
     }
   };
 
