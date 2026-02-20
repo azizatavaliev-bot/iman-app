@@ -38,9 +38,9 @@ export interface AdminDashboard {
 }
 
 interface ServerUserData {
-  telegram_id: number;
+  telegram_id: number | string;
   data: string;
-  updated_at: number;
+  updated_at: number | string;
 }
 
 // ---- Helper Functions ----
@@ -158,10 +158,10 @@ export async function getAllUsers(): Promise<UserStats[]> {
 
     const prayerLogs = getPrayerLogs(data);
     const habitLogs = getHabitLogs(data);
-    const lastActive = new Date(serverUser.updated_at);
+    const lastActive = new Date(Number(serverUser.updated_at));
 
     users.push({
-      telegramId: serverUser.telegram_id,
+      telegramId: Number(serverUser.telegram_id),
       name: profile.name || "Без имени",
       level: profile.level || LEVELS[0].name,
       points: profile.totalPoints || 0,
