@@ -144,7 +144,12 @@ export async function syncUserData(): Promise<void> {
     // ВСЕГДА загружаем из базы при старте
     // Это гарантирует что баллы НЕ потеряются
     console.log("[sync] ✅ Loading data from server (restoring saved points)");
-    restoreToLocal(server.data);
+    // server.data may be a JSON string (double-encoded) — parse it first
+    const serverData: Record<string, unknown> =
+      typeof server.data === "string"
+        ? JSON.parse(server.data)
+        : server.data;
+    restoreToLocal(serverData);
 
     // ❌ НЕ делаем pushToServer здесь!
     // Иначе мы затрём хорошие данные из базы пустым localStorage
