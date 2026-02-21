@@ -275,34 +275,57 @@ class Storage {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - MAX_LOG_DAYS);
     const cutoffKey = toDateKey(cutoff);
+    let archivedPoints = 0;
 
-    // Prayer logs
+    // Prayer logs — archive points before deleting
     const prayerLogs = this.getAllPrayerLogs();
     let prayerCleaned = false;
     for (const key of Object.keys(prayerLogs)) {
       if (key < cutoffKey) {
+        const log = prayerLogs[key];
+        for (const p of PRAYER_NAMES) {
+          if (log.prayers[p].status === "ontime") archivedPoints += POINTS.PRAYER_ONTIME;
+          else if (log.prayers[p].status === "late") archivedPoints += POINTS.PRAYER_LATE;
+        }
         delete prayerLogs[key];
         prayerCleaned = true;
       }
     }
     if (prayerCleaned) this.saveAllPrayerLogs(prayerLogs);
 
-    // Habit logs
+    // Habit logs — archive points before deleting
     const habitLogs = this.getAllHabitLogs();
     let habitCleaned = false;
     for (const key of Object.keys(habitLogs)) {
       if (key < cutoffKey) {
+        const log = habitLogs[key];
+        if (log.quran) archivedPoints += POINTS.QURAN;
+        if (log.azkar_morning) archivedPoints += POINTS.AZKAR;
+        if (log.azkar_evening) archivedPoints += POINTS.AZKAR;
+        if (log.charity) archivedPoints += POINTS.CHARITY;
+        if (log.fasting) archivedPoints += POINTS.FASTING;
+        if (log.dua) archivedPoints += POINTS.DUA;
         delete habitLogs[key];
         habitCleaned = true;
       }
     }
     if (habitCleaned) this.saveAllHabitLogs(habitLogs);
 
-    // Ibadah sessions — оставляем только за 90 дней
+    // Ibadah sessions — archive points before deleting
     const sessions = this.getIbadahSessions();
     const filteredSessions = sessions.filter((s) => s.date >= cutoffKey);
     if (filteredSessions.length < sessions.length) {
+      for (const s of sessions) {
+        if (s.date < cutoffKey) archivedPoints += s.pointsEarned;
+      }
       this.write(KEYS.IBADAH_SESSIONS, filteredSessions);
+    }
+
+    // Transfer archived points to extraPoints so they're never lost
+    if (archivedPoints > 0) {
+      const profile = this.getProfile();
+      profile.extraPoints = (profile.extraPoints || 0) + archivedPoints;
+      this.write(KEYS.PROFILE, profile);
     }
   }
 

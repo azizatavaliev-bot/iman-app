@@ -33,10 +33,17 @@ const SYNC_KEYS = [
   "iman_daily_bonus_date",
   "iman_hadiths_nawawi_read",
   "iman_hadiths_ext_read",
+  "iman_quran_notes",
 ] as const;
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSyncAt = 0;
+let syncDone = false;
+
+/** Check if initial sync has completed */
+export function isSyncDone(): boolean {
+  return syncDone;
+}
 
 function getTelegramId(): number | null {
   const user = getTelegramUser();
@@ -143,27 +150,42 @@ export async function syncUserData(): Promise<void> {
       return;
     }
 
-    // ВСЕГДА загружаем из базы при старте
-    // Это гарантирует что баллы НЕ потеряются
-    console.log("[sync] ✅ Loading data from server (restoring saved points)");
     // server.data may be a JSON string (double-encoded) — parse it first
     const serverData: Record<string, unknown> =
       typeof server.data === "string"
         ? JSON.parse(server.data)
         : server.data;
-    restoreToLocal(serverData);
 
-    // ❌ НЕ делаем pushToServer здесь!
-    // Иначе мы затрём хорошие данные из базы пустым localStorage
-    //
-    // Сохранение произойдёт автоматически когда пользователь:
-    // - Отметит намаз → storage.write() → notifySync() → scheduleSyncPush()
-    // - Прочитает Коран → storage.write() → scheduleSyncPush()
-    // - И т.д.
+    // ЗАЩИТА ОТ ПОТЕРИ БАЛЛОВ:
+    // Сравниваем totalPoints — берём МАКСИМУМ из local и server
+    const localRaw = localStorage.getItem("iman_profile");
+    let localPoints = 0;
+    if (localRaw) {
+      try {
+        const localProfile = JSON.parse(localRaw);
+        localPoints = localProfile.totalPoints || 0;
+      } catch { /* ignore */ }
+    }
 
-    console.log("[sync] ✅ Sync complete. Points restored from database.");
+    const serverProfile = serverData.iman_profile as Record<string, unknown> | undefined;
+    const serverPoints = (serverProfile?.totalPoints as number) || 0;
+
+    if (localPoints > serverPoints && localPoints > 0) {
+      // Локальные баллы БОЛЬШЕ серверных — НЕ перезаписываем, пушим на сервер
+      console.log(`[sync] ⚠️ Local points (${localPoints}) > server (${serverPoints}), keeping local`);
+      await pushToServer(telegramId);
+    } else {
+      // Серверные баллы >= локальных — восстанавливаем из сервера
+      console.log(`[sync] ✅ Server points (${serverPoints}) >= local (${localPoints}), restoring`);
+      restoreToLocal(serverData);
+    }
+
+    console.log("[sync] ✅ Sync complete.");
   } catch (e) {
     console.error("[sync] ❌ Initial sync failed:", e);
+  } finally {
+    syncDone = true;
+    window.dispatchEvent(new Event("iman-sync-done"));
   }
 }
 

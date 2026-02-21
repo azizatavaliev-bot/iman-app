@@ -31,6 +31,7 @@ import {
   Landmark,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
+import { isSyncDone } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
 import { trackAction } from "../lib/analytics";
 import {
@@ -609,11 +610,20 @@ export default function Dashboard() {
     setHabitLog(storage.getHabitLog(todayKey));
   }, [todayKey]);
 
-  // ---------- Cleanup old logs + daily bonus on mount ----------
+  // ---------- Cleanup old logs + daily bonus AFTER sync completes ----------
   useEffect(() => {
-    storage.cleanupOldLogs();
-    if (storage.checkDailyBonus()) {
-      setProfile(storage.getProfile());
+    function runAfterSync() {
+      storage.cleanupOldLogs();
+      if (storage.checkDailyBonus()) {
+        setProfile(storage.getProfile());
+      }
+    }
+    if (isSyncDone()) {
+      runAfterSync();
+    } else {
+      const handler = () => runAfterSync();
+      window.addEventListener("iman-sync-done", handler, { once: true });
+      return () => window.removeEventListener("iman-sync-done", handler);
     }
   }, []);
 

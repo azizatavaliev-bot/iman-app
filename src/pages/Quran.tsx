@@ -13,6 +13,8 @@ import {
   X,
   Mic2,
   Check,
+  PenLine,
+  Trash2,
 } from "lucide-react";
 import {
   getSurahList,
@@ -241,6 +243,43 @@ export default function Quran() {
   const [loadingAyahs, setLoadingAyahs] = useState(false);
   const [bookmarks, setBookmarks] = useState<QuranBookmark[]>([]);
   const [expandedTafsir, setExpandedTafsir] = useState<number | null>(null);
+
+  // --- Notes state ---
+  const NOTES_KEY = "iman_quran_notes";
+  const [notes, setNotes] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem(NOTES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
+  const [editingNote, setEditingNote] = useState<string | null>(null); // "surah:ayah" key
+  const [noteText, setNoteText] = useState("");
+
+  function noteKey(surah: number, ayah: number) { return `${surah}:${ayah}`; }
+
+  function saveNote(surah: number, ayah: number, text: string) {
+    const key = noteKey(surah, ayah);
+    const updated = { ...notes };
+    if (text.trim()) {
+      updated[key] = text.trim();
+    } else {
+      delete updated[key];
+    }
+    setNotes(updated);
+    localStorage.setItem(NOTES_KEY, JSON.stringify(updated));
+    scheduleSyncPush();
+    setEditingNote(null);
+    setNoteText("");
+  }
+
+  function deleteNote(surah: number, ayah: number) {
+    const key = noteKey(surah, ayah);
+    const updated = { ...notes };
+    delete updated[key];
+    setNotes(updated);
+    localStorage.setItem(NOTES_KEY, JSON.stringify(updated));
+    scheduleSyncPush();
+  }
 
   // --- Reciter state ---
   const [selectedReciter, setSelectedReciter] =
@@ -1238,6 +1277,78 @@ export default function Quran() {
                       </div>
                     </div>
                   )}
+
+                  {/* Notes section */}
+                  {(() => {
+                    const nk = noteKey(selectedSurah, ayah.numberInSurah);
+                    const existingNote = notes[nk];
+                    const isEditing = editingNote === nk;
+
+                    return (
+                      <div className="mt-3">
+                        {/* Show existing note */}
+                        {existingNote && !isEditing && (
+                          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 mb-2">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-400/70">
+                                Заметка
+                              </span>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => { setEditingNote(nk); setNoteText(existingNote); }}
+                                  className="p-1 rounded hover:bg-amber-500/10"
+                                >
+                                  <PenLine className="w-3 h-3 text-amber-400/60" />
+                                </button>
+                                <button
+                                  onClick={() => deleteNote(selectedSurah, ayah.numberInSurah)}
+                                  className="p-1 rounded hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="w-3 h-3 text-red-400/60" />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-sm text-amber-200/80 leading-relaxed">{existingNote}</p>
+                          </div>
+                        )}
+
+                        {/* Edit/Create note */}
+                        {isEditing ? (
+                          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/30">
+                            <textarea
+                              value={noteText}
+                              onChange={(e) => setNoteText(e.target.value)}
+                              placeholder="Ваша заметка к аяту..."
+                              className="w-full bg-transparent text-sm text-slate-200 placeholder-slate-500 resize-none outline-none min-h-[60px]"
+                              autoFocus
+                            />
+                            <div className="flex gap-2 mt-2 justify-end">
+                              <button
+                                onClick={() => { setEditingNote(null); setNoteText(""); }}
+                                className="px-3 py-1 rounded-lg text-xs text-slate-400 hover:bg-slate-700/50"
+                              >
+                                Отмена
+                              </button>
+                              <button
+                                onClick={() => saveNote(selectedSurah, ayah.numberInSurah, noteText)}
+                                className="px-3 py-1 rounded-lg text-xs bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                              >
+                                Сохранить
+                              </button>
+                            </div>
+                          </div>
+                        ) : !existingNote && (
+                          <button
+                            onClick={() => { setEditingNote(nk); setNoteText(""); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-amber-300 hover:bg-amber-500/10 t-bg transition-all"
+                          >
+                            <PenLine className="w-3.5 h-3.5" />
+                            Заметка
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
