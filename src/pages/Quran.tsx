@@ -28,7 +28,7 @@ import {
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
-import { hasTafsir, getTafsir } from "../data/tafsir";
+import { hasTafsirForAyah, getTafsir } from "../data/tafsir";
 import {
   getTransliteration,
   hasTransliteration,
@@ -1237,7 +1237,7 @@ export default function Quran() {
                   </p>
 
                   {/* Tafsir button + content */}
-                  {hasTafsir(selectedSurah, ayah.numberInSurah) && (
+                  {hasTafsirForAyah(selectedSurah, ayah.numberInSurah) && (
                     <div className="mt-3">
                       <button
                         onClick={() =>
