@@ -17,7 +17,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { isAdmin } from "../lib/adminConfig";
-import { getAdminDashboard, type AdminDashboard } from "../lib/adminStats";
+import { getAdminDashboard, getAdminHeaders, type AdminDashboard } from "../lib/adminStats";
 import { getTelegramUser } from "../lib/telegram";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
@@ -177,9 +177,23 @@ export default function AdminNew() {
 
   const USERS_PER_PAGE = 20;
 
-  // Check admin access
+  // Check admin access — also check localStorage profile as fallback
   useEffect(() => {
-    if (!isAdmin(tgUser?.id, tgUser?.username)) {
+    let adminId = tgUser?.id;
+    let adminUsername = tgUser?.username;
+
+    if (!adminId) {
+      try {
+        const profile = localStorage.getItem("iman_profile");
+        if (profile) {
+          const p = JSON.parse(profile);
+          adminId = p.telegramId;
+          adminUsername = p.telegramUsername;
+        }
+      } catch {}
+    }
+
+    if (!isAdmin(adminId, adminUsername)) {
       navigate("/");
     }
   }, [tgUser, navigate]);
@@ -190,16 +204,12 @@ export default function AdminNew() {
     setError(null);
 
     try {
-      const headers: Record<string, string> = {};
-      if (tgUser) {
-        headers["X-Telegram-Id"] = tgUser.id.toString();
-        if (tgUser.username) headers["X-Telegram-Username"] = tgUser.username;
-      }
+      const headers = getAdminHeaders();
 
       const [dashData, analyticsData] = await Promise.all([
         getAdminDashboard(),
         fetch(`${API_BASE}/api/admin/analytics`, { headers }).then((r) => {
-          if (!r.ok) throw new Error("Access denied");
+          if (!r.ok) throw new Error(`Analytics API: ${r.status} ${r.statusText}`);
           return r.json();
         }),
       ]);
@@ -208,7 +218,11 @@ export default function AdminNew() {
       setAnalytics(analyticsData);
     } catch (err) {
       console.error("Failed to load admin data:", err);
-      setError("Не удалось загрузить данные");
+      setError(
+        err instanceof Error
+          ? `Ошибка: ${err.message}`
+          : "Не удалось загрузить данные",
+      );
     } finally {
       setLoading(false);
     }
@@ -232,16 +246,21 @@ export default function AdminNew() {
     );
   }
 
-  if (error) {
+  if (error && !dashboard) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="glass-card p-6 max-w-sm w-full text-center">
-          <p className="text-red-400 mb-4">{error}</p>
+          <p className="text-red-400 mb-2">{error}</p>
+          <p className="text-xs text-white/30 mb-4">
+            {tgUser ? `TG ID: ${tgUser.id}` : "Telegram не обнаружен"}
+          </p>
           <button
-            onClick={loadData}
-            className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            onClick={() => { loadData(); }}
+            disabled={loading}
+            className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
           >
-            Повторить
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            {loading ? "Загрузка..." : "Повторить"}
           </button>
         </div>
       </div>
@@ -264,8 +283,8 @@ export default function AdminNew() {
   users.sort((a, b) => {
     let aVal, bVal;
     if (sortBy === "points") {
-      aVal = a.totalPoints;
-      bVal = b.totalPoints;
+      aVal = a.points;
+      bVal = b.points;
     } else if (sortBy === "prayers") {
       aVal = a.totalPrayers;
       bVal = b.totalPrayers;

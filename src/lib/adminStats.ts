@@ -45,6 +45,31 @@ interface ServerUserData {
 
 // ---- Helper Functions ----
 
+/**
+ * Get admin auth headers — works both inside Telegram and in browser.
+ * In Telegram: uses WebApp user data.
+ * In browser: falls back to profile from localStorage.
+ */
+export function getAdminHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const tgUser = getTelegramUser();
+  if (tgUser) {
+    headers["X-Telegram-Id"] = tgUser.id.toString();
+    if (tgUser.username) headers["X-Telegram-Username"] = tgUser.username;
+  } else {
+    // Fallback: try localStorage profile (for browser access)
+    try {
+      const profile = localStorage.getItem("iman_profile");
+      if (profile) {
+        const p = JSON.parse(profile);
+        if (p.telegramId) headers["X-Telegram-Id"] = p.telegramId.toString();
+        if (p.telegramUsername) headers["X-Telegram-Username"] = p.telegramUsername;
+      }
+    } catch {}
+  }
+  return headers;
+}
+
 function parseStorageData(raw: string): Record<string, unknown> {
   try {
     return JSON.parse(raw);
@@ -123,23 +148,16 @@ function isActiveWithinDays(lastActive: Date, days: number): boolean {
  */
 async function fetchAllUsersFromServer(): Promise<ServerUserData[]> {
   try {
-    const tgUser = getTelegramUser();
-    const headers: Record<string, string> = {};
-    if (tgUser) {
-      headers["X-Telegram-Id"] = tgUser.id.toString();
-      if (tgUser.username) headers["X-Telegram-Username"] = tgUser.username;
-    }
-
+    const headers = getAdminHeaders();
     const response = await fetch("/api/admin/users", { headers });
     if (!response.ok) {
-      console.error("Failed to fetch users:", response.statusText);
-      return [];
+      throw new Error(`Admin users API: ${response.status} ${response.statusText}`);
     }
     const data = await response.json();
     return data.users || [];
   } catch (error) {
     console.error("Error fetching users:", error);
-    return [];
+    throw error; // propagate to show error in UI
   }
 }
 
@@ -206,13 +224,12 @@ export async function getActiveUsers(days: number): Promise<UserStats[]> {
 }
 
 /**
- * Get most used features across all users
+ * Compute top features from server data (no extra fetch)
  */
-export async function getMostUsedFeatures(): Promise<
-  { name: string; usage: number }[]
-> {
-  const allUsers = await getAllUsers();
-
+function computeTopFeatures(
+  serverUsers: ServerUserData[],
+  allUsers: UserStats[],
+): { name: string; usage: number }[] {
   let totalPrayers = 0;
   let totalHabits = 0;
   let totalQuran = 0;
@@ -224,8 +241,6 @@ export async function getMostUsedFeatures(): Promise<
     totalHabits += user.totalHabits;
   }
 
-  // Get detailed habit breakdown
-  const serverUsers = await fetchAllUsersFromServer();
   for (const serverUser of serverUsers) {
     const data = parseStorageData(serverUser.data);
     const habitLogs = getHabitLogs(data);
@@ -250,9 +265,39 @@ export async function getMostUsedFeatures(): Promise<
 
 /**
  * Get complete admin dashboard statistics
+ * Single fetch — no duplicate requests
  */
 export async function getAdminDashboard(): Promise<AdminDashboard> {
-  const allUsers = await getAllUsers();
+  // Single fetch for all server users
+  const serverUsers = await fetchAllUsersFromServer();
+  const allUsers: UserStats[] = [];
+
+  for (const serverUser of serverUsers) {
+    const data = parseStorageData(serverUser.data);
+    const profile = getProfile(data);
+    if (!profile) continue;
+
+    const prayerLogs = getPrayerLogs(data);
+    const habitLogs = getHabitLogs(data);
+    const lastActive = new Date(Number(serverUser.updated_at));
+
+    allUsers.push({
+      telegramId: Number(serverUser.telegram_id),
+      name: profile.name || "Без имени",
+      level: profile.level || LEVELS[0].name,
+      points: profile.totalPoints || 0,
+      streak: profile.streak || 0,
+      longestStreak: profile.longestStreak || 0,
+      lastActive,
+      totalPrayers: countTotalPrayers(prayerLogs),
+      totalHabits: countTotalHabits(habitLogs),
+      joinedAt: new Date(profile.joinedAt || Date.now()),
+      city: profile.city || "",
+      totalTimeInApp: 0,
+      sessionsToday: 0,
+    });
+  }
+
   const activeToday = allUsers.filter((u) =>
     isActiveWithinDays(u.lastActive, 1),
   ).length;
@@ -270,7 +315,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
   const averageStreak =
     allUsers.length > 0 ? Math.round(totalStreaks / allUsers.length) : 0;
 
-  // Calculate average level
   const levelValues = allUsers.map((u) => {
     const levelIndex = LEVELS.findIndex((l) => l.name === u.level);
     return levelIndex >= 0 ? levelIndex : 0;
@@ -283,9 +327,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
       : 0;
   const averageLevel = LEVELS[avgLevelIndex]?.name || LEVELS[0].name;
 
-  const topFeatures = await getMostUsedFeatures();
-
-  // Sort users by points (descending)
+  const topFeatures = computeTopFeatures(serverUsers, allUsers);
   const sortedUsers = [...allUsers].sort((a, b) => b.points - a.points);
 
   return {
