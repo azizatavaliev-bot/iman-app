@@ -40,6 +40,17 @@ interface WrongAnswer {
   selectedIndex: number;
 }
 
+interface QuizHistoryEntry {
+  date: string;
+  category: string | null;
+  correct: number;
+  total: number;
+  percentage: number;
+  pointsEarned: number;
+}
+
+const HISTORY_KEY = "iman_quiz_history";
+
 // ============================================================
 // Helpers
 // ============================================================
@@ -65,6 +76,23 @@ function loadHighScores(): HighScores {
 
 function saveHighScores(scores: HighScores): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+  scheduleSyncPush();
+}
+
+function loadQuizHistory(): QuizHistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) return JSON.parse(raw) as QuizHistoryEntry[];
+  } catch {}
+  return [];
+}
+
+function saveQuizHistory(entry: QuizHistoryEntry): void {
+  const history = loadQuizHistory();
+  history.unshift(entry); // newest first
+  // Keep last 50 entries
+  if (history.length > 50) history.length = 50;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   scheduleSyncPush();
 }
 
@@ -228,12 +256,23 @@ export default function Quiz() {
       }
 
       // Award points only on first attempt
+      let earned = 0;
       if (isFirstAttempt && correct > 0) {
-        const earned = correct * POINTS.QUIZ_CORRECT;
+        earned = correct * POINTS.QUIZ_CORRECT;
         storage.addExtraPoints(earned);
         storage.markQuizScored(key);
         setPointsEarned(earned);
       }
+
+      // Save to history
+      saveQuizHistory({
+        date: new Date().toISOString(),
+        category: activeCategory,
+        correct,
+        total,
+        percentage,
+        pointsEarned: earned,
+      });
 
       setView("finished");
       return;
@@ -359,6 +398,69 @@ export default function Quiz() {
               </span>
             </div>
           )}
+
+          {/* Quiz History */}
+          {(() => {
+            const history = loadQuizHistory();
+            if (history.length === 0) return null;
+            return (
+              <div className="mt-6">
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3 px-1">
+                  История прохождений
+                </h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {history.slice(0, 10).map((entry, i) => {
+                    const catName = entry.category
+                      ? QUIZ_CATEGORIES.find((c) => c.key === entry.category)?.name || entry.category
+                      : "Все вопросы";
+                    const d = new Date(entry.date);
+                    const dateStr = d.toLocaleDateString("ru-RU", {
+                      day: "numeric",
+                      month: "short",
+                    });
+                    const timeStr = d.toLocaleTimeString("ru-RU", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+                    return (
+                      <div
+                        key={i}
+                        className="glass-card p-3 flex items-center gap-3"
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
+                            entry.percentage >= 70
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : entry.percentage >= 40
+                                ? "bg-amber-500/20 text-amber-400"
+                                : "bg-red-500/20 text-red-400"
+                          }`}
+                        >
+                          {entry.percentage}%
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white font-medium truncate">
+                            {catName}
+                          </p>
+                          <p className="text-[10px] text-white/30">
+                            {entry.correct}/{entry.total} правильных
+                            {entry.pointsEarned > 0 && (
+                              <span className="text-emerald-400 ml-1">
+                                +{entry.pointsEarned} баллов
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-white/20">
+                          {dateStr} {timeStr}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <style>{quizStyles}</style>

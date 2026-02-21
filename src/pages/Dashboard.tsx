@@ -1252,6 +1252,13 @@ export default function Dashboard() {
               color: "text-yellow-400",
               bg: "bg-yellow-400/10",
             },
+            {
+              icon: Heart,
+              label: "Избранное",
+              path: "/favorites",
+              color: "text-pink-400",
+              bg: "bg-pink-400/10",
+            },
           ].map(({ icon: Icon, label, path, color, bg }) => (
             <button
               key={path}

@@ -19,6 +19,7 @@ const SYNC_KEYS = [
   "iman_ibadah_sessions",
   "iman_memorization",
   "iman_quiz_scores",
+  "iman_quiz_history",
   "iman_onboarded",
   "iman_ramadan_2026",
   // Additional keys

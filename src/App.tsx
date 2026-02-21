@@ -43,6 +43,7 @@ const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const Admin = lazy(() => import("./pages/AdminNew"));
 const NamazGuide = lazy(() => import("./pages/NamazGuide"));
 const Recommended = lazy(() => import("./pages/Recommended"));
+const Favorites = lazy(() => import("./pages/Favorites"));
 
 function PageLoader() {
   return (
@@ -151,6 +152,7 @@ function AppContent() {
             <Route path="/admin" element={<Admin />} />
             <Route path="/namaz-guide" element={<NamazGuide />} />
             <Route path="/recommended" element={<Recommended />} />
+            <Route path="/favorites" element={<Favorites />} />
           </Routes>
         </Suspense>
       </div>

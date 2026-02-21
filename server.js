@@ -891,6 +891,20 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── Global CORS preflight for API routes ─────────────────────────────
+  if (req.method === "OPTIONS" && req.url?.startsWith("/api/")) {
+    res.writeHead(204, {
+      ...SECURITY_HEADERS,
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, X-Telegram-Id, X-Telegram-Username",
+      "Access-Control-Max-Age": "86400",
+    });
+    res.end();
+    return;
+  }
+
   // ── Webhook endpoint ──────────────────────────────────────────────────
   if (req.method === "POST" && req.url === WEBHOOK_PATH) {
     // Verify Telegram secret token
