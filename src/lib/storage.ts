@@ -453,7 +453,15 @@ class Storage {
   getPrayerLog(date?: Date | string): PrayerLog {
     const key = toDateKey(date);
     const logs = this.getAllPrayerLogs();
-    if (logs[key]) return logs[key];
+    if (logs[key]) {
+      const log = logs[key];
+      if (!log.prayers) log.prayers = defaultPrayers();
+      const def = defaultPrayers();
+      for (const p of ["fajr", "dhuhr", "asr", "maghrib", "isha"] as const) {
+        if (!log.prayers[p]) log.prayers[p] = def[p];
+      }
+      return log;
+    }
     return { date: key, prayers: defaultPrayers() };
   }
 

@@ -103,6 +103,7 @@ function countTotalPrayers(prayerLogs: Record<string, PrayerLog>): number {
   const prayerNames = ["fajr", "dhuhr", "asr", "maghrib", "isha"] as const;
 
   for (const log of Object.values(prayerLogs)) {
+    if (!log?.prayers) continue;
     for (const prayer of prayerNames) {
       const status = log.prayers[prayer]?.status;
       if (status === "ontime" || status === "late") {
