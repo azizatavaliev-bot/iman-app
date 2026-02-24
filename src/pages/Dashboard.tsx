@@ -30,6 +30,8 @@ import {
   Bookmark,
   Landmark,
   Users,
+  Calculator,
+  Lock,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { isSyncDone } from "../lib/sync";
@@ -700,6 +702,9 @@ export default function Dashboard() {
       const timeStr = prayerTimes[apiKey];
       const diffMinutes = getMinutesSincePrayer(timeStr);
 
+      // Block if prayer time hasn't arrived yet
+      if (diffMinutes !== null && diffMinutes < 0) return;
+
       let status: "ontime" | "late" = "ontime";
       if (diffMinutes !== null && diffMinutes > 30) {
         status = "late";
@@ -1029,21 +1034,25 @@ export default function Dashboard() {
                 entry.status === "ontime" || entry.status === "late";
               const isMissed = entry.status === "missed";
               const isNext = nextPrayer?.key === pk;
+              const diff = getMinutesSincePrayer(prayerTimes[apiKey] || "");
+              const notYet = diff !== null && diff < 0;
 
               return (
                 <button
                   key={pk}
                   onClick={() => {
-                    if (!isDone && !isMissed) markPrayerDone(pk);
+                    if (!isDone && !isMissed && !notYet) markPrayerDone(pk);
                   }}
                   className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl transition-all duration-200 ${
                     isDone
                       ? "bg-emerald-500/15 border border-emerald-500/25"
                       : isMissed
                         ? "bg-red-500/10 border border-red-500/20"
-                        : isNext
-                          ? "bg-amber-500/10 border border-amber-500/25 ring-1 ring-amber-500/20"
-                          : "t-bg border t-border-s"
+                        : notYet
+                          ? "opacity-30 t-bg border t-border-s"
+                          : isNext
+                            ? "bg-amber-500/10 border border-amber-500/25 ring-1 ring-amber-500/20"
+                            : "t-bg border t-border-s"
                   }`}
                 >
                   <span className="text-xs">{PRAYER_ICONS[pk]}</span>
@@ -1053,9 +1062,11 @@ export default function Dashboard() {
                         ? "text-emerald-400"
                         : isMissed
                           ? "text-red-400"
-                          : isNext
-                            ? "text-amber-400"
-                            : "text-white/50"
+                          : notYet
+                            ? "text-white/20"
+                            : isNext
+                              ? "text-amber-400"
+                              : "text-white/50"
                     }`}
                   >
                     {PRAYER_NAMES_MAP[apiKey]?.slice(0, 3)}
@@ -1065,6 +1076,7 @@ export default function Dashboard() {
                   </span>
                   {isDone && <Check size={10} className="text-emerald-400" />}
                   {isMissed && <X size={10} className="text-red-400" />}
+                  {notYet && !isDone && !isMissed && <Lock size={9} className="text-white/20" />}
                 </button>
               );
             })}
@@ -1280,6 +1292,13 @@ export default function Dashboard() {
               path: "/dua-wall",
               color: "text-rose-400",
               bg: "bg-rose-400/10",
+            },
+            {
+              icon: Calculator,
+              label: "Закят",
+              path: "/zakat",
+              color: "text-green-400",
+              bg: "bg-green-400/10",
             },
           ].map(({ icon: Icon, label, path, color, bg }) => (
             <button

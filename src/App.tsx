@@ -47,6 +47,7 @@ const NamazGuide = lazy(() => import("./pages/NamazGuide"));
 const Recommended = lazy(() => import("./pages/Recommended"));
 const Favorites = lazy(() => import("./pages/Favorites"));
 const DuaWall = lazy(() => import("./pages/DuaWall"));
+const Zakat = lazy(() => import("./pages/Zakat"));
 
 function PageLoader() {
   return (
@@ -159,6 +160,7 @@ function AppContent() {
             <Route path="/recommended" element={<Recommended />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/dua-wall" element={<DuaWall />} />
+            <Route path="/zakat" element={<Zakat />} />
           </Routes>
         </Suspense>
       </div>

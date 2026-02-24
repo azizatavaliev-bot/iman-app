@@ -14,6 +14,8 @@ const KEYS = {
   NAMES_PROGRESS: "iman_names_progress",
   IBADAH_SESSIONS: "iman_ibadah_sessions",
   MEMORIZATION: "iman_memorization",
+  ZAKAT_ASSETS: "iman_zakat_assets",
+  ZAKAT_HISTORY: "iman_zakat_history",
 } as const;
 
 // ---- Points System ----
@@ -33,6 +35,7 @@ export const POINTS = {
   IBADAH_MINUTE: 2,
   MEMORIZE_REPEAT: 5,
   QUIZ_CORRECT: 2,
+  ZAKAT_LOGGED: 15,
 } as const;
 
 // ---- Levels ----
@@ -172,6 +175,29 @@ export interface MemorizationSurah {
   reviewCount: number;
   confidence: number; // 0-100
   pointsEarned: number;
+}
+
+// ---- Zakat Types ----
+
+export interface ZakatAssets {
+  cash: number;
+  gold_grams: number;
+  silver_grams: number;
+  investments: number;
+  business: number;
+  savings: number;
+  debts_owed_to_you: number;
+  debts_you_owe: number;
+}
+
+export interface ZakatHistoryEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  totalAssets: number;
+  zakatAmount: number;
+  nisabUsed: number;
+  assets: ZakatAssets;
+  paid: boolean;
 }
 
 // ---- Prayer Names List (for iteration) ----
@@ -878,6 +904,44 @@ class Storage {
     if (typeof window === "undefined") return;
     localStorage.setItem(`iman_quiz_scored_${key}`, "1");
     this.notifySync();
+  }
+
+  // ---- Zakat ----
+
+  getZakatAssets(): ZakatAssets {
+    return this.read<ZakatAssets>(KEYS.ZAKAT_ASSETS) || {
+      cash: 0, gold_grams: 0, silver_grams: 0, investments: 0,
+      business: 0, savings: 0, debts_owed_to_you: 0, debts_you_owe: 0,
+    };
+  }
+
+  setZakatAssets(assets: ZakatAssets): void {
+    this.write(KEYS.ZAKAT_ASSETS, assets);
+  }
+
+  getZakatHistory(): ZakatHistoryEntry[] {
+    return this.read<ZakatHistoryEntry[]>(KEYS.ZAKAT_HISTORY) || [];
+  }
+
+  addZakatEntry(entry: Omit<ZakatHistoryEntry, "id">): ZakatHistoryEntry {
+    const history = this.getZakatHistory();
+    const full: ZakatHistoryEntry = {
+      ...entry,
+      id: `zakat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    };
+    history.unshift(full);
+    this.write(KEYS.ZAKAT_HISTORY, history);
+    this.addExtraPoints(POINTS.ZAKAT_LOGGED);
+    return full;
+  }
+
+  markZakatPaid(id: string): void {
+    const history = this.getZakatHistory();
+    const entry = history.find((e) => e.id === id);
+    if (entry) {
+      entry.paid = true;
+      this.write(KEYS.ZAKAT_HISTORY, history);
+    }
   }
 
   // ---- Clear All Data ----

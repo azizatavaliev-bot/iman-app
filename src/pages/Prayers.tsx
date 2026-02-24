@@ -6,9 +6,11 @@ import {
   X,
   AlertTriangle,
   ChevronLeft,
+  ChevronRight,
   Award,
   Zap,
   Target,
+  Lock,
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import { getPrayerTimes } from "../lib/api";
@@ -332,11 +334,26 @@ export default function Prayers() {
   const [celebrating, setCelebrating] = useState(false);
   const [motivationalMsg, setMotivationalMsg] = useState<string | null>(null);
 
-  // Prayer log for today
-  const todayKey = toDateKey(new Date());
+  // Date navigation (0 = today, -1 = yesterday, etc.)
+  const [dateOffset, setDateOffset] = useState(0);
+  const isToday = dateOffset === 0;
+  const selectedDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + dateOffset);
+    return d;
+  }, [dateOffset]);
+  const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
+
+  // Prayer log for selected day
+  const todayKey = selectedDateKey;
   const [prayerLog, setPrayerLog] = useState(() =>
     storage.getPrayerLog(todayKey),
   );
+
+  // Reload prayer log when date changes
+  useEffect(() => {
+    setPrayerLog(storage.getPrayerLog(selectedDateKey));
+  }, [selectedDateKey]);
 
   // Weekly data
   const [weeklyData, setWeeklyData] = useState<
@@ -518,19 +535,23 @@ export default function Prayers() {
         return;
       }
 
-      // Auto-determine on time vs late
-      const timeStr = prayerTimes[prayerKey];
-      const diffMinutes = getMinutesSincePrayer(timeStr);
+      let status: PrayerStatus;
 
-      let status: PrayerStatus = "ontime";
-      if (diffMinutes !== null) {
-        if (diffMinutes <= 30) {
-          status = "ontime";
-        } else if (diffMinutes <= 120) {
-          status = "late";
-        } else {
+      if (isToday) {
+        // Today: check if prayer time has arrived
+        const timeStr = prayerTimes[prayerKey];
+        const diffMinutes = getMinutesSincePrayer(timeStr);
+
+        // Block if prayer time hasn't arrived yet
+        if (diffMinutes !== null && diffMinutes < 0) return;
+
+        status = "ontime";
+        if (diffMinutes !== null && diffMinutes > 30) {
           status = "late";
         }
+      } else {
+        // Past days: always "late" (retroactive logging)
+        status = "late";
       }
 
       currentLog.prayers[prayerKey] = {
@@ -562,12 +583,22 @@ export default function Prayers() {
 
       showMotivation(newCount);
     },
-    [todayKey, prayerTimes, showMotivation],
+    [todayKey, isToday, prayerTimes, showMotivation],
   );
 
   // ------ Mark Prayer (manual status) ------
   const markPrayer = useCallback(
     (prayerKey: PrayerKey, status: PrayerStatus) => {
+      // For today: block if prayer time hasn't arrived
+      if (isToday && status !== "missed") {
+        const timeStr = prayerTimes[prayerKey];
+        const diffMinutes = getMinutesSincePrayer(timeStr);
+        if (diffMinutes !== null && diffMinutes < 0) return;
+      }
+
+      // Past days: can't mark as "ontime"
+      if (!isToday && status === "ontime") return;
+
       const currentLog = storage.getPrayerLog(todayKey);
       const currentStatus = currentLog.prayers[prayerKey].status;
 
@@ -590,7 +621,7 @@ export default function Prayers() {
       setStreak(streakResult.streak);
       setPrayerLog({ ...saved });
     },
-    [todayKey],
+    [todayKey, isToday, prayerTimes],
   );
 
   // ------ Stats ------
@@ -831,16 +862,48 @@ export default function Prayers() {
         </div>
       )}
 
-      {/* Date Card */}
-      <div className="glass-card p-4 mb-6 text-center animate-fade-in">
-        {hijriDate ? (
-          <p className="text-emerald-400 font-semibold text-sm">
-            {hijriDate.day} {hijriDate.month} {hijriDate.year} г.х.
-          </p>
-        ) : (
-          <p className="text-emerald-400/50 text-sm">Загрузка хиджри даты...</p>
-        )}
-        <p className="t-text-m text-xs mt-1">{formatGregorian()}</p>
+      {/* Date Navigation + Date Card */}
+      <div className="glass-card p-4 mb-6 animate-fade-in">
+        <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={() => setDateOffset((o) => Math.max(o - 1, -7))}
+            className="w-8 h-8 rounded-lg flex items-center justify-center t-bg active:scale-90 transition-all"
+          >
+            <ChevronLeft size={16} className="text-white/50" />
+          </button>
+          <div className="text-center">
+            {isToday && hijriDate ? (
+              <p className="text-emerald-400 font-semibold text-sm">
+                {hijriDate.day} {hijriDate.month} {hijriDate.year} г.х.
+              </p>
+            ) : null}
+            <p className="t-text-m text-xs mt-0.5">
+              {isToday
+                ? formatGregorian()
+                : (() => {
+                    const d = selectedDate;
+                    const day = d.getDate();
+                    const month = GREGORIAN_MONTHS[d.getMonth()];
+                    const year = d.getFullYear();
+                    const label = dateOffset === -1 ? " (вчера)" : dateOffset === -2 ? " (позавчера)" : "";
+                    return `${day} ${month} ${year}${label}`;
+                  })()}
+            </p>
+            {!isToday && (
+              <p className="text-[10px] text-amber-400/70 mt-0.5">
+                Ретроспективная отметка
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => dateOffset < 0 && setDateOffset((o) => o + 1)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center t-bg active:scale-90 transition-all ${
+              dateOffset >= 0 ? "opacity-20 pointer-events-none" : ""
+            }`}
+          >
+            <ChevronRight size={16} className="text-white/50" />
+          </button>
+        </div>
         {/* Completed counter */}
         <div className="flex items-center justify-center gap-1.5 mt-2">
           {[0, 1, 2, 3, 4].map((i) => (
@@ -922,18 +985,18 @@ export default function Prayers() {
                     ${entry.status === "ontime" ? "border-emerald-500/30" : ""}
                     ${entry.status === "late" ? "border-amber-500/30" : ""}
                     ${entry.status === "missed" ? "border-red-500/30" : ""}
-                    ${isCurrent && entry.status === "none" ? "border-emerald-500/20 ring-1 ring-emerald-500/10" : ""}
+                    ${isToday && isCurrent && entry.status === "none" ? "border-emerald-500/20 ring-1 ring-emerald-500/10" : ""}
                     ${isFlashing ? "scale-[1.02] glow-green" : ""}
                   `}
                   style={{
                     animationDelay: `${idx * 60}ms`,
-                    ...(isCurrent && entry.status === "none"
+                    ...(isToday && isCurrent && entry.status === "none"
                       ? { animation: "pulse-glow 3s ease-in-out infinite" }
                       : {}),
                   }}
                 >
-                  {/* Current prayer indicator */}
-                  {isCurrent && entry.status === "none" && (
+                  {/* Current prayer indicator (today only) */}
+                  {isToday && isCurrent && entry.status === "none" && (
                     <div className="absolute -top-2 left-4 px-2 py-0.5 rounded-full bg-emerald-500 text-[9px] text-white font-bold uppercase tracking-wider">
                       Сейчас
                     </div>
@@ -978,8 +1041,8 @@ export default function Prayers() {
                     </p>
                   )}
 
-                  {/* Big "Я ПРОЧИТАЛ" button for current/active prayer */}
-                  {isCurrent && entry.status === "none" && (
+                  {/* Big "Я ПРОЧИТАЛ" button for current/active prayer (today only) */}
+                  {isToday && isCurrent && entry.status === "none" && (
                     <button
                       onClick={() => smartMarkPrayer(prayerKey)}
                       className="w-full py-3.5 rounded-2xl text-sm font-bold
@@ -992,8 +1055,8 @@ export default function Prayers() {
                     </button>
                   )}
 
-                  {/* For past unmarked prayers: "Missed" prominent + small "I read it" */}
-                  {isPast && entry.status === "none" && (
+                  {/* For past unmarked prayers today: "Missed" prominent + small "I read it" */}
+                  {isToday && isPast && entry.status === "none" && (
                     <div className="flex gap-2 mb-2">
                       <button
                         onClick={() => smartMarkPrayer(prayerKey)}
@@ -1020,43 +1083,38 @@ export default function Prayers() {
                     </div>
                   )}
 
-                  {/* For future prayers: small 3-button row (original) */}
-                  {phase === "future" && entry.status === "none" && (
+                  {/* For future prayers today: locked */}
+                  {isToday && phase === "future" && entry.status === "none" && (
+                    <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl t-bg border t-border-s opacity-40">
+                      <Lock className="w-3.5 h-3.5 text-white/30" />
+                      <span className="text-xs text-white/30">Время ещё не наступило</span>
+                    </div>
+                  )}
+
+                  {/* For past days, unmarked prayers: "Прочитал" (late) + "Пропустил" */}
+                  {!isToday && entry.status === "none" && (
                     <div className="flex gap-2">
                       <button
-                        onClick={() => markPrayer(prayerKey, "ontime")}
-                        className="flex-1 py-2 rounded-xl text-xs font-medium
-                          transition-all duration-200 active:scale-95 border
-                          t-bg t-border-s t-text-m
-                          hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400"
+                        onClick={() => smartMarkPrayer(prayerKey)}
+                        className="flex-1 py-2.5 rounded-xl text-xs font-semibold
+                          t-bg border t-border-s t-text-s
+                          hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400
+                          transition-all duration-200 active:scale-95
+                          flex items-center justify-center gap-1.5"
                       >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Check className="w-3.5 h-3.5" />
-                          Вовремя
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => markPrayer(prayerKey, "late")}
-                        className="flex-1 py-2 rounded-xl text-xs font-medium
-                          transition-all duration-200 active:scale-95 border
-                          t-bg t-border-s t-text-m
-                          hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400"
-                      >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <AlertTriangle className="w-3.5 h-3.5" />С опозд.
-                        </div>
+                        <Check className="w-3.5 h-3.5" />
+                        Прочитал (поздно)
                       </button>
                       <button
                         onClick={() => markPrayer(prayerKey, "missed")}
-                        className="flex-1 py-2 rounded-xl text-xs font-medium
-                          transition-all duration-200 active:scale-95 border
-                          t-bg t-border-s t-text-m
-                          hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
+                        className="flex-1 py-2.5 rounded-xl text-xs font-semibold
+                          bg-red-500/10 border border-red-500/20 text-red-400/70
+                          hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400
+                          transition-all duration-200 active:scale-95
+                          flex items-center justify-center gap-1.5"
                       >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <X className="w-3.5 h-3.5" />
-                          Пропущен
-                        </div>
+                        <X className="w-3.5 h-3.5" />
+                        Пропустил
                       </button>
                     </div>
                   )}
@@ -1064,21 +1122,24 @@ export default function Prayers() {
                   {/* If already marked: small toggle buttons to change */}
                   {entry.status !== "none" && (
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => markPrayer(prayerKey, "ontime")}
-                        className={`flex-1 py-2 rounded-xl text-xs font-medium
-                          transition-all duration-200 active:scale-95 border
-                          ${
-                            entry.status === "ontime"
-                              ? "bg-emerald-500/25 border-emerald-400/50 text-emerald-300"
-                              : "t-bg t-border-s t-text-m hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400"
-                          }`}
-                      >
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Check className="w-3.5 h-3.5" />
-                          Вовремя
-                        </div>
-                      </button>
+                      {/* "Вовремя" only available for today */}
+                      {isToday && (
+                        <button
+                          onClick={() => markPrayer(prayerKey, "ontime")}
+                          className={`flex-1 py-2 rounded-xl text-xs font-medium
+                            transition-all duration-200 active:scale-95 border
+                            ${
+                              entry.status === "ontime"
+                                ? "bg-emerald-500/25 border-emerald-400/50 text-emerald-300"
+                                : "t-bg t-border-s t-text-m hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400"
+                            }`}
+                        >
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Check className="w-3.5 h-3.5" />
+                            Вовремя
+                          </div>
+                        </button>
+                      )}
                       <button
                         onClick={() => markPrayer(prayerKey, "late")}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium
