@@ -233,6 +233,36 @@ export default function DuaWall() {
           </div>
         </div>
 
+        {/* ── Info block ──────────────────────────────────────────────────── */}
+        <div className="glass-card p-4 space-y-3 border border-emerald-500/10">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="text-lg">{"\u{1F4D6}"}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-bold text-white mb-1">Как это работает?</h3>
+              <p className="text-xs text-white/50 leading-relaxed">
+                Стена дуа — место, где мусульмане <span className="text-emerald-400">анонимно</span> просят братьев и сестёр сделать за них дуа.
+                Пророк ﷺ сказал: <span className="text-amber-400/80 italic">{"\u00AB"}Дуа мусульманина за своего брата в его отсутствие принимается. У его головы находится ангел, и каждый раз, когда он просит за брата благо, ангел говорит: «Амин, и тебе того же»{"\u00BB"}</span> <span className="text-white/30">(Муслим)</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <div className="flex-1 rounded-xl bg-white/[0.03] border border-white/5 p-2.5 text-center">
+              <span className="text-sm">1️⃣</span>
+              <p className="text-[10px] text-white/40 mt-1">Напишите просьбу</p>
+            </div>
+            <div className="flex-1 rounded-xl bg-white/[0.03] border border-white/5 p-2.5 text-center">
+              <span className="text-sm">2️⃣</span>
+              <p className="text-[10px] text-white/40 mt-1">Другие читают дуа</p>
+            </div>
+            <div className="flex-1 rounded-xl bg-white/[0.03] border border-white/5 p-2.5 text-center">
+              <span className="text-sm">3️⃣</span>
+              <p className="text-[10px] text-white/40 mt-1">Ангел говорит: Амин!</p>
+            </div>
+          </div>
+        </div>
+
         {/* ── Loading state ────────────────────────────────────────────────── */}
         {loading && (
           <div className="flex items-center justify-center py-20">
