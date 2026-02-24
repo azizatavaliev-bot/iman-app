@@ -7,6 +7,7 @@ import {
   Shuffle,
   AlertCircle,
   ChevronLeft,
+  Share2,
 } from "lucide-react";
 import {
   getAllHadiths,
@@ -17,6 +18,7 @@ import {
 } from "../lib/api";
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
+import ShareCard from "../components/ShareCard";
 import type { Hadith, ExtendedHadith, HadithCollection } from "../lib/api";
 
 // ── Persist read hadith IDs ──
@@ -88,6 +90,9 @@ export default function Hadiths() {
   // ── Random hadith state ──
   const [randomHadith, setRandomHadith] = useState<ExtendedHadith | null>(null);
   const [randomLoading, setRandomLoading] = useState(false);
+
+  // ── Share state ──
+  const [shareHadith, setShareHadith] = useState<{arabic: string; text: string; source: string} | null>(null);
 
   // ── Load Nawawi on mount ──
   useEffect(() => {
@@ -423,19 +428,31 @@ export default function Hadiths() {
                   <span className="text-[11px] font-semibold uppercase tracking-widest text-amber-400/90">
                     Хадис дня
                   </span>
-                  <button
-                    onClick={(e) => handleToggleFavorite(hadithOfDay, e)}
-                    className="p-1.5 rounded-full hover:t-bg transition-colors active:scale-90"
-                    aria-label="В избранное"
-                  >
-                    <Heart
-                      className={`w-5 h-5 transition-all duration-300 ${
-                        favorites.has(String(hadithOfDay.id))
-                          ? "fill-red-500 text-red-500 scale-110"
-                          : "text-slate-500 hover:text-red-400"
-                      }`}
-                    />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShareHadith({ arabic: hadithOfDay.arabic, text: hadithOfDay.russian, source: hadithOfDay.source });
+                      }}
+                      className="p-1.5 rounded-full hover:t-bg transition-all active:scale-90"
+                      aria-label="Поделиться"
+                    >
+                      <Share2 className="w-4 h-4 text-slate-500 hover:text-emerald-400" />
+                    </button>
+                    <button
+                      onClick={(e) => handleToggleFavorite(hadithOfDay, e)}
+                      className="p-1.5 rounded-full hover:t-bg transition-colors active:scale-90"
+                      aria-label="В избранное"
+                    >
+                      <Heart
+                        className={`w-5 h-5 transition-all duration-300 ${
+                          favorites.has(String(hadithOfDay.id))
+                            ? "fill-red-500 text-red-500 scale-110"
+                            : "text-slate-500 hover:text-red-400"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Arabic */}
@@ -596,9 +613,21 @@ export default function Hadiths() {
                         {hadith.russian}
                       </p>
 
-                      <p className="text-[11px] text-slate-500 leading-snug">
-                        {hadith.narrator}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] text-slate-500 leading-snug">
+                          {hadith.narrator}
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShareHadith({ arabic: hadith.arabic, text: hadith.russian, source: hadith.source });
+                          }}
+                          className="p-1.5 rounded-full hover:t-bg transition-all active:scale-90"
+                          aria-label="Поделиться"
+                        >
+                          <Share2 className="w-4 h-4 text-slate-500 hover:text-emerald-400" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Expand hint */}
@@ -818,9 +847,21 @@ export default function Hadiths() {
                           <span className="text-[10px] text-slate-500">
                             Книга {hadith.book}
                           </span>
-                          <span className="text-[10px] text-slate-500">
-                            Арабский #{hadith.arabicnumber}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-500">
+                              Арабский #{hadith.arabicnumber}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShareHadith({ arabic: hadith.arabicText || "", text: hadith.text, source: collectionLabel });
+                              }}
+                              className="p-1.5 rounded-full hover:t-bg transition-all active:scale-90"
+                              aria-label="Поделиться"
+                            >
+                              <Share2 className="w-4 h-4 text-slate-500 hover:text-emerald-400" />
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -841,6 +882,17 @@ export default function Hadiths() {
 
       {/* Bottom spacer for nav */}
       <div className="h-8" />
+
+      {/* Share Card Modal */}
+      {shareHadith && (
+        <ShareCard
+          type="hadith"
+          arabic={shareHadith.arabic}
+          text={shareHadith.text}
+          source={shareHadith.source}
+          onClose={() => setShareHadith(null)}
+        />
+      )}
     </div>
   );
 }

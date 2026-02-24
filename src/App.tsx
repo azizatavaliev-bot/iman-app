@@ -37,6 +37,7 @@ const Memorize = lazy(() => import("./pages/Memorize"));
 const Quiz = lazy(() => import("./pages/Quiz"));
 const Seerah = lazy(() => import("./pages/Seerah"));
 const Stories = lazy(() => import("./pages/Stories"));
+const Prophets = lazy(() => import("./pages/Prophets"));
 const Beginners = lazy(() => import("./pages/Beginners"));
 const Guide = lazy(() => import("./pages/Guide"));
 const AboutApp = lazy(() => import("./pages/AboutApp"));
@@ -45,6 +46,7 @@ const Admin = lazy(() => import("./pages/AdminNew"));
 const NamazGuide = lazy(() => import("./pages/NamazGuide"));
 const Recommended = lazy(() => import("./pages/Recommended"));
 const Favorites = lazy(() => import("./pages/Favorites"));
+const DuaWall = lazy(() => import("./pages/DuaWall"));
 
 function PageLoader() {
   return (
@@ -147,6 +149,7 @@ function AppContent() {
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/seerah" element={<Seerah />} />
             <Route path="/stories" element={<Stories />} />
+            <Route path="/prophets" element={<Prophets />} />
             <Route path="/beginners" element={<Beginners />} />
             <Route path="/guide" element={<Guide />} />
             <Route path="/about-app" element={<AboutApp />} />
@@ -155,6 +158,7 @@ function AppContent() {
             <Route path="/namaz-guide" element={<NamazGuide />} />
             <Route path="/recommended" element={<Recommended />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/dua-wall" element={<DuaWall />} />
           </Routes>
         </Suspense>
       </div>

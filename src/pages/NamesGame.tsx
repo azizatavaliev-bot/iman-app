@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Check, X, ChevronLeft, ChevronRight, Award, RotateCcw, Star } from 'lucide-react'
 import { NAMES_OF_ALLAH } from '../data/names'
+import { getNameStory, hasNameStory } from '../data/names-stories'
 import { storage, POINTS } from '../lib/storage'
 
 // ---- Types ----
@@ -255,6 +256,27 @@ function FlashcardsTab({
         <div className="text-gray-400 text-sm text-center leading-relaxed max-w-sm">
           {name.meaning}
         </div>
+
+        {/* Story (if available) */}
+        {hasNameStory(name.id) && (() => {
+          const story = getNameStory(name.id)!;
+          return (
+            <div className="mt-5 pt-4 border-t border-white/5 w-full text-left space-y-3">
+              <div className="bg-amber-500/5 rounded-xl p-3 border border-amber-500/15">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-400/70 mb-1.5">Дуа</p>
+                <p className="text-xs text-amber-200/80 leading-relaxed italic">{story.dua}</p>
+              </div>
+              <div className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/15">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400/70 mb-1.5">История</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{story.story}</p>
+              </div>
+              <div className="bg-purple-500/5 rounded-xl p-3 border border-purple-500/15">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-purple-400/70 mb-1.5">Применение</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{story.application}</p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Navigation */}
@@ -736,6 +758,11 @@ function AllNamesTab({
                   <Check className="w-3 h-3 text-emerald-400" />
                 </div>
               )}
+              {hasNameStory(name.id) && (
+                <div className="absolute top-1.5 left-1.5">
+                  <span className="text-[8px] text-amber-400">📖</span>
+                </div>
+              )}
               <div className="text-gray-500 text-[10px] mb-0.5">
                 {name.id}
               </div>
@@ -790,9 +817,30 @@ function AllNamesTab({
               </div>
 
               {/* Meaning */}
-              <div className="text-gray-400 text-sm leading-relaxed mb-6">
+              <div className="text-gray-400 text-sm leading-relaxed mb-4">
                 {selected.meaning}
               </div>
+
+              {/* Story section (if available) */}
+              {hasNameStory(selected.id) && (() => {
+                const story = getNameStory(selected.id)!;
+                return (
+                  <div className="text-left space-y-2.5 mb-5">
+                    <div className="bg-amber-500/5 rounded-lg p-2.5 border border-amber-500/15">
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-amber-400/70 mb-1">Дуа</p>
+                      <p className="text-[11px] text-amber-200/80 leading-relaxed italic">{story.dua}</p>
+                    </div>
+                    <div className="bg-emerald-500/5 rounded-lg p-2.5 border border-emerald-500/15">
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-emerald-400/70 mb-1">История</p>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">{story.story}</p>
+                    </div>
+                    <div className="bg-purple-500/5 rounded-lg p-2.5 border border-purple-500/15">
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-purple-400/70 mb-1">Применение</p>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">{story.application}</p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Learn/Unlearn button */}
               {learned.includes(selected.id) ? (

@@ -15,6 +15,7 @@ import {
   Check,
   PenLine,
   Trash2,
+  Share2,
 } from "lucide-react";
 import {
   getSurahList,
@@ -33,6 +34,7 @@ import {
   getTransliteration,
   hasTransliteration,
 } from "../data/quran-transliteration";
+import ShareCard from "../components/ShareCard";
 import type { Surah, SurahDetail, Reciter } from "../lib/api";
 import type { QuranBookmark } from "../lib/storage";
 
@@ -243,6 +245,9 @@ export default function Quran() {
   const [loadingAyahs, setLoadingAyahs] = useState(false);
   const [bookmarks, setBookmarks] = useState<QuranBookmark[]>([]);
   const [expandedTafsir, setExpandedTafsir] = useState<number | null>(null);
+
+  // --- Share state ---
+  const [shareAyah, setShareAyah] = useState<{arabic: string; text: string; surah: string} | null>(null);
 
   // --- Notes state ---
   const NOTES_KEY = "iman_quran_notes";
@@ -1141,7 +1146,7 @@ export default function Quran() {
                       : ""
                   } ${wasPlayed ? "opacity-60" : ""}`}
                 >
-                  {/* Top row: ayah number + play + bookmark */}
+                  {/* Top row: ayah number + play + share + bookmark */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <div
@@ -1195,18 +1200,30 @@ export default function Quran() {
                       </button>
                     </div>
 
-                    <button
-                      onClick={() =>
-                        toggleBookmark(selectedSurah, ayah.numberInSurah)
-                      }
-                      className="p-2 rounded-full hover:t-bg transition-colors"
-                    >
-                      {isAyahBookmarked(selectedSurah, ayah.numberInSurah) ? (
-                        <Bookmark className="w-5 h-5 text-amber-400 fill-amber-400" />
-                      ) : (
-                        <BookmarkPlus className="w-5 h-5 text-slate-500 hover:text-amber-400 transition-colors" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setShareAyah({
+                          arabic: ayah.arabic,
+                          text: ayah.translation,
+                          surah: `${SURAH_NAMES_RU[selectedSurah] || surahDetail?.englishName} : ${ayah.numberInSurah}`
+                        })}
+                        className="p-2 rounded-full hover:t-bg transition-colors"
+                      >
+                        <Share2 className="w-5 h-5 text-slate-500 hover:text-emerald-400 transition-colors" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          toggleBookmark(selectedSurah, ayah.numberInSurah)
+                        }
+                        className="p-2 rounded-full hover:t-bg transition-colors"
+                      >
+                        {isAyahBookmarked(selectedSurah, ayah.numberInSurah) ? (
+                          <Bookmark className="w-5 h-5 text-amber-400 fill-amber-400" />
+                        ) : (
+                          <BookmarkPlus className="w-5 h-5 text-slate-500 hover:text-amber-400 transition-colors" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Arabic text */}
@@ -1373,6 +1390,17 @@ export default function Quran() {
 
         {/* Reciter selector modal */}
         {renderReciterModal()}
+
+        {/* Share Card Modal */}
+        {shareAyah && (
+          <ShareCard
+            type="ayat"
+            arabic={shareAyah.arabic}
+            text={shareAyah.text}
+            surah={shareAyah.surah}
+            onClose={() => setShareAyah(null)}
+          />
+        )}
       </div>
     );
   }

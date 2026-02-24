@@ -9,11 +9,13 @@ import {
   Sparkles,
   Layers,
   Star,
+  Share2,
 } from "lucide-react";
 import { DUA_CATEGORIES, DUA_DATA, SITUATIONS } from "../data/dua";
 import type { Dua } from "../data/dua";
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
+import ShareCard from "../components/ShareCard";
 
 // ============================================================
 // Dua Collection Page
@@ -113,6 +115,7 @@ function DuaCard({
   onToggleExpand,
   onToggleFavorite,
   onMarkRead,
+  onShare,
 }: {
   dua: Dua;
   isExpanded: boolean;
@@ -121,6 +124,7 @@ function DuaCard({
   onToggleExpand: () => void;
   onToggleFavorite: (e: React.MouseEvent) => void;
   onMarkRead: () => void;
+  onShare: () => void;
 }) {
   return (
     <div
@@ -231,6 +235,18 @@ function DuaCard({
               )}
             </button>
 
+            {/* Share button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare();
+              }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center t-bg hover:t-bg transition-all active:scale-90"
+              aria-label="Поделиться"
+            >
+              <Share2 className="w-5 h-5 text-slate-500 hover:text-emerald-400" />
+            </button>
+
             {/* Favorite button */}
             <button
               onClick={onToggleFavorite}
@@ -274,6 +290,9 @@ export default function DuaPage() {
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [duaOfDay] = useState<Dua>(() => getDuaOfDay());
   const [duaOfDayExpanded, setDuaOfDayExpanded] = useState(false);
+
+  // ---- Share state ----
+  const [shareDua, setShareDua] = useState<{arabic: string; text: string; source: string} | null>(null);
 
   // ---- Load persisted state ----
   useEffect(() => {
@@ -699,6 +718,7 @@ export default function DuaPage() {
                   }
                   onToggleFavorite={(e) => handleToggleFavorite(dua.id, e)}
                   onMarkRead={() => handleMarkRead(dua.id)}
+                  onShare={() => setShareDua({ arabic: dua.arabic, text: dua.translation, source: dua.source })}
                 />
               </div>
             ))}
@@ -708,6 +728,17 @@ export default function DuaPage() {
 
       {/* Bottom spacer */}
       <div className="h-8" />
+
+      {/* Share Card Modal */}
+      {shareDua && (
+        <ShareCard
+          type="dua"
+          arabic={shareDua.arabic}
+          text={shareDua.text}
+          source={shareDua.source}
+          onClose={() => setShareDua(null)}
+        />
+      )}
     </div>
   );
 }

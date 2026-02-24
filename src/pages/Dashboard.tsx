@@ -1219,6 +1219,13 @@ export default function Dashboard() {
               bg: "bg-cyan-400/10",
             },
             {
+              icon: BookOpen,
+              label: "Истории пророков",
+              path: "/prophets",
+              color: "text-emerald-400",
+              bg: "bg-emerald-400/10",
+            },
+            {
               icon: Brain,
               label: "Викторина",
               path: "/quiz",
@@ -1266,6 +1273,13 @@ export default function Dashboard() {
               path: "/favorites",
               color: "text-pink-400",
               bg: "bg-pink-400/10",
+            },
+            {
+              icon: Heart,
+              label: "Стена дуа",
+              path: "/dua-wall",
+              color: "text-rose-400",
+              bg: "bg-rose-400/10",
             },
           ].map(({ icon: Icon, label, path, color, bg }) => (
             <button

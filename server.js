@@ -72,6 +72,18 @@ const pool = new Pool({
       )
     `);
 
+    // Create dua_wall table (anonymous prayer requests)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dua_wall (
+        id SERIAL PRIMARY KEY,
+        text TEXT NOT NULL,
+        category VARCHAR(50) DEFAULT 'general',
+        pray_count INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        telegram_id BIGINT
+      )
+    `);
+
     // Create indexes
     await client.query(
       `CREATE INDEX IF NOT EXISTS idx_iman_analytics_telegram_id ON iman_analytics(telegram_id)`,
@@ -1403,6 +1415,123 @@ const server = createServer(async (req, res) => {
     })();
     return;
   }
+
+  // ── Dua Wall API — Anonymous prayer requests ───────────────────────────
+  // GET /api/dua-wall — Get all prayer requests (newest first)
+  if (req.url === "/api/dua-wall" && req.method === "GET") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+    };
+
+    (async () => {
+      try {
+        const result = await pool.query(
+          "SELECT id, text, category, pray_count, created_at FROM dua_wall ORDER BY created_at DESC LIMIT 100",
+        );
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify(result.rows));
+      } catch (e) {
+        console.error("Dua wall GET error:", e);
+        res.writeHead(500, corsHeaders);
+        res.end('{"error":"internal_error"}');
+      }
+    })();
+    return;
+  }
+
+  // POST /api/dua-wall — Create new prayer request
+  if (req.url === "/api/dua-wall" && req.method === "POST") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    let body = "";
+    let bodySize = 0;
+    const MAX = 4096;
+
+    req.on("data", (chunk) => {
+      bodySize += chunk.length;
+      if (bodySize > MAX) {
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+
+    req.on("end", async () => {
+      if (bodySize > MAX) {
+        res.writeHead(413, corsHeaders);
+        res.end('{"error":"too_large"}');
+        return;
+      }
+
+      try {
+        const { text, category, telegramId } = JSON.parse(body);
+
+        if (!text || typeof text !== "string" || text.trim().length < 3 || text.trim().length > 500) {
+          res.writeHead(400, corsHeaders);
+          res.end('{"error":"Text must be between 3 and 500 characters"}');
+          return;
+        }
+
+        const result = await pool.query(
+          "INSERT INTO dua_wall (text, category, telegram_id) VALUES ($1, $2, $3) RETURNING id, text, category, pray_count, created_at",
+          [text.trim(), category || "general", telegramId || null],
+        );
+
+        res.writeHead(201, corsHeaders);
+        res.end(JSON.stringify(result.rows[0]));
+      } catch (e) {
+        console.error("Dua wall POST error:", e);
+        res.writeHead(500, corsHeaders);
+        res.end('{"error":"internal_error"}');
+      }
+    });
+    return;
+  }
+
+  // POST /api/dua-wall/:id/pray — Increment pray count
+  if (req.url?.match(/^\/api\/dua-wall\/(\d+)\/pray$/) && req.method === "POST") {
+    const id = parseInt(RegExp.$1, 10);
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    (async () => {
+      try {
+        const result = await pool.query(
+          "UPDATE dua_wall SET pray_count = pray_count + 1 WHERE id = $1 RETURNING pray_count",
+          [id],
+        );
+
+        if (result.rowCount === 0) {
+          res.writeHead(404, corsHeaders);
+          res.end('{"error":"not_found"}');
+          return;
+        }
+
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({ ok: true, pray_count: result.rows[0].pray_count }));
+      } catch (e) {
+        console.error("Dua wall pray error:", e);
+        res.writeHead(500, corsHeaders);
+        res.end('{"error":"internal_error"}');
+      }
+    })();
+    return;
+  }
+
 
   // ── Admin Analytics API — Get aggregated stats ────────────────────────
   if (req.url === "/api/admin/analytics" && req.method === "GET") {
