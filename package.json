@@ -17,8 +17,9 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
-    "pg": "^8.13.1",
     "lucide-react": "^0.564.0",
+    "pg": "^8.13.1",
+    "playwright": "^1.58.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
