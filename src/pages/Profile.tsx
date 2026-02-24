@@ -812,6 +812,29 @@ export default function Profile() {
       )}
 
       {/* ================================================================ */}
+      {/* CHANNEL LINK                                                     */}
+      {/* ================================================================ */}
+      <a
+        href="https://t.me/+UcggjLlqNuAyN2Qy"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl flex items-center justify-between hover:from-emerald-500/20 hover:to-teal-500/20 active:scale-[0.98] transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center text-lg">
+            📢
+          </div>
+          <div className="text-left">
+            <p className="font-bold text-sm">Наш Telegram-канал</p>
+            <p className="text-xs opacity-70">
+              Хадисы, дуа и напоминания каждый день
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5" />
+      </a>
+
+      {/* ================================================================ */}
       {/* RESET DATA                                                       */}
       {/* ================================================================ */}
       <div className="pt-4">

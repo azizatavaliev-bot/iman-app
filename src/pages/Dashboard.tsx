@@ -29,6 +29,7 @@ import {
   CalendarDays,
   Bookmark,
   Landmark,
+  Users,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { isSyncDone } from "../lib/sync";
@@ -1209,6 +1210,13 @@ export default function Dashboard() {
               path: "/seerah",
               color: "text-rose-400",
               bg: "bg-rose-400/10",
+            },
+            {
+              icon: Users,
+              label: "Истории Ислама",
+              path: "/stories",
+              color: "text-cyan-400",
+              bg: "bg-cyan-400/10",
             },
             {
               icon: Brain,

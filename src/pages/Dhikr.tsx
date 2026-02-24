@@ -276,11 +276,18 @@ export default function Dhikr() {
   const startPractice = useCallback((categoryId: string) => {
     const progress = getCategoryProgress(categoryId);
     setActiveCategory(categoryId);
-    setCurrentDhikrIndex(0);
     setTapCount(0);
     setTotalXpEarned(0);
     setCompletedInSession([...progress.completed]);
     setStartTime(Date.now());
+
+    // Find first uncompleted dhikr to continue from where user stopped
+    const catDhikr = DHIKR_DATA.filter((d: Dhikr) => d.category === categoryId);
+    const firstUncompleted = catDhikr.findIndex(
+      (d) => !progress.completed.includes(d.id)
+    );
+    setCurrentDhikrIndex(firstUncompleted >= 0 ? firstUncompleted : 0);
+
     setViewMode("practice");
   }, []);
 
@@ -762,14 +769,27 @@ function PracticeView({
   const circumference = 2 * Math.PI * 72; // radius 72 for the big counter
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black">
+    <div
+      className="min-h-screen flex flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-black select-none"
+      onClick={(e) => {
+        // Tap anywhere on screen to count (except buttons with data-no-tap)
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-no-tap]') || target.closest('button:not([data-tap-ok])')) return;
+        if (!isCompleted) {
+          onTap();
+        } else {
+          onNext();
+        }
+      }}
+    >
       <ConfettiEffect active={showConfetti} />
       <XpPopup amount={xpAmount} visible={showXp} />
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <button
-          onClick={onBack}
+          data-no-tap
+          onClick={(e) => { e.stopPropagation(); onBack(); }}
           className="w-10 h-10 rounded-full glass flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -892,7 +912,7 @@ function PracticeView({
           {/* Tap hint */}
           {!isCompleted && tapCount === 0 && (
             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-gray-500 text-xs whitespace-nowrap animate-pulse">
-              Нажимайте для счёта
+              Тапай по экрану для счёта
             </div>
           )}
         </div>
@@ -915,24 +935,17 @@ function PracticeView({
         </div>
       </div>
 
-      {/* Bottom: Next button */}
+      {/* Bottom: hint */}
       <div className="px-4 pb-6 pt-2">
         {isCompleted ? (
-          <button
-            onClick={onNext}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-semibold text-lg flex items-center justify-center gap-2 active:scale-[0.97] transition-all shadow-lg shadow-emerald-500/20"
-          >
-            {dhikrIndex + 1 >= totalDhikr ? "Завершить" : "Следующий зикр"}
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          <div className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600/20 to-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-semibold text-center text-base flex items-center justify-center gap-2">
+            {dhikrIndex + 1 >= totalDhikr ? "Тапни чтобы завершить" : "Тапни — следующий зикр →"}
+          </div>
         ) : (
-          <button
-            onClick={onTap}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 text-white font-semibold text-lg flex items-center justify-center gap-3 active:scale-[0.97] transition-all shadow-lg shadow-amber-500/20"
-          >
+          <div className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-600/20 to-amber-500/20 border border-amber-500/30 text-amber-400 font-semibold text-center text-base flex items-center justify-center gap-3">
             <span className="text-2xl">📿</span>
-            Нажми — {tapCount}/{dhikr.count}
-          </button>
+            Тапай — {tapCount}/{dhikr.count}
+          </div>
         )}
       </div>
     </div>

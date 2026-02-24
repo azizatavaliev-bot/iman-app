@@ -673,50 +673,35 @@ function getBishkekDateStr() {
   return bishkek.toISOString().slice(0, 10);
 }
 
-async function sendDailyBroadcast() {
-  const today = getBishkekDateStr();
-  if (lastBroadcastDate === today) return;
+const CHANNEL_LINK = "https://t.me/+UcggjLlqNuAyN2Qy";
 
-  const hour = getBishkekHour();
-  const minutes = new Date().getUTCMinutes();
-  if (hour !== 7 || minutes > 1) return;
+// Track which broadcasts were sent today (morning, afternoon, evening)
+let sentBroadcasts = { morning: "", afternoon: "", evening: "" };
 
-  lastBroadcastDate = today;
-  console.log(`Starting daily broadcast to ${subscribers.size} subscribers`);
-
-  const dayIndex = Math.floor(
-    (Date.now() - new Date("2026-01-01").getTime()) / 86400000,
-  );
-  const hadith = HADITHS[dayIndex % HADITHS.length];
-  const ayat = AYATS[dayIndex % AYATS.length];
-  const dua = DUAS[dayIndex % DUAS.length];
-
-  const message =
-    `\u2728 *Доброе утро!*\n` +
-    `\u{1F4A1} _Удели 5-10 минут дину сегодня — это лучшая инвестиция в Ахират_\n` +
-    `\n\u{1F4D6} *Хадис дня:*\n${hadith.text}\n_${hadith.source}_\n\n` +
-    `\u{1F4D6} *Аят дня:*\n${ayat.text}\n_${ayat.surah}_\n\n` +
-    `\u{1F64F} *Дуа дня:*\n${dua.text}\n_${dua.source}_\n\n` +
-    `Да благословит вас Аллах! \u{1F54C}`;
-
+async function broadcastToAll(message, replyMarkup = null) {
   const ids = [...subscribers];
+  let sent = 0;
   for (let i = 0; i < ids.length; i++) {
     try {
+      const payload = {
+        chat_id: ids[i],
+        text: message,
+        parse_mode: "Markdown",
+      };
+      if (replyMarkup) payload.reply_markup = replyMarkup;
       const res = await fetch(
         `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: ids[i],
-            text: message,
-            parse_mode: "Markdown",
-          }),
+          body: JSON.stringify(payload),
         },
       );
       const data = await res.json();
       if (!data.ok && (data.error_code === 403 || data.error_code === 400)) {
         await removeSubscriber(ids[i]);
+      } else {
+        sent++;
       }
     } catch (e) {
       console.error(`Failed to send to ${ids[i]}:`, e);
@@ -725,13 +710,86 @@ async function sendDailyBroadcast() {
       await new Promise((r) => setTimeout(r, 40));
     }
   }
-
-  console.log(
-    `Daily broadcast complete, ${subscribers.size} active subscribers`,
-  );
+  return sent;
 }
 
-setInterval(sendDailyBroadcast, 60 * 1000);
+async function sendScheduledBroadcasts() {
+  const today = getBishkekDateStr();
+  const hour = getBishkekHour();
+  const minutes = new Date().getUTCMinutes();
+
+  const dayIndex = Math.floor(
+    (Date.now() - new Date("2026-01-01").getTime()) / 86400000,
+  );
+
+  const channelButton = {
+    inline_keyboard: [
+      [{ text: "\u{1F4E2} Наш канал", url: CHANNEL_LINK }],
+      [{ text: "\u{1F55C} Открыть IMAN", web_app: { url: APP_URL } }],
+    ],
+  };
+
+  // Morning broadcast — 7:00 Bishkek
+  if (hour === 7 && minutes <= 1 && sentBroadcasts.morning !== today) {
+    sentBroadcasts.morning = today;
+    const hadith = HADITHS[dayIndex % HADITHS.length];
+    const ayat = AYATS[dayIndex % AYATS.length];
+    const dua = DUAS[dayIndex % DUAS.length];
+
+    const message =
+      `\u2728 *Доброе утро!*\n` +
+      `\u{1F4A1} _Удели 5-10 минут дину сегодня — это лучшая инвестиция в Ахират_\n` +
+      `\n\u{1F4D6} *Хадис дня:*\n${hadith.text}\n_${hadith.source}_\n\n` +
+      `\u{1F4D6} *Аят дня:*\n${ayat.text}\n_${ayat.surah}_\n\n` +
+      `\u{1F64F} *Дуа дня:*\n${dua.text}\n_${dua.source}_\n\n` +
+      `Да благословит вас Аллах! \u{1F54C}\n\n` +
+      `\u{1F4E2} _Подписывайтесь на наш канал для ежедневных напоминаний!_`;
+
+    const sent = await broadcastToAll(message, channelButton);
+    console.log(`Morning broadcast sent to ${sent} subscribers`);
+  }
+
+  // Afternoon broadcast — 13:00 Bishkek (random hadith/dua)
+  if (hour === 13 && minutes <= 1 && sentBroadcasts.afternoon !== today) {
+    sentBroadcasts.afternoon = today;
+    const r = (dayIndex * 7 + 3) % HADITHS.length;
+    const hadith = HADITHS[r];
+
+    const message =
+      `\u{1F54C} *Напоминание*\n\n` +
+      `\u{1F4D6} ${hadith.text}\n\n_${hadith.source}_\n\n` +
+      `_Не забудь прочитать послеобеденные азкары!_`;
+
+    const sent = await broadcastToAll(message, channelButton);
+    console.log(`Afternoon broadcast sent to ${sent} subscribers`);
+  }
+
+  // Evening broadcast — 20:00 Bishkek (evening dua/azkar reminder)
+  if (hour === 20 && minutes <= 1 && sentBroadcasts.evening !== today) {
+    sentBroadcasts.evening = today;
+    const r = (dayIndex * 11 + 5) % DUAS.length;
+    const dua = DUAS[r];
+    const azkarReminders = [
+      "Не забудь вечерние азкары перед сном!",
+      "Прочитай аят аль-Курси перед сном — ангел будет охранять тебя до утра",
+      "Скажи 33 раза СубханАллах, 33 раза Альхамдулиллях, 34 раза Аллаху Акбар",
+      "Прочитай последние 3 суры Корана и подуй на ладони",
+      "Сделай истигфар перед сном — попроси прощения у Аллаха за этот день",
+    ];
+    const azkar = azkarReminders[dayIndex % azkarReminders.length];
+
+    const message =
+      `\u{1F319} *Вечернее напоминание*\n\n` +
+      `\u{1F64F} *Дуа:*\n${dua.text}\n_${dua.source}_\n\n` +
+      `\u{1F4A1} _${azkar}_\n\n` +
+      `_Спокойной ночи! Да простит Аллах наши грехи_ \u{1F54C}`;
+
+    const sent = await broadcastToAll(message, channelButton);
+    console.log(`Evening broadcast sent to ${sent} subscribers`);
+  }
+}
+
+setInterval(sendScheduledBroadcasts, 60 * 1000);
 
 // =========================================================================
 // TELEGRAM BOT HANDLER
@@ -772,6 +830,7 @@ async function handleWebhook(body) {
   const appButton = {
     inline_keyboard: [
       [{ text: "\u{1F55C} Открыть IMAN", web_app: { url: APP_URL } }],
+      [{ text: "\u{1F4E2} Наш канал", url: CHANNEL_LINK }],
     ],
   };
 
@@ -794,7 +853,8 @@ async function handleWebhook(body) {
         `\u{1F64F} Дуа и зикр на каждый день\n` +
         `\u{1F9E0} Квиз — 300+ вопросов\n` +
         `\u{1F4DA} Сира — жизнь Пророка (мир ему)\n\n` +
-        `\u{1F514} Вы подписаны на ежедневные напоминания (7:00 Бишкек)\n\n` +
+        `\u{1F514} Вы подписаны на ежедневные напоминания (утро, день, вечер)\n` +
+        `\u{1F4E2} Подписывайтесь на наш канал: ${CHANNEL_LINK}\n\n` +
         `Команды:\n` +
         `/namaz — Время намаза (ханафитский масхаб)\n` +
         `/hadith — Случайный хадис\n` +

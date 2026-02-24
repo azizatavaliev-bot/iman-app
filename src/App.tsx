@@ -36,6 +36,7 @@ const IbadahTimer = lazy(() => import("./pages/IbadahTimer"));
 const Memorize = lazy(() => import("./pages/Memorize"));
 const Quiz = lazy(() => import("./pages/Quiz"));
 const Seerah = lazy(() => import("./pages/Seerah"));
+const Stories = lazy(() => import("./pages/Stories"));
 const Beginners = lazy(() => import("./pages/Beginners"));
 const Guide = lazy(() => import("./pages/Guide"));
 const AboutApp = lazy(() => import("./pages/AboutApp"));
@@ -145,6 +146,7 @@ function AppContent() {
             <Route path="/memorize" element={<Memorize />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/seerah" element={<Seerah />} />
+            <Route path="/stories" element={<Stories />} />
             <Route path="/beginners" element={<Beginners />} />
             <Route path="/guide" element={<Guide />} />
             <Route path="/about-app" element={<AboutApp />} />
