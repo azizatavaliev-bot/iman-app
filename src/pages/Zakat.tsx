@@ -11,7 +11,7 @@ import {
   Gem,
   TrendingUp,
   Briefcase,
-  PiggyBank,
+  Landmark,
   ArrowDownLeft,
   ArrowUpRight,
   Sparkles,
@@ -45,7 +45,7 @@ interface AssetField {
 
 const ASSET_FIELDS: AssetField[] = [
   { key: "cash", label: "Наличные", icon: Coins, placeholder: "0", hint: "Деньги дома и в кошельке" },
-  { key: "savings", label: "Банковские счета", icon: PiggyBank, placeholder: "0", hint: "Вклады, карты, накопительные счета" },
+  { key: "savings", label: "Банковские счета", icon: Landmark, placeholder: "0", hint: "Вклады, карты, накопительные счета" },
   { key: "gold_grams", label: "Золото (граммы)", icon: Gem, placeholder: "0", hint: "Ювелирные изделия, слитки, монеты" },
   { key: "silver_grams", label: "Серебро (граммы)", icon: Gem, placeholder: "0", hint: "Серебряные изделия, слитки" },
   { key: "investments", label: "Инвестиции", icon: TrendingUp, placeholder: "0", hint: "Акции, облигации, крипто, фонды" },

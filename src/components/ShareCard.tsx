@@ -5,7 +5,7 @@ import { Download, Share2, X, Palette } from "lucide-react";
 const THEMES = [
   { name: "Emerald", bg: "linear-gradient(135deg, #064e3b 0%, #0f766e 50%, #065f46 100%)", text: "#d1fae5", accent: "#6ee7b7" },
   { name: "Night", bg: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0c0a09 100%)", text: "#e2e8f0", accent: "#a78bfa" },
-  { name: "Sunset", bg: "linear-gradient(135deg, #7c2d12 0%, #9a3412 50%, #78350f 100%)", text: "#fed7aa", accent: "#fdba74" },
+  { name: "Amber", bg: "linear-gradient(135deg, #7c2d12 0%, #9a3412 50%, #78350f 100%)", text: "#fed7aa", accent: "#fdba74" },
   { name: "Ocean", bg: "linear-gradient(135deg, #0c4a6e 0%, #155e75 50%, #164e63 100%)", text: "#cffafe", accent: "#67e8f9" },
   { name: "Rose", bg: "linear-gradient(135deg, #4c0519 0%, #881337 50%, #831843 100%)", text: "#fce7f3", accent: "#f9a8d4" },
   { name: "Gold", bg: "linear-gradient(135deg, #451a03 0%, #78350f 50%, #713f12 100%)", text: "#fef3c7", accent: "#fbbf24" },
