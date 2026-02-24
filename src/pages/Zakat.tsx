@@ -107,8 +107,8 @@ function calculateTotalAssets(assets: ZakatAssets): number {
 export default function Zakat() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("calculator");
-  const [assets, setAssets] = useState<ZakatAssets>(storage.getZakatAssets);
-  const [history, setHistory] = useState<ZakatHistoryEntry[]>(storage.getZakatHistory);
+  const [assets, setAssets] = useState<ZakatAssets>(() => storage.getZakatAssets());
+  const [history, setHistory] = useState<ZakatHistoryEntry[]>(() => storage.getZakatHistory());
   const [saved, setSaved] = useState(false);
   const [currency, setCurrency] = useState("USD");
 
