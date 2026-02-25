@@ -53,40 +53,59 @@ export async function unlockAudio(): Promise<void> {
  * Audio will be unlocked on the first user gesture via AudioContext.resume().
  */
 export function initAudioUnlock(): void {
-  if (unlocked) return;
-
-  // iOS 16.4+: set audio session to playback mode
-  const nav = navigator as Navigator & { audioSession?: { type: string } };
-  if (nav.audioSession) {
-    nav.audioSession.type = "playback";
-  }
-
-  const events = ["touchstart", "touchend", "click", "keydown"];
-
-  const doUnlock = () => {
+  try {
     if (unlocked) return;
-    unlockAudio().catch(() => {
-      // Will retry on next gesture
-    });
-  };
 
-  events.forEach((e) =>
-    document.addEventListener(e, doUnlock, { passive: true }),
-  );
-
-  // Handle returning from background — re-check audio state
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      if (unlocked && audioCtx && audioCtx.state === "suspended") {
-        // iOS may suspend AudioContext when app goes to background
-        audioCtx.resume().catch(() => {});
-      } else if (!unlocked) {
-        events.forEach((e) =>
-          document.addEventListener(e, doUnlock, { passive: true }),
-        );
-      }
+    // Check if AudioContext is available at all
+    const hasAudioContext = !!(
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    );
+    if (!hasAudioContext) {
+      console.warn("[audio] AudioContext not available, skipping audio unlock");
+      unlocked = true;
+      unlockPromiseResolve?.();
+      return;
     }
-  });
+
+    // iOS 16.4+: set audio session to playback mode
+    const nav = navigator as Navigator & { audioSession?: { type: string } };
+    if (nav.audioSession) {
+      nav.audioSession.type = "playback";
+    }
+
+    const events = ["touchstart", "touchend", "click", "keydown"];
+
+    const doUnlock = () => {
+      if (unlocked) return;
+      unlockAudio().catch(() => {
+        // Will retry on next gesture
+      });
+    };
+
+    events.forEach((e) =>
+      document.addEventListener(e, doUnlock, { passive: true }),
+    );
+
+    // Handle returning from background — re-check audio state
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        if (unlocked && audioCtx && audioCtx.state === "suspended") {
+          // iOS may suspend AudioContext when app goes to background
+          audioCtx.resume().catch(() => {});
+        } else if (!unlocked) {
+          events.forEach((e) =>
+            document.addEventListener(e, doUnlock, { passive: true }),
+          );
+        }
+      }
+    });
+  } catch (err) {
+    console.error("[audio] initAudioUnlock failed:", err);
+    // Never block app startup because of audio issues
+    unlocked = true;
+    unlockPromiseResolve?.();
+  }
 }
 
 /**

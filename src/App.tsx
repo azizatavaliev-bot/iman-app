@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useCallback, useEffect } from "react";
+import { lazy, Suspense, useState, useCallback, useEffect, Component, type ReactNode } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -16,6 +16,80 @@ import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
 import ChannelGate from "./components/ChannelGate";
 import "./index.css";
+
+// ---- Telegram WebApp: signal ready to remove loading spinner ----
+try {
+  window.Telegram?.WebApp?.ready();
+  window.Telegram?.WebApp?.expand();
+} catch {
+  // Not inside Telegram — ignore
+}
+
+// ---- Global Error Boundary ----
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("[ErrorBoundary]", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "2rem",
+          background: "linear-gradient(to bottom, #0f172a, #1e293b)",
+          color: "#e2e8f0",
+          textAlign: "center",
+        }}>
+          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🕌</div>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+            Произошла ошибка
+          </h1>
+          <p style={{ color: "#94a3b8", marginBottom: "1.5rem", maxWidth: "300px" }}>
+            Попробуйте перезапустить приложение
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+            style={{
+              background: "linear-gradient(135deg, #10b981, #059669)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "12px",
+              padding: "12px 32px",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Перезапустить
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Dashboard загружается сразу (главная страница)
 import Dashboard from "./pages/Dashboard";
@@ -223,21 +297,25 @@ export default function App() {
 
   if (!onboarded) {
     return (
-      <ThemeProvider>
-        <Onboarding onComplete={handleOnboardingComplete} />
-      </ThemeProvider>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <Onboarding onComplete={handleOnboardingComplete} />
+        </ThemeProvider>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <ThemeProvider>
-      <ChannelGate>
-        <BrowserRouter>
-          <AudioProvider>
-            <AppContent />
-          </AudioProvider>
-        </BrowserRouter>
-      </ChannelGate>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ChannelGate>
+          <BrowserRouter>
+            <AudioProvider>
+              <AppContent />
+            </AudioProvider>
+          </BrowserRouter>
+        </ChannelGate>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

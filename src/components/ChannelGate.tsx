@@ -7,6 +7,10 @@ import { getTelegramUser } from "../lib/telegram";
 const CHANNEL_LINK = "https://t.me/+UcggjLlqNuAyN2Qy";
 const STORAGE_KEY = "iman_channel_skipped";
 
+// Проверяем, показывали ли уже экран подписки в этой сессии
+// sessionStorage НЕ теряется при навигации внутри Mini App, но сбрасывается при новом запуске
+const SESSION_SHOWN_KEY = "iman_channel_shown_session";
+
 interface ChannelGateProps {
   children: React.ReactNode;
 }
@@ -26,7 +30,7 @@ export default function ChannelGate({ children }: ChannelGateProps) {
     setError(null);
 
     try {
-      // Проверяем — пользователь уже пропустил или подписался
+      // Проверяем — пользователь уже пропустил или подписался (localStorage)
       const skipped = localStorage.getItem(STORAGE_KEY);
       if (skipped === "true") {
         setHasAccess(true);
@@ -34,7 +38,7 @@ export default function ChannelGate({ children }: ChannelGateProps) {
         return;
       }
 
-      // Если нет Telegram ID - даём доступ (для тестирования)
+      // Если нет Telegram ID - даём доступ (для тестирования в браузере)
       if (!tgUser?.id) {
         console.log("No Telegram ID - allowing access for testing");
         setHasAccess(true);
@@ -42,11 +46,36 @@ export default function ChannelGate({ children }: ChannelGateProps) {
         return;
       }
 
-      // Показываем экран призыва к подписке
+      // ФИКС: Если экран подписки уже показывался в этой сессии — пропускаем
+      // Это решает проблему потери localStorage на некоторых устройствах
+      const shownThisSession = sessionStorage.getItem(SESSION_SHOWN_KEY);
+      if (shownThisSession === "true") {
+        // Пользователь уже видел экран в этой сессии, пропускаем
+        localStorage.setItem(STORAGE_KEY, "true");
+        setHasAccess(true);
+        setChecking(false);
+        return;
+      }
+
+      // ФИКС: Если у пользователя уже есть данные (profile, prayer logs и т.д.)
+      // значит он НЕ новый — пропускаем экран подписки
+      const hasProfile = localStorage.getItem("iman_profile");
+      const hasPrayerLogs = localStorage.getItem("iman_prayer_logs");
+      const hasOnboarded = localStorage.getItem("iman_onboarded");
+      if (hasProfile || hasPrayerLogs || hasOnboarded) {
+        localStorage.setItem(STORAGE_KEY, "true");
+        setHasAccess(true);
+        setChecking(false);
+        return;
+      }
+
+      // Новый пользователь — показываем экран подписки один раз
+      sessionStorage.setItem(SESSION_SHOWN_KEY, "true");
       setHasAccess(false);
     } catch (err) {
       console.error("Subscription check error:", err);
-      setError("Ошибка при проверке. Можете продолжить.");
+      // При любой ошибке — пропускаем, чтобы не блокировать приложение
+      setHasAccess(true);
     } finally {
       setChecking(false);
     }

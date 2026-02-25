@@ -277,7 +277,7 @@ const SECURITY_HEADERS = {
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://cdn.jsdelivr.net https://api.quran.com https://cdn.islamic.network https://server8.mp3quran.net",
     "media-src 'self' https://cdn.islamic.network https://server8.mp3quran.net blob: data:",
-    "frame-ancestors https://web.telegram.org https://telegram.org https://*.telegram.org",
+    "frame-ancestors 'self' https://web.telegram.org https://telegram.org https://*.telegram.org https://webk.telegram.org https://webz.telegram.org https://weba.telegram.org",
   ].join("; "),
 };
 
