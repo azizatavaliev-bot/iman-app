@@ -189,16 +189,17 @@ function BottomNav() {
   );
 }
 
-// Pages that have their OWN sticky header with back button — skip global back
-const PAGES_WITH_OWN_HEADER = new Set([
-  "/", "/prayers", "/dua-wall", "/leaderboard", "/ibadah", "/ramadan", "/dua",
+// Pages that already have their own back button in their header
+const PAGES_WITH_OWN_BACK = new Set([
+  "/", "/prayers", "/dua-wall", "/leaderboard", "/ibadah", "/ramadan",
+  "/dua", "/zakat", "/about-app", "/memorize", "/quiz",
 ]);
 
 function GlobalBackButton() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (PAGES_WITH_OWN_HEADER.has(location.pathname)) return null;
+  if (PAGES_WITH_OWN_BACK.has(location.pathname)) return null;
 
   return (
     <div className="sticky top-0 z-40 glass" style={{ borderBottom: "1px solid var(--border-secondary)" }}>
