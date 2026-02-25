@@ -6,7 +6,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { Home, Moon, BookOpen, Compass, User } from "lucide-react";
+import { Home, Moon, BookOpen, Compass, User, ArrowLeft } from "lucide-react";
 import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
 import { getTelegramUser } from "./lib/telegram";
@@ -189,6 +189,32 @@ function BottomNav() {
   );
 }
 
+// Pages that have their OWN sticky header with back button — skip global back
+const PAGES_WITH_OWN_HEADER = new Set([
+  "/", "/prayers", "/dua-wall", "/leaderboard", "/ibadah", "/ramadan", "/dua",
+]);
+
+function GlobalBackButton() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  if (PAGES_WITH_OWN_HEADER.has(location.pathname)) return null;
+
+  return (
+    <div className="sticky top-0 z-40 glass" style={{ borderBottom: "1px solid var(--border-secondary)" }}>
+      <div className="max-w-lg mx-auto flex items-center px-3 py-2.5">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 px-3 py-2 -ml-1 rounded-xl hover:bg-white/5 active:scale-95 transition-all"
+        >
+          <ArrowLeft size={20} className="text-white/70" />
+          <span className="text-sm font-medium text-white/60">Назад</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const location = useLocation();
 
@@ -204,6 +230,7 @@ function AppContent() {
         background: `linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary))`,
       }}
     >
+      <GlobalBackButton />
       <div className="max-w-lg mx-auto pb-20">
         <Suspense fallback={<PageLoader />}>
           <Routes>

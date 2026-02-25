@@ -208,6 +208,15 @@ export default function DuaWall() {
               Попросите дуа у братьев и сестёр
             </p>
           </div>
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold transition-all active:scale-95 shadow-md shadow-emerald-500/30 shrink-0"
+            >
+              <Plus size={16} />
+              Добавить
+            </button>
+          )}
         </div>
       </header>
 
@@ -363,16 +372,6 @@ export default function DuaWall() {
           </div>
         )}
       </div>
-
-      {/* ── FAB button ─────────────────────────────────────────────────────── */}
-      {!showForm && !loading && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/40 flex items-center justify-center transition-all active:scale-90"
-        >
-          <Plus size={24} />
-        </button>
-      )}
 
       {/* ── Add form modal (bottom sheet) ──────────────────────────────────── */}
       {showForm && (

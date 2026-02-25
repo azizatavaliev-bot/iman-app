@@ -1145,179 +1145,86 @@ export default function Dashboard() {
       })()}
 
       {/* ================================================================ */}
-      {/* 5. QUICK ACTIONS GRID (12 функций)                              */}
+      {/* 5. QUICK ACTIONS — по категориям                                */}
       {/* ================================================================ */}
-      <div>
-        <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3 px-1">
-          Возможности IMAN
-        </h3>
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            {
-              icon: Moon,
-              label: "Намазы",
-              path: "/prayers",
-              color: "text-emerald-400",
-              bg: "bg-emerald-400/10",
-            },
-            {
-              icon: BookOpen,
-              label: "Чтение Корана",
-              path: "/quran",
-              color: "text-sky-400",
-              bg: "bg-sky-400/10",
-            },
-            {
-              icon: Headphones,
-              label: "Заучивание сур",
-              path: "/memorize",
-              color: "text-violet-400",
-              bg: "bg-violet-400/10",
-            },
-            {
-              icon: Timer,
-              label: "Помидоро",
-              path: "/ibadah",
-              color: "text-cyan-400",
-              bg: "bg-cyan-400/10",
-            },
-            {
-              icon: Star,
-              label: "99 имён Аллаха",
-              path: "/names",
-              color: "text-purple-400",
-              bg: "bg-purple-400/10",
-            },
-            {
-              icon: Heart,
-              label: "Дуа на все случаи",
-              path: "/dua",
-              color: "text-pink-400",
-              bg: "bg-pink-400/10",
-            },
-            {
-              icon: Target,
-              label: "Полезные привычки",
-              path: "/habits",
-              color: "text-rose-400",
-              bg: "bg-rose-400/10",
-            },
-            {
-              icon: Repeat,
-              label: "Зикры на все случаи",
-              path: "/dhikr",
-              color: "text-teal-400",
-              bg: "bg-teal-400/10",
-            },
-            {
-              icon: Quote,
-              label: "Хадисы",
-              path: "/hadiths",
-              color: "text-amber-400",
-              bg: "bg-amber-400/10",
-            },
-            {
-              icon: Scroll,
-              label: "История пророка",
-              path: "/seerah",
-              color: "text-rose-400",
-              bg: "bg-rose-400/10",
-            },
-            {
-              icon: Users,
-              label: "Истории Ислама",
-              path: "/stories",
-              color: "text-cyan-400",
-              bg: "bg-cyan-400/10",
-            },
-            {
-              icon: BookOpen,
-              label: "Истории пророков",
-              path: "/prophets",
-              color: "text-emerald-400",
-              bg: "bg-emerald-400/10",
-            },
-            {
-              icon: Brain,
-              label: "Викторина",
-              path: "/quiz",
-              color: "text-orange-400",
-              bg: "bg-orange-400/10",
-            },
-            {
-              icon: CalendarDays,
-              label: "Рамадан",
-              path: "/ramadan",
-              color: "text-emerald-300",
-              bg: "bg-emerald-300/10",
-            },
-            {
-              icon: Landmark,
-              label: "Гид по намазу",
-              path: "/namaz-guide",
-              color: "text-indigo-400",
-              bg: "bg-indigo-400/10",
-            },
-            {
-              icon: Bookmark,
-              label: "Рекомендуемые аяты",
-              path: "/recommended",
-              color: "text-amber-300",
-              bg: "bg-amber-300/10",
-            },
-            {
-              icon: BarChart3,
-              label: "Статистика",
-              path: "/stats",
-              color: "text-lime-400",
-              bg: "bg-lime-400/10",
-            },
-            {
-              icon: Trophy,
-              label: "Лидеры",
-              path: "/leaderboard",
-              color: "text-yellow-400",
-              bg: "bg-yellow-400/10",
-            },
-            {
-              icon: Heart,
-              label: "Избранное",
-              path: "/favorites",
-              color: "text-pink-400",
-              bg: "bg-pink-400/10",
-            },
-            {
-              icon: Heart,
-              label: "Стена дуа",
-              path: "/dua-wall",
-              color: "text-rose-400",
-              bg: "bg-rose-400/10",
-            },
-            {
-              icon: Calculator,
-              label: "Закят",
-              path: "/zakat",
-              color: "text-green-400",
-              bg: "bg-green-400/10",
-            },
-          ].map(({ icon: Icon, label, path, color, bg }) => (
-            <button
-              key={path}
-              onClick={() => navigate(path)}
-              className="glass-card p-2.5 flex flex-col items-center gap-1.5 hover:scale-105 active:scale-95 transition-transform"
-            >
-              <div
-                className={`${bg} w-10 h-10 rounded-xl flex items-center justify-center`}
+      {[
+        {
+          title: "Намаз и поклонение",
+          emoji: "🕌",
+          items: [
+            { icon: Moon, label: "Намазы", path: "/prayers", color: "text-emerald-400", bg: "bg-emerald-400/10" },
+            { icon: Landmark, label: "Гид по намазу", path: "/namaz-guide", color: "text-indigo-400", bg: "bg-indigo-400/10" },
+            { icon: Heart, label: "Дуа", path: "/dua", color: "text-pink-400", bg: "bg-pink-400/10" },
+            { icon: Repeat, label: "Зикры", path: "/dhikr", color: "text-teal-400", bg: "bg-teal-400/10" },
+            { icon: CalendarDays, label: "Рамадан", path: "/ramadan", color: "text-emerald-300", bg: "bg-emerald-300/10" },
+            { icon: Calculator, label: "Закят", path: "/zakat", color: "text-green-400", bg: "bg-green-400/10" },
+          ],
+        },
+        {
+          title: "Коран и знания",
+          emoji: "📖",
+          items: [
+            { icon: BookOpen, label: "Коран", path: "/quran", color: "text-sky-400", bg: "bg-sky-400/10" },
+            { icon: Headphones, label: "Заучивание", path: "/memorize", color: "text-violet-400", bg: "bg-violet-400/10" },
+            { icon: Bookmark, label: "Рекомендации", path: "/recommended", color: "text-amber-300", bg: "bg-amber-300/10" },
+            { icon: Quote, label: "Хадисы", path: "/hadiths", color: "text-amber-400", bg: "bg-amber-400/10" },
+            { icon: Star, label: "99 имён", path: "/names", color: "text-purple-400", bg: "bg-purple-400/10" },
+          ],
+        },
+        {
+          title: "Истории и сира",
+          emoji: "📜",
+          items: [
+            { icon: Scroll, label: "Сира пророка", path: "/seerah", color: "text-rose-400", bg: "bg-rose-400/10" },
+            { icon: BookOpen, label: "Пророки", path: "/prophets", color: "text-emerald-400", bg: "bg-emerald-400/10" },
+            { icon: Users, label: "Истории", path: "/stories", color: "text-cyan-400", bg: "bg-cyan-400/10" },
+          ],
+        },
+        {
+          title: "Развитие и прогресс",
+          emoji: "🏆",
+          items: [
+            { icon: Brain, label: "Викторина", path: "/quiz", color: "text-orange-400", bg: "bg-orange-400/10" },
+            { icon: Target, label: "Привычки", path: "/habits", color: "text-rose-400", bg: "bg-rose-400/10" },
+            { icon: Timer, label: "Помидоро", path: "/ibadah", color: "text-cyan-400", bg: "bg-cyan-400/10" },
+            { icon: BarChart3, label: "Статистика", path: "/stats", color: "text-lime-400", bg: "bg-lime-400/10" },
+            { icon: Trophy, label: "Лидеры", path: "/leaderboard", color: "text-yellow-400", bg: "bg-yellow-400/10" },
+          ],
+        },
+        {
+          title: "Сообщество",
+          emoji: "🤲",
+          items: [
+            { icon: Heart, label: "Стена дуа", path: "/dua-wall", color: "text-rose-400", bg: "bg-rose-400/10" },
+            { icon: Heart, label: "Избранное", path: "/favorites", color: "text-pink-400", bg: "bg-pink-400/10" },
+          ],
+        },
+      ].map((section) => (
+        <div key={section.title}>
+          <div className="flex items-center gap-2 mb-2.5 px-1">
+            <span className="text-sm">{section.emoji}</span>
+            <h3 className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
+              {section.title}
+            </h3>
+          </div>
+          <div className="grid grid-cols-4 gap-2.5">
+            {section.items.map(({ icon: Icon, label, path, color, bg }) => (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className="glass-card p-2.5 flex flex-col items-center gap-1.5 hover:scale-105 active:scale-95 transition-transform"
               >
-                <Icon size={18} className={color} />
-              </div>
-              <span className="text-[9px] text-white/70 font-medium text-center leading-tight line-clamp-2 px-0.5">
-                {label}
-              </span>
-            </button>
-          ))}
+                <div className={`${bg} w-10 h-10 rounded-xl flex items-center justify-center`}>
+                  <Icon size={18} className={color} />
+                </div>
+                <span className="text-[9px] text-white/70 font-medium text-center leading-tight line-clamp-2 px-0.5">
+                  {label}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ))}
 
       {/* ================================================================ */}
       {/* 6. ACTIVITY TODAY (компактно, без времени, только выполненные)   */}
