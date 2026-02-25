@@ -34,7 +34,6 @@ import {
   Lock,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
-import { getTelegramUser } from "../lib/telegram";
 import { isSyncDone } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
 import { trackAction } from "../lib/analytics";
@@ -46,16 +45,6 @@ import {
 } from "../lib/api";
 import type { PrayerTimes, Hadith } from "../lib/api";
 import type { UserProfile, TodayStats, HabitLog } from "../lib/storage";
-
-// Leaderboard types for dashboard preview
-interface LeaderboardUser {
-  telegram_id: number;
-  name: string;
-  totalPoints: number;
-  level: string;
-  streak: number;
-  rank: number;
-}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -556,10 +545,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const audio = useAudio();
 
-  // Leaderboard preview state
-  const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardUser[]>([]);
-  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
-
   // Favorites count state
   const [favoritesCount, setFavoritesCount] = useState(0);
 
@@ -670,27 +655,6 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, [profile.lat, profile.lng]);
-
-  // ---------- Fetch leaderboard for preview ----------
-  useEffect(() => {
-    let cancelled = false;
-    async function loadLeaderboard() {
-      try {
-        const response = await fetch("/api/leaderboard");
-        if (cancelled) return;
-        if (response.ok) {
-          const data = await response.json();
-          setLeaderboardUsers((data.users || []).slice(0, 3));
-        }
-      } catch {
-        // Silently fail — leaderboard is optional
-      } finally {
-        if (!cancelled) setLeaderboardLoading(false);
-      }
-    }
-    loadLeaderboard();
-    return () => { cancelled = true; };
-  }, []);
 
   // ---------- Count favorites ----------
   useEffect(() => {
@@ -1403,91 +1367,25 @@ export default function Dashboard() {
       </div>
 
       {/* ================================================================ */}
-      {/* 7.5 LEADERBOARD PREVIEW (Top-3)                                  */}
+      {/* 7.5 LEADERBOARD CARD (промо)                                     */}
       {/* ================================================================ */}
       <div
-        className="glass-card p-4 relative overflow-hidden cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-transform"
+        className="glass-card p-5 relative overflow-hidden cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-transform"
         onClick={() => navigate("/leaderboard")}
       >
         <div className="absolute -top-8 -right-8 w-32 h-32 bg-yellow-500/8 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Trophy size={18} className="text-yellow-400" />
-            <h3 className="text-sm font-bold text-white">Таблица лидеров</h3>
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-500/25 flex items-center justify-center shrink-0">
+            <Trophy className="w-7 h-7 text-yellow-400" />
           </div>
-          <div className="flex items-center gap-1 text-xs text-white/40">
-            <span>Все</span>
-            <ChevronRight size={14} />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-white">Таблица лидеров</h3>
+            <p className="text-sm text-white/50 mt-1">
+              Делайте ибадаты и соревнуйтесь в благом
+            </p>
           </div>
-        </div>
-
-        {leaderboardLoading ? (
-          <div className="flex items-center justify-center py-4">
-            <div className="w-5 h-5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : leaderboardUsers.length > 0 ? (
-          <div className="space-y-2">
-            {leaderboardUsers.map((user, idx) => {
-              const isMe = user.telegram_id === (getTelegramUser()?.id || 0);
-              return (
-                <div
-                  key={user.telegram_id}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
-                    isMe
-                      ? "bg-emerald-500/10 border border-emerald-500/25"
-                      : "bg-white/[0.02] border border-white/5"
-                  }`}
-                >
-                  {/* Rank */}
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0">
-                    {idx === 0 ? (
-                      <span className="text-lg">🥇</span>
-                    ) : idx === 1 ? (
-                      <span className="text-lg">🥈</span>
-                    ) : (
-                      <span className="text-lg">🥉</span>
-                    )}
-                  </div>
-
-                  {/* Name */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium truncate ${isMe ? "text-emerald-400" : "text-white/80"}`}>
-                      {user.name}
-                      {isMe && <span className="ml-1 text-[10px] text-emerald-400/60">(Вы)</span>}
-                    </p>
-                    <p className="text-[10px] text-white/30">{user.level}</p>
-                  </div>
-
-                  {/* Points */}
-                  <div className="text-right shrink-0">
-                    <p className={`text-sm font-bold tabular-nums ${
-                      idx === 0 ? "text-yellow-400" : idx === 1 ? "text-gray-300" : "text-amber-600"
-                    }`}>
-                      {user.totalPoints.toLocaleString()}
-                    </p>
-                    <p className="text-[9px] text-white/20">очков</p>
-                  </div>
-
-                  {/* Streak */}
-                  {user.streak > 0 && (
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <span className="text-[10px]">🔥</span>
-                      <span className="text-[10px] text-orange-400/70">{user.streak}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-xs text-white/30 text-center py-3">Нет данных</p>
-        )}
-
-        <div className="mt-3 pt-2.5 border-t border-white/5 text-center">
-          <p className="text-[10px] text-white/30">
-            Зарабатывайте баллы и соревнуйтесь с другими мусульманами 🏆
-          </p>
+          <ChevronRight className="w-5 h-5 text-white/20 shrink-0" />
         </div>
       </div>
 
