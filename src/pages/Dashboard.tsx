@@ -497,76 +497,94 @@ const POPULAR_SURAHS = [
 
 const FEATURE_SLIDES = [
   {
-    emoji: "\u{1F4D6}",
-    title: "Читай Коран",
-    desc: "С переводом и транслитерацией",
-    path: "/quran",
-    from: "from-sky-500",
-    to: "to-blue-600",
-    shadow: "shadow-sky-500/25",
+    emoji: "\u{1F30C}",
+    title: "Вычисляй время заката",
+    desc: "Точное время намазов для твоего города",
+    path: "/prayers",
+    from: "from-indigo-500",
+    to: "to-violet-600",
+    shadow: "shadow-indigo-500/25",
   },
   {
-    emoji: "\u{1F54C}",
-    title: "Отслеживай намазы",
-    desc: "Получай баллы за каждый намаз",
-    path: "/prayers",
+    emoji: "\u{2728}",
+    title: "99 имён Аллаха",
+    desc: "Изучай значения и истории каждого имени",
+    path: "/names",
+    from: "from-amber-500",
+    to: "to-yellow-600",
+    shadow: "shadow-amber-500/25",
+  },
+  {
+    emoji: "\u{1F4D6}",
+    title: "25 историй пророков",
+    desc: "От Адама до Мухаммада ﷺ",
+    path: "/prophets",
     from: "from-emerald-500",
     to: "to-teal-600",
     shadow: "shadow-emerald-500/25",
   },
   {
+    emoji: "\u{1F9ED}",
+    title: "Компас Киблы",
+    desc: "Направление на Мекку в реальном времени",
+    path: "/qibla",
+    from: "from-sky-500",
+    to: "to-cyan-600",
+    shadow: "shadow-sky-500/25",
+  },
+  {
     emoji: "\u{1F4FF}",
-    title: "Делай зикры",
-    desc: "Повышай свой иман каждый день",
+    title: "Цифровые чётки",
+    desc: "Считай зикры с вибрацией и звуком",
     path: "/dhikr",
     from: "from-teal-500",
-    to: "to-cyan-600",
+    to: "to-emerald-600",
     shadow: "shadow-teal-500/25",
   },
   {
-    emoji: "\u{1F9E0}",
-    title: "Проверяй знания",
-    desc: "Викторина по исламским наукам",
-    path: "/quiz",
-    from: "from-orange-500",
-    to: "to-amber-600",
-    shadow: "shadow-orange-500/25",
-  },
-  {
-    emoji: "\u{1F319}",
-    title: "Трекер Рамадана",
-    desc: "Отмечай пост и цели месяца",
-    path: "/ramadan",
+    emoji: "\u{1F3A7}",
+    title: "Слушай Коран",
+    desc: "Аудио всех 114 сур с переводом",
+    path: "/quran",
     from: "from-violet-500",
     to: "to-purple-600",
     shadow: "shadow-violet-500/25",
   },
   {
+    emoji: "\u{1F9E0}",
+    title: "Викторина по Исламу",
+    desc: "Проверь знания и соревнуйся с друзьями",
+    path: "/quiz",
+    from: "from-orange-500",
+    to: "to-red-600",
+    shadow: "shadow-orange-500/25",
+  },
+  {
     emoji: "\u{1F932}",
-    title: "Читай дуа",
-    desc: "На все случаи жизни",
-    path: "/dua",
+    title: "Стена дуа",
+    desc: "Анонимные мольбы мусульман со всего мира",
+    path: "/dua-wall",
     from: "from-pink-500",
     to: "to-rose-600",
     shadow: "shadow-pink-500/25",
   },
   {
     emoji: "\u{1F525}",
-    title: "Собирай серию дней",
-    desc: "Повышай уровень каждый день",
+    title: "Серия дней \u{1F525}",
+    desc: "Собирай страйк и поднимай уровень",
     path: "/stats",
-    from: "from-amber-500",
+    from: "from-rose-500",
     to: "to-orange-600",
-    shadow: "shadow-amber-500/25",
+    shadow: "shadow-rose-500/25",
   },
   {
-    emoji: "\u{1F3A7}",
-    title: "Заучивай суры",
-    desc: "Слушай и повторяй аяты",
-    path: "/memorize",
-    from: "from-indigo-500",
-    to: "to-blue-600",
-    shadow: "shadow-indigo-500/25",
+    emoji: "\u{1F4B0}",
+    title: "Калькулятор закята",
+    desc: "Рассчитай свой закят за 1 минуту",
+    path: "/zakat",
+    from: "from-lime-500",
+    to: "to-green-600",
+    shadow: "shadow-lime-500/25",
   },
 ];
 
@@ -588,7 +606,7 @@ function FeatureBanner() {
         setCurrent((prev) => (prev + 1) % FEATURE_SLIDES.length);
         setIsAnimating(false);
       }, 300);
-    }, 5000);
+    }, 3000);
   }, []);
 
   useEffect(() => {
@@ -757,8 +775,19 @@ export default function Dashboard() {
   const [favoritesCount, setFavoritesCount] = useState(0);
 
   // Leaderboard preview
-  const [leaderTop, setLeaderTop] = useState<{ name: string; totalPoints: number; rank: number; streak: number; telegram_id: string }[]>([]);
-  const [myRank, setMyRank] = useState<{ rank: number; totalPoints: number } | null>(null);
+  const [leaderTop, setLeaderTop] = useState<
+    {
+      name: string;
+      totalPoints: number;
+      rank: number;
+      streak: number;
+      telegram_id: string;
+    }[]
+  >([]);
+  const [myRank, setMyRank] = useState<{
+    rank: number;
+    totalPoints: number;
+  } | null>(null);
   const [totalUsersCount, setTotalUsersCount] = useState(0);
 
   // Points info modal
@@ -801,6 +830,15 @@ export default function Dashboard() {
     id: string;
     points: number;
   } | null>(null);
+
+  // Community stats (from /health)
+  const [communityUsers, setCommunityUsers] = useState(0);
+  useEffect(() => {
+    fetch("/health")
+      .then((r) => r.json())
+      .then((d) => setCommunityUsers(d.subscribers || d.users || 0))
+      .catch(() => {});
+  }, []);
 
   // Weekly data
   const [weekDates] = useState<Date[]>(getWeekDates);
@@ -885,13 +923,18 @@ export default function Dashboard() {
         setTotalUsersCount(data.totalUsers || users.length);
         const tgUser = getTelegramUser();
         if (tgUser?.id) {
-          const me = users.find((u: { telegram_id: string }) => String(u.telegram_id) === String(tgUser.id));
+          const me = users.find(
+            (u: { telegram_id: string }) =>
+              String(u.telegram_id) === String(tgUser.id),
+          );
           if (me) setMyRank({ rank: me.rank, totalPoints: me.totalPoints });
         }
       } catch {}
     }
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // ---------- Count favorites ----------
@@ -1152,6 +1195,35 @@ export default function Dashboard() {
       <FeatureBanner />
 
       {/* ================================================================ */}
+      {/* 1.6 DUA WALL PROMO (с счётчиком пользователей)                   */}
+      {/* ================================================================ */}
+      {communityUsers > 0 && (
+        <button
+          onClick={() => navigate("/dua-wall")}
+          className="w-full glass-card p-4 flex items-center gap-3.5 hover:scale-[1.01] active:scale-[0.99] transition-transform relative overflow-hidden"
+        >
+          <div className="absolute -top-8 -right-8 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500/30 to-pink-500/20 border border-rose-500/20 flex items-center justify-center shrink-0">
+            <span className="text-xl">{"\u{1F932}"}</span>
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <h3 className="text-sm font-bold text-white">Стена дуа</h3>
+            <p className="text-xs text-white/50 mt-0.5">
+              Анонимные мольбы мусульман
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 bg-rose-500/15 px-2.5 py-1 rounded-full border border-rose-500/20 shrink-0">
+            <div className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+            <span className="text-xs font-bold text-rose-400 tabular-nums">
+              {communityUsers}
+            </span>
+            <span className="text-[10px] text-rose-400/60">чел.</span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-white/20 shrink-0" />
+        </button>
+      )}
+
+      {/* ================================================================ */}
       {/* 2. ДВЕ БОЛЬШИЕ КНОПКИ (Инструкция + Новичкам)                   */}
       {/* ================================================================ */}
       <div className="grid grid-cols-2 gap-3">
@@ -1334,7 +1406,9 @@ export default function Dashboard() {
                   </span>
                   {isDone && <Check size={10} className="text-emerald-400" />}
                   {isMissed && <X size={10} className="text-red-400" />}
-                  {notYet && !isDone && !isMissed && <Lock size={9} className="text-white/20" />}
+                  {notYet && !isDone && !isMissed && (
+                    <Lock size={9} className="text-white/20" />
+                  )}
                 </button>
               );
             })}
@@ -1410,49 +1484,163 @@ export default function Dashboard() {
           title: "Намаз и поклонение",
           emoji: "🕌",
           items: [
-            { icon: Moon, label: "Намазы", path: "/prayers", color: "text-emerald-300", grad: "from-emerald-600/40 to-emerald-500/20" },
-            { icon: Landmark, label: "Гид по намазу", path: "/namaz-guide", color: "text-indigo-300", grad: "from-indigo-600/40 to-indigo-500/20" },
-            { icon: Heart, label: "Дуа", path: "/dua", color: "text-pink-300", grad: "from-pink-600/40 to-pink-500/20" },
-            { icon: Repeat, label: "Зикры", path: "/dhikr", color: "text-teal-300", grad: "from-teal-600/40 to-teal-500/20" },
-            { icon: CalendarDays, label: "Рамадан", path: "/ramadan", color: "text-emerald-200", grad: "from-emerald-600/40 to-teal-500/20" },
-            { icon: Calculator, label: "Закят", path: "/zakat", color: "text-green-300", grad: "from-green-600/40 to-green-500/20" },
+            {
+              icon: Moon,
+              label: "Намазы",
+              path: "/prayers",
+              color: "text-emerald-300",
+              grad: "from-emerald-600/40 to-emerald-500/20",
+            },
+            {
+              icon: Landmark,
+              label: "Гид по намазу",
+              path: "/namaz-guide",
+              color: "text-indigo-300",
+              grad: "from-indigo-600/40 to-indigo-500/20",
+            },
+            {
+              icon: Heart,
+              label: "Дуа",
+              path: "/dua",
+              color: "text-pink-300",
+              grad: "from-pink-600/40 to-pink-500/20",
+            },
+            {
+              icon: Repeat,
+              label: "Зикры",
+              path: "/dhikr",
+              color: "text-teal-300",
+              grad: "from-teal-600/40 to-teal-500/20",
+            },
+            {
+              icon: CalendarDays,
+              label: "Рамадан",
+              path: "/ramadan",
+              color: "text-emerald-200",
+              grad: "from-emerald-600/40 to-teal-500/20",
+            },
+            {
+              icon: Calculator,
+              label: "Закят",
+              path: "/zakat",
+              color: "text-green-300",
+              grad: "from-green-600/40 to-green-500/20",
+            },
           ],
         },
         {
           title: "Коран и знания",
           emoji: "📖",
           items: [
-            { icon: BookOpen, label: "Коран", path: "/quran", color: "text-sky-300", grad: "from-sky-600/40 to-sky-500/20" },
-            { icon: Headphones, label: "Заучивание", path: "/memorize", color: "text-violet-300", grad: "from-violet-600/40 to-violet-500/20" },
-            { icon: Bookmark, label: "Рекомендации", path: "/recommended", color: "text-amber-200", grad: "from-amber-600/40 to-amber-400/20" },
-            { icon: Quote, label: "Хадисы", path: "/hadiths", color: "text-amber-300", grad: "from-amber-600/40 to-amber-500/20" },
-            { icon: Star, label: "99 имён", path: "/names", color: "text-purple-300", grad: "from-purple-600/40 to-purple-500/20" },
+            {
+              icon: BookOpen,
+              label: "Коран",
+              path: "/quran",
+              color: "text-sky-300",
+              grad: "from-sky-600/40 to-sky-500/20",
+            },
+            {
+              icon: Headphones,
+              label: "Заучивание",
+              path: "/memorize",
+              color: "text-violet-300",
+              grad: "from-violet-600/40 to-violet-500/20",
+            },
+            {
+              icon: Bookmark,
+              label: "Рекомендации",
+              path: "/recommended",
+              color: "text-amber-200",
+              grad: "from-amber-600/40 to-amber-400/20",
+            },
+            {
+              icon: Quote,
+              label: "Хадисы",
+              path: "/hadiths",
+              color: "text-amber-300",
+              grad: "from-amber-600/40 to-amber-500/20",
+            },
+            {
+              icon: Star,
+              label: "99 имён",
+              path: "/names",
+              color: "text-purple-300",
+              grad: "from-purple-600/40 to-purple-500/20",
+            },
           ],
         },
         {
           title: "Истории и сира",
           emoji: "📜",
           items: [
-            { icon: Scroll, label: "Сира пророка", path: "/seerah", color: "text-rose-300", grad: "from-rose-600/40 to-rose-500/20" },
-            { icon: BookOpen, label: "Пророки", path: "/prophets", color: "text-emerald-300", grad: "from-emerald-600/40 to-emerald-500/20" },
-            { icon: Users, label: "Истории", path: "/stories", color: "text-cyan-300", grad: "from-cyan-600/40 to-cyan-500/20" },
+            {
+              icon: Scroll,
+              label: "Сира пророка",
+              path: "/seerah",
+              color: "text-rose-300",
+              grad: "from-rose-600/40 to-rose-500/20",
+            },
+            {
+              icon: BookOpen,
+              label: "Пророки",
+              path: "/prophets",
+              color: "text-emerald-300",
+              grad: "from-emerald-600/40 to-emerald-500/20",
+            },
+            {
+              icon: Users,
+              label: "Истории",
+              path: "/stories",
+              color: "text-cyan-300",
+              grad: "from-cyan-600/40 to-cyan-500/20",
+            },
           ],
         },
         {
           title: "Развитие и прогресс",
           emoji: "🏆",
           items: [
-            { icon: Brain, label: "Викторина", path: "/quiz", color: "text-orange-300", grad: "from-orange-600/40 to-orange-500/20" },
-            { icon: Target, label: "Привычки", path: "/habits", color: "text-rose-300", grad: "from-rose-600/40 to-rose-500/20" },
-            { icon: Timer, label: "Помидоро", path: "/ibadah", color: "text-cyan-300", grad: "from-cyan-600/40 to-cyan-500/20" },
-            { icon: BarChart3, label: "Статистика", path: "/stats", color: "text-lime-300", grad: "from-lime-600/40 to-lime-500/20" },
+            {
+              icon: Brain,
+              label: "Викторина",
+              path: "/quiz",
+              color: "text-orange-300",
+              grad: "from-orange-600/40 to-orange-500/20",
+            },
+            {
+              icon: Target,
+              label: "Привычки",
+              path: "/habits",
+              color: "text-rose-300",
+              grad: "from-rose-600/40 to-rose-500/20",
+            },
+            {
+              icon: Timer,
+              label: "Помидоро",
+              path: "/ibadah",
+              color: "text-cyan-300",
+              grad: "from-cyan-600/40 to-cyan-500/20",
+            },
+            {
+              icon: BarChart3,
+              label: "Статистика",
+              path: "/stats",
+              color: "text-lime-300",
+              grad: "from-lime-600/40 to-lime-500/20",
+            },
           ],
         },
         {
           title: "Сообщество",
           emoji: "🤲",
           items: [
-            { icon: Heart, label: "Стена дуа", path: "/dua-wall", color: "text-rose-300", grad: "from-rose-600/40 to-rose-500/20" },
+            {
+              icon: Heart,
+              label: "Стена дуа",
+              path: "/dua-wall",
+              color: "text-rose-300",
+              grad: "from-rose-600/40 to-rose-500/20",
+            },
           ],
         },
       ].map((section) => (
@@ -1470,7 +1658,9 @@ export default function Dashboard() {
                 onClick={() => navigate(path)}
                 className="glass-card p-3 flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-transform border border-white/[0.06]"
               >
-                <div className={`bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg`}>
+                <div
+                  className={`bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg`}
+                >
                   <Icon size={22} className={color} />
                 </div>
                 <span className="text-[10px] text-white/80 font-medium text-center leading-tight line-clamp-2 px-0.5">
@@ -1621,7 +1811,9 @@ export default function Dashboard() {
           <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-yellow-500/30 to-amber-500/20 border border-yellow-500/30 flex items-center justify-center">
             <Trophy className="w-7 h-7 text-yellow-400" />
           </div>
-          <h3 className="text-lg font-bold text-white">Ворвитесь в топ лидеров!</h3>
+          <h3 className="text-lg font-bold text-white">
+            Ворвитесь в топ лидеров!
+          </h3>
           <p className="text-xs text-white/40 mt-1">
             Делайте ибадаты и соревнуйтесь в благом
           </p>
@@ -1632,7 +1824,8 @@ export default function Dashboard() {
           <div className="space-y-1.5 mb-3">
             {leaderTop.map((user, idx) => {
               const medals = ["🥇", "🥈", "🥉"];
-              const isMe = String(user.telegram_id) === String(getTelegramUser()?.id || 0);
+              const isMe =
+                String(user.telegram_id) === String(getTelegramUser()?.id || 0);
               return (
                 <div
                   key={user.telegram_id}
@@ -1643,15 +1836,35 @@ export default function Dashboard() {
                   }`}
                 >
                   <span className="text-base w-6 text-center shrink-0">
-                    {idx < 3 ? medals[idx] : <span className="text-xs font-bold text-white/30">#{user.rank}</span>}
+                    {idx < 3 ? (
+                      medals[idx]
+                    ) : (
+                      <span className="text-xs font-bold text-white/30">
+                        #{user.rank}
+                      </span>
+                    )}
                   </span>
-                  <p className={`text-sm font-medium flex-1 truncate ${isMe ? "text-emerald-400" : "text-white/70"}`}>
+                  <p
+                    className={`text-sm font-medium flex-1 truncate ${isMe ? "text-emerald-400" : "text-white/70"}`}
+                  >
                     {user.name}
-                    {isMe && <span className="text-[10px] text-emerald-400/50 ml-1">(Вы)</span>}
+                    {isMe && (
+                      <span className="text-[10px] text-emerald-400/50 ml-1">
+                        (Вы)
+                      </span>
+                    )}
                   </p>
-                  <span className={`text-xs font-bold tabular-nums ${
-                    idx === 0 ? "text-yellow-400" : idx === 1 ? "text-gray-300" : idx === 2 ? "text-amber-600" : "text-white/40"
-                  }`}>
+                  <span
+                    className={`text-xs font-bold tabular-nums ${
+                      idx === 0
+                        ? "text-yellow-400"
+                        : idx === 1
+                          ? "text-gray-300"
+                          : idx === 2
+                            ? "text-amber-600"
+                            : "text-white/40"
+                    }`}
+                  >
                     {user.totalPoints.toLocaleString()}
                   </span>
                   {user.streak > 0 && (
@@ -1672,7 +1885,9 @@ export default function Dashboard() {
               <div className="flex-1 border-t border-dashed border-white/10" />
             </div>
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30">
-              <span className="text-xs font-bold text-white/40 w-6 text-center">#{myRank.rank}</span>
+              <span className="text-xs font-bold text-white/40 w-6 text-center">
+                #{myRank.rank}
+              </span>
               <p className="text-sm font-medium flex-1 text-emerald-400">
                 {profile.name || "Вы"}
               </p>
@@ -1706,31 +1921,80 @@ export default function Dashboard() {
       {/* POINTS INFO MODAL                                                */}
       {/* ================================================================ */}
       {showPointsInfo && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-5 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={() => setShowPointsInfo(false)}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center px-5 bg-black/70 backdrop-blur-sm animate-fade-in"
+          onClick={() => setShowPointsInfo(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 py-4 text-center">
-              <h2 className="text-lg font-bold text-white">Как зарабатывать баллы?</h2>
-              <p className="text-emerald-100/70 text-xs mt-1">Система вознаграждений IMAN</p>
+              <h2 className="text-lg font-bold text-white">
+                Как зарабатывать баллы?
+              </h2>
+              <p className="text-emerald-100/70 text-xs mt-1">
+                Система вознаграждений IMAN
+              </p>
             </div>
             <div className="bg-[#1a1a2e] px-4 py-4 space-y-1.5 max-h-[60vh] overflow-auto">
               {[
-                { emoji: "🕌", label: "Намаз вовремя", pts: POINTS.PRAYER_ONTIME },
-                { emoji: "🕐", label: "Намаз с опозданием", pts: POINTS.PRAYER_LATE },
+                {
+                  emoji: "🕌",
+                  label: "Намаз вовремя",
+                  pts: POINTS.PRAYER_ONTIME,
+                },
+                {
+                  emoji: "🕐",
+                  label: "Намаз с опозданием",
+                  pts: POINTS.PRAYER_LATE,
+                },
                 { emoji: "📖", label: "Чтение Корана", pts: POINTS.QURAN },
                 { emoji: "📿", label: "Дуа", pts: POINTS.DUA },
-                { emoji: "🤲", label: "Азкары (утро/вечер)", pts: POINTS.AZKAR },
+                {
+                  emoji: "🤲",
+                  label: "Азкары (утро/вечер)",
+                  pts: POINTS.AZKAR,
+                },
                 { emoji: "💰", label: "Садака", pts: POINTS.CHARITY },
                 { emoji: "🕌", label: "Пост", pts: POINTS.FASTING },
-                { emoji: "🧠", label: "Викторина (за ответ)", pts: POINTS.QUIZ_CORRECT },
-                { emoji: "📝", label: "Заучивание аятов", pts: POINTS.MEMORIZE_REPEAT },
-                { emoji: "⏱️", label: "Ибадат-таймер (за мин.)", pts: POINTS.IBADAH_MINUTE },
-                { emoji: "💳", label: "Расчёт закята", pts: POINTS.ZAKAT_LOGGED },
-                { emoji: "🌟", label: "Ежедневный бонус", pts: POINTS.DAILY_BONUS },
+                {
+                  emoji: "🧠",
+                  label: "Викторина (за ответ)",
+                  pts: POINTS.QUIZ_CORRECT,
+                },
+                {
+                  emoji: "📝",
+                  label: "Заучивание аятов",
+                  pts: POINTS.MEMORIZE_REPEAT,
+                },
+                {
+                  emoji: "⏱️",
+                  label: "Ибадат-таймер (за мин.)",
+                  pts: POINTS.IBADAH_MINUTE,
+                },
+                {
+                  emoji: "💳",
+                  label: "Расчёт закята",
+                  pts: POINTS.ZAKAT_LOGGED,
+                },
+                {
+                  emoji: "🌟",
+                  label: "Ежедневный бонус",
+                  pts: POINTS.DAILY_BONUS,
+                },
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-white/[0.03]">
+                <div
+                  key={i}
+                  className="flex items-center gap-3 py-2 px-3 rounded-xl bg-white/[0.03]"
+                >
                   <span className="text-base">{item.emoji}</span>
-                  <span className="text-sm text-white/70 flex-1">{item.label}</span>
-                  <span className="text-sm font-bold text-emerald-400">+{item.pts}</span>
+                  <span className="text-sm text-white/70 flex-1">
+                    {item.label}
+                  </span>
+                  <span className="text-sm font-bold text-emerald-400">
+                    +{item.pts}
+                  </span>
                 </div>
               ))}
             </div>
