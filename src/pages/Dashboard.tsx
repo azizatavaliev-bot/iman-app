@@ -2075,7 +2075,7 @@ export default function Dashboard() {
             className="py-2.5 px-4 rounded-xl bg-white/[0.04] border border-white/10 text-sm font-medium text-white/50 flex items-center justify-center gap-1.5 hover:bg-white/[0.08] active:scale-[0.97] transition-all"
           >
             <Info size={14} />
-            Баллы
+            Саваб
           </button>
         </div>
       </div>
@@ -2094,10 +2094,10 @@ export default function Dashboard() {
           >
             <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 py-4 text-center">
               <h2 className="text-lg font-bold text-white">
-                Как зарабатывать баллы?
+                Как зарабатывать саваб?
               </h2>
               <p className="text-emerald-100/70 text-xs mt-1">
-                Система вознаграждений IMAN
+                Система саваб-коинов IMAN
               </p>
             </div>
             <div className="bg-[#1a1a2e] px-4 py-4 space-y-1.5 max-h-[60vh] overflow-auto">
