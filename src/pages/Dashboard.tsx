@@ -144,17 +144,41 @@ function toDateKey(date?: Date | string): string {
   return date.toISOString().slice(0, 10);
 }
 
-function getGreeting(): { salaam: string; timeGreeting: string } {
+const DAILY_MOTIVATIONS = [
+  "Каждый намаз — разговор с Аллахом",
+  "Терпение — половина имана",
+  "Лучший из вас — полезный для людей",
+  "Улыбка — тоже садака",
+  "Начни день с Бисмиллях",
+  "Знание — свет на твоём пути",
+  "Дуа — оружие верующего",
+  "Сегодня лучше, чем вчера",
+  "Аллах любит постоянные дела",
+  "Благодари Аллаха за каждый вздох",
+  "Тот, кто идёт к Аллаху шагом — Аллах идёт к нему бегом",
+  "Самый любимый пост — пост Давуда",
+  "Рай под ногами матерей",
+  "Зикр — пища для сердца",
+  "Ихсан — поклоняйся, будто видишь Аллаха",
+  "Кто читает Аль-Кахф в пятницу — свет до следующей пятницы",
+  "Лучшее украшение — хороший нрав",
+  "Щедрость не уменьшает богатства",
+  "Тавба стирает то, что было до неё",
+  "Каждый день — шанс стать ближе к Аллаху",
+];
+
+function getGreeting(): { headline: string; sub: string } {
   const hour = new Date().getHours();
-  let timeGreeting: string;
+  const dayIndex = Math.floor(Date.now() / 86400000) % DAILY_MOTIVATIONS.length;
+  let sub: string;
   if (hour >= 4 && hour < 12) {
-    timeGreeting = "Доброе утро";
+    sub = "Доброе утро";
   } else if (hour >= 12 && hour < 17) {
-    timeGreeting = "Добрый день";
+    sub = "Добрый день";
   } else {
-    timeGreeting = "Добрый вечер";
+    sub = "Добрый вечер";
   }
-  return { salaam: "Ас-саляму алейкум!", timeGreeting };
+  return { headline: DAILY_MOTIVATIONS[dayIndex], sub };
 }
 
 function parseTimeToDate(timeStr: string): Date {
@@ -318,7 +342,7 @@ function DailyProgressRing({
           из {possible}
         </span>
         <span className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">
-          очков
+          саваб 🪙
         </span>
       </div>
     </div>
@@ -497,43 +521,70 @@ const POPULAR_SURAHS = [
 
 const FEATURE_SLIDES = [
   {
-    emoji: "\u{1F30C}",
-    title: "Вычисляй время заката",
-    desc: "Точное время намазов для твоего города",
-    path: "/prayers",
-    from: "from-indigo-500",
-    to: "to-violet-600",
-    shadow: "shadow-indigo-500/25",
+    emoji: "📖",
+    title: "Заучивание сур Корана",
+    desc: "Запоминай аяты с подсказками и повторением",
+    path: "/memorize",
+    from: "from-emerald-500",
+    to: "to-green-600",
+    shadow: "shadow-emerald-500/25",
   },
   {
-    emoji: "\u{2728}",
-    title: "99 имён Аллаха",
-    desc: "Изучай значения и истории каждого имени",
-    path: "/names",
+    emoji: "📜",
+    title: "Хадис дня",
+    desc: "Каждый день новый достоверный хадис",
+    path: "/hadiths",
     from: "from-amber-500",
     to: "to-yellow-600",
     shadow: "shadow-amber-500/25",
   },
   {
-    emoji: "\u{1F4D6}",
-    title: "25 историй пророков",
-    desc: "От Адама до Мухаммада ﷺ",
-    path: "/prophets",
-    from: "from-emerald-500",
-    to: "to-teal-600",
-    shadow: "shadow-emerald-500/25",
+    emoji: "🤲",
+    title: "Стена дуа",
+    desc: "Анонимные мольбы мусульман со всего мира",
+    path: "/dua-wall",
+    from: "from-rose-500",
+    to: "to-pink-600",
+    shadow: "shadow-rose-500/25",
   },
   {
-    emoji: "\u{1F9ED}",
-    title: "Компас Киблы",
-    desc: "Направление на Мекку в реальном времени",
-    path: "/qibla",
-    from: "from-sky-500",
-    to: "to-cyan-600",
-    shadow: "shadow-sky-500/25",
+    emoji: "🍅",
+    title: "Помодоро-таймер ибадата",
+    desc: "Фокусируйся на поклонении без отвлечений",
+    path: "/ibadah-timer",
+    from: "from-red-500",
+    to: "to-orange-600",
+    shadow: "shadow-red-500/25",
   },
   {
-    emoji: "\u{1F4FF}",
+    emoji: "🕌",
+    title: "Гид по намазу",
+    desc: "Пошаговая инструкция для каждого намаза",
+    path: "/namaz-guide",
+    from: "from-indigo-500",
+    to: "to-violet-600",
+    shadow: "shadow-indigo-500/25",
+  },
+  {
+    emoji: "🌙",
+    title: "Трекер Рамадана",
+    desc: "Счётчик дней, сухуры и ифтары",
+    path: "/ramadan",
+    from: "from-purple-500",
+    to: "to-indigo-600",
+    shadow: "shadow-purple-500/25",
+  },
+  {
+    emoji: "✨",
+    title: "99 имён Аллаха",
+    desc: "Изучай значения и игра на запоминание",
+    path: "/names",
+    from: "from-yellow-500",
+    to: "to-amber-600",
+    shadow: "shadow-yellow-500/25",
+  },
+  {
+    emoji: "📿",
     title: "Цифровые чётки",
     desc: "Считай зикры с вибрацией и звуком",
     path: "/dhikr",
@@ -542,7 +593,25 @@ const FEATURE_SLIDES = [
     shadow: "shadow-teal-500/25",
   },
   {
-    emoji: "\u{1F3A7}",
+    emoji: "📕",
+    title: "30 историй Ислама",
+    desc: "Достоверные истории с источниками хадисов",
+    path: "/stories",
+    from: "from-orange-500",
+    to: "to-red-600",
+    shadow: "shadow-orange-500/25",
+  },
+  {
+    emoji: "🧭",
+    title: "Компас Киблы",
+    desc: "Направление на Мекку в реальном времени",
+    path: "/qibla",
+    from: "from-sky-500",
+    to: "to-cyan-600",
+    shadow: "shadow-sky-500/25",
+  },
+  {
+    emoji: "🎧",
     title: "Слушай Коран",
     desc: "Аудио всех 114 сур с переводом",
     path: "/quran",
@@ -551,40 +620,22 @@ const FEATURE_SLIDES = [
     shadow: "shadow-violet-500/25",
   },
   {
-    emoji: "\u{1F9E0}",
+    emoji: "🧠",
     title: "Викторина по Исламу",
     desc: "Проверь знания и соревнуйся с друзьями",
     path: "/quiz",
-    from: "from-orange-500",
-    to: "to-red-600",
-    shadow: "shadow-orange-500/25",
+    from: "from-fuchsia-500",
+    to: "to-pink-600",
+    shadow: "shadow-fuchsia-500/25",
   },
   {
-    emoji: "\u{1F932}",
-    title: "Стена дуа",
-    desc: "Анонимные мольбы мусульман со всего мира",
-    path: "/dua-wall",
-    from: "from-pink-500",
-    to: "to-rose-600",
-    shadow: "shadow-pink-500/25",
-  },
-  {
-    emoji: "\u{1F525}",
-    title: "Серия дней \u{1F525}",
-    desc: "Собирай страйк и поднимай уровень",
-    path: "/stats",
-    from: "from-rose-500",
-    to: "to-orange-600",
-    shadow: "shadow-rose-500/25",
-  },
-  {
-    emoji: "\u{1F4B0}",
-    title: "Калькулятор закята",
-    desc: "Рассчитай свой закят за 1 минуту",
-    path: "/zakat",
-    from: "from-lime-500",
-    to: "to-green-600",
-    shadow: "shadow-lime-500/25",
+    emoji: "📖",
+    title: "25 историй пророков",
+    desc: "От Адама до Мухаммада ﷺ",
+    path: "/prophets",
+    from: "from-emerald-500",
+    to: "to-teal-600",
+    shadow: "shadow-emerald-500/25",
   },
 ];
 
@@ -722,46 +773,69 @@ function FeatureBanner() {
 
 function WelcomeModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-start pt-8 px-5 bg-black/70 backdrop-blur-sm animate-fade-in overflow-auto">
-      <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-5 text-center">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-white/15 flex items-center justify-center">
-            <span className="text-3xl">☪️</span>
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center px-5 bg-gradient-to-b from-slate-900 via-[#0d1117] to-black animate-fade-in overflow-auto">
+      {/* Decorative glow */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="w-full max-w-sm space-y-6 relative z-10">
+        {/* Logo + Brand */}
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30 border border-emerald-400/20">
+            <span className="text-4xl">☪️</span>
           </div>
-          <h2 className="text-xl font-bold text-white">Ас-саляму алейкум!</h2>
-          <p className="text-emerald-100/80 mt-1 text-xs">
-            Добро пожаловать в приложение IMAN
+          <h1 className="text-3xl font-black text-white tracking-tight">
+            IMAN
+          </h1>
+          <p className="text-white/40 text-xs mt-1">by Aziz Atavaliev</p>
+          <p className="text-emerald-400/80 text-sm mt-3 font-medium">
+            Ас-саляму алейкум! Добро пожаловать
           </p>
         </div>
 
-        {/* Content */}
-        <div className="bg-[#1a1a2e] px-5 py-4 space-y-3">
-          <p className="text-white/80 text-sm">
-            IMAN — ваш помощник в ибадате:
+        {/* Features */}
+        <div className="glass-card p-4 space-y-2.5">
+          <p className="text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
+            Что внутри
           </p>
-          <div className="space-y-1.5">
-            {[
-              { emoji: "🕌", text: "Отслеживать намазы и получать баллы" },
-              { emoji: "📖", text: "Читать и заучивать суры Корана" },
-              { emoji: "📿", text: "Делать зикры и дуа" },
-              { emoji: "🌙", text: "Вести трекер Рамадана" },
-              { emoji: "🧠", text: "Проверять знания в викторине" },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2.5">
+          {[
+            { emoji: "🕌", text: "Трекер 5 намазов с напоминаниями" },
+            { emoji: "📖", text: "Коран с переводом и заучиванием" },
+            { emoji: "📿", text: "Зикры, дуа и стена мольб" },
+            { emoji: "🌙", text: "Трекер Рамадана и хадисы дня" },
+            { emoji: "🧠", text: "Викторина и 30 историй Ислама" },
+            { emoji: "🏆", text: "Саваб — зарабатывай награду за ибадат" },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
                 <span className="text-base">{item.emoji}</span>
-                <span className="text-white/70 text-xs">{item.text}</span>
               </div>
-            ))}
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full mt-2 py-3 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-white transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/30"
-          >
-            Начать
-          </button>
+              <span className="text-white/70 text-sm">{item.text}</span>
+            </div>
+          ))}
         </div>
+
+        {/* Telegram CTA */}
+        <a
+          href="https://t.me/iman_app_official"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#2AABEE]/15 border border-[#2AABEE]/30 text-[#2AABEE] text-sm font-medium hover:bg-[#2AABEE]/25 transition-all active:scale-[0.97]"
+        >
+          <span className="text-lg">✈️</span>
+          Подпишись на наш Telegram-канал
+        </a>
+
+        {/* Start button */}
+        <button
+          onClick={onClose}
+          className="w-full py-4 rounded-2xl text-base font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all active:scale-[0.97] shadow-xl shadow-emerald-500/25"
+        >
+          Начать путь к Аллаху
+        </button>
+
+        <p className="text-center text-white/20 text-[10px]">
+          Включите уведомления, чтобы не пропускать намазы
+        </p>
       </div>
     </div>
   );
@@ -1171,18 +1245,18 @@ export default function Dashboard() {
       {/* 1. HEADER                                                        */}
       {/* ================================================================ */}
       <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white leading-tight">
-            {greeting.salaam}
-          </h1>
-          <p className="text-base t-text-m mt-0.5">
-            {greeting.timeGreeting}
-            {profile.name ? `, ${profile.name}` : ""}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-white/50">
+            {greeting.sub}
+            {profile.name ? `, ${profile.name}` : ""} ☪️
           </p>
+          <h1 className="text-base font-bold text-white leading-snug mt-0.5 truncate">
+            {greeting.headline}
+          </h1>
         </div>
         <button
           onClick={() => navigate("/profile")}
-          className="flex items-center gap-1.5 glass-card px-3 py-1.5 text-xs font-medium text-amber-400 hover:scale-105 active:scale-95 transition-transform"
+          className="flex items-center gap-1.5 glass-card px-3 py-1.5 text-xs font-medium text-amber-400 hover:scale-105 active:scale-95 transition-transform shrink-0 ml-3"
         >
           <span>{currentLevel.icon}</span>
           <span>{currentLevel.name}</span>

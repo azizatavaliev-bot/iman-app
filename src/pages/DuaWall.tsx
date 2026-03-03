@@ -23,16 +23,18 @@ const API = import.meta.env.VITE_API_URL || "";
 
 const CATEGORIES = [
   { key: "health", label: "Здоровье", icon: "\u{1F49A}" },
-  { key: "family", label: "Семья", icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}" },
+  {
+    key: "family",
+    label: "Семья",
+    icon: "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}",
+  },
   { key: "guidance", label: "Наставление", icon: "\u{1F31F}" },
   { key: "rizq", label: "Ризк", icon: "\u{1F4B0}" },
   { key: "forgiveness", label: "Прощение", icon: "\u{1F932}" },
   { key: "general", label: "Общее", icon: "\u{1F4FF}" },
 ];
 
-const CATEGORY_MAP = Object.fromEntries(
-  CATEGORIES.map((c) => [c.key, c]),
-);
+const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -90,6 +92,7 @@ export default function DuaWall() {
     return new Set();
   });
   const [animatingId, setAnimatingId] = useState<number | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
   // ---------- Fetch requests ----------
   const fetchRequests = useCallback(async () => {
@@ -113,10 +116,7 @@ export default function DuaWall() {
   // ---------- Save prayed IDs to localStorage ----------
   const savePrayedIds = useCallback((ids: Set<number>) => {
     try {
-      localStorage.setItem(
-        "iman_dua_wall_prayed",
-        JSON.stringify([...ids]),
-      );
+      localStorage.setItem("iman_dua_wall_prayed", JSON.stringify([...ids]));
     } catch {
       // ignore
     }
@@ -193,81 +193,136 @@ export default function DuaWall() {
 
   return (
     <div className="min-h-screen pb-8 animate-fade-in">
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 glass px-4 py-3" style={{ borderBottom: "1px solid var(--border-secondary)" }}>
-        <div className="max-w-lg mx-auto flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white/5 active:scale-95 transition-all"
-          >
-            <ChevronLeft size={22} className="text-white/70" />
-          </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-white">Стена дуа</h1>
-            <p className="text-[11px] text-white/40 truncate">
-              Попросите дуа у братьев и сестёр
-            </p>
-          </div>
-          {!showForm && (
+      {/* ── Hero header ──────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden">
+        {/* Decorative background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/8 via-teal-500/5 to-transparent pointer-events-none" />
+        <div className="absolute top-4 right-8 text-6xl opacity-[0.04] pointer-events-none select-none">
+          🤲
+        </div>
+        <div className="absolute top-16 left-6 text-4xl opacity-[0.03] pointer-events-none select-none">
+          ✨
+        </div>
+
+        {/* Nav bar */}
+        <header
+          className="sticky top-0 z-40 px-4 py-3 backdrop-blur-xl bg-black/20"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <div className="max-w-lg mx-auto flex items-center gap-3">
             <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-semibold transition-all active:scale-95 shadow-md shadow-emerald-500/30 shrink-0"
+              onClick={() => navigate(-1)}
+              className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white/5 active:scale-95 transition-all"
             >
-              <Plus size={16} />
-              Добавить
+              <ChevronLeft size={22} className="text-white/70" />
             </button>
-          )}
-        </div>
-      </header>
-
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
-        {/* ── Stats bar ────────────────────────────────────────────────────── */}
-        <div className="glass-card p-3 flex items-center justify-around">
-          <div className="text-center">
-            <p className="text-xl font-bold text-white tabular-nums">
-              {totalRequests}
-            </p>
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">
-              Просьб
-            </p>
-          </div>
-          <div className="w-px h-8 bg-white/10" />
-          <div className="text-center">
-            <p className="text-xl font-bold text-emerald-400 tabular-nums">
-              {totalPrayers}
-            </p>
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">
-              Дуа прочитано
-            </p>
-          </div>
-        </div>
-
-        {/* ── Info block ──────────────────────────────────────────────────── */}
-        <div className="glass-card p-4 space-y-3 border border-emerald-500/10">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-lg">{"\u{1F4D6}"}</span>
-            </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-white mb-1">Как это работает?</h3>
-              <p className="text-xs text-white/50 leading-relaxed">
-                Стена дуа — место, где мусульмане <span className="text-emerald-400">анонимно</span> просят братьев и сестёр сделать за них дуа.
-                Пророк ﷺ сказал: <span className="text-amber-400/80 italic">{"\u00AB"}Дуа мусульманина за своего брата в его отсутствие принимается. У его головы находится ангел, и каждый раз, когда он просит за брата благо, ангел говорит: «Амин, и тебе того же»{"\u00BB"}</span> <span className="text-white/30">(Муслим)</span>
+              <h1 className="text-lg font-bold text-white flex items-center gap-2">
+                🤲 Стена дуа
+              </h1>
+              <p className="text-[11px] text-white/40 truncate">
+                Попросите дуа у братьев и сестёр
               </p>
             </div>
+            {!showForm && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-xs font-bold transition-all active:scale-95 shadow-lg shadow-emerald-500/30 shrink-0"
+              >
+                <Plus size={15} strokeWidth={2.5} />
+                Попросить
+              </button>
+            )}
           </div>
-          <div className="flex gap-2 pt-1">
-            <div className="flex-1 rounded-xl bg-white/[0.03] border border-white/5 p-2.5 text-center">
-              <span className="text-sm">1️⃣</span>
-              <p className="text-[10px] text-white/40 mt-1">Напишите просьбу</p>
+        </header>
+
+        <div className="max-w-lg mx-auto px-4 pt-4 pb-2">
+          {/* ── Stats bar — glass with gradient accents ────────────────────── */}
+          <div className="relative rounded-2xl overflow-hidden p-[1px] bg-gradient-to-r from-emerald-500/20 via-transparent to-teal-500/20">
+            <div className="rounded-2xl bg-black/40 backdrop-blur-xl p-4 flex items-center justify-around">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white tabular-nums">
+                  {totalRequests}
+                </p>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">
+                  Просьб
+                </p>
+              </div>
+              <div className="w-px h-10 bg-gradient-to-b from-transparent via-emerald-500/30 to-transparent" />
+              <div className="text-center">
+                <p className="text-2xl font-bold text-emerald-400 tabular-nums">
+                  {totalPrayers}
+                </p>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">
+                  Дуа прочитано
+                </p>
+              </div>
+              <div className="w-px h-10 bg-gradient-to-b from-transparent via-emerald-500/30 to-transparent" />
+              <div className="text-center">
+                <p className="text-2xl font-bold text-amber-400 tabular-nums">
+                  {prayedIds.size}
+                </p>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-0.5">
+                  Вы прочли
+                </p>
+              </div>
             </div>
-            <div className="flex-1 rounded-xl bg-white/[0.03] border border-white/5 p-2.5 text-center">
-              <span className="text-sm">2️⃣</span>
-              <p className="text-[10px] text-white/40 mt-1">Другие читают дуа</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-lg mx-auto px-4 pt-2 space-y-4">
+        {/* ── Hadith quote card ───────────────────────────────────────────── */}
+        <div className="relative rounded-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10" />
+          <div className="relative p-4 space-y-3 border border-emerald-500/15 rounded-2xl backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/20 flex items-center justify-center">
+                <span className="text-sm">📖</span>
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
+                Хадис
+              </span>
             </div>
-            <div className="flex-1 rounded-xl bg-white/[0.03] border border-white/5 p-2.5 text-center">
-              <span className="text-sm">3️⃣</span>
-              <p className="text-[10px] text-white/40 mt-1">Ангел говорит: Амин!</p>
+            <p className="text-[13px] text-white/70 leading-relaxed italic">
+              «Дуа мусульманина за своего брата в его отсутствие принимается. У
+              его головы находится ангел, и каждый раз, когда он просит за брата
+              благо, ангел говорит:{" "}
+              <span className="text-emerald-400 font-semibold not-italic">
+                «Амин, и тебе того же»
+              </span>
+              »
+            </p>
+            <p className="text-[10px] text-white/30 text-right">
+              — Сахих Муслим
+            </p>
+
+            {/* Steps */}
+            <div className="flex gap-2 pt-2">
+              <div className="flex-1 rounded-xl bg-white/[0.04] border border-white/[0.06] p-3 text-center group hover:bg-emerald-500/5 hover:border-emerald-500/15 transition-all">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-1.5">
+                  <span className="text-base">✍️</span>
+                </div>
+                <p className="text-[10px] text-white/50 leading-snug">
+                  Напишите просьбу
+                </p>
+              </div>
+              <div className="flex-1 rounded-xl bg-white/[0.04] border border-white/[0.06] p-3 text-center group hover:bg-emerald-500/5 hover:border-emerald-500/15 transition-all">
+                <div className="w-8 h-8 rounded-full bg-teal-500/10 flex items-center justify-center mx-auto mb-1.5">
+                  <span className="text-base">🤲</span>
+                </div>
+                <p className="text-[10px] text-white/50 leading-snug">
+                  Другие читают дуа
+                </p>
+              </div>
+              <div className="flex-1 rounded-xl bg-white/[0.04] border border-white/[0.06] p-3 text-center group hover:bg-emerald-500/5 hover:border-emerald-500/15 transition-all">
+                <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-1.5">
+                  <span className="text-base">👼</span>
+                </div>
+                <p className="text-[10px] text-white/50 leading-snug">
+                  Ангел говорит: Амин!
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -306,9 +361,45 @@ export default function DuaWall() {
         )}
 
         {/* ── Request cards ────────────────────────────────────────────────── */}
+        {/* ── Category filter ──────────────────────────────────────────── */}
+        {!loading && requests.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+            <button
+              onClick={() => setFilterCategory(null)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all ${
+                filterCategory === null
+                  ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                  : "bg-white/5 border border-white/8 text-white/40 hover:bg-white/10"
+              }`}
+            >
+              Все
+            </button>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() =>
+                  setFilterCategory(filterCategory === cat.key ? null : cat.key)
+                }
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all ${
+                  filterCategory === cat.key
+                    ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                    : "bg-white/5 border border-white/8 text-white/40 hover:bg-white/10"
+                }`}
+              >
+                <span className="text-xs">{cat.icon}</span>
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Request cards ────────────────────────────────────────────────── */}
         {!loading && requests.length > 0 && (
           <div className="space-y-3">
-            {requests.map((req) => {
+            {(filterCategory
+              ? requests.filter((r) => r.category === filterCategory)
+              : requests
+            ).map((req) => {
               const cat = CATEGORY_MAP[req.category] || CATEGORY_MAP.general;
               const hasPrayed = prayedIds.has(req.id);
               const isAnimating = animatingId === req.id;
@@ -316,55 +407,65 @@ export default function DuaWall() {
               return (
                 <div
                   key={req.id}
-                  className="glass-card p-4 space-y-3 relative overflow-hidden"
+                  className="relative rounded-2xl overflow-hidden group"
                 >
-                  {/* Category + time */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">{cat.icon}</span>
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                        {cat.label}
+                  {/* Gradient left accent */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-500 opacity-40 group-hover:opacity-70 transition-opacity" />
+
+                  <div className="glass-card rounded-2xl p-4 pl-5 space-y-3">
+                    {/* Category + time */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{cat.icon}</span>
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                          {cat.label}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-white/25 tabular-nums">
+                        {timeAgo(req.created_at)}
                       </span>
                     </div>
-                    <span className="text-[10px] text-white/30">
-                      {timeAgo(req.created_at)}
-                    </span>
-                  </div>
 
-                  {/* Text */}
-                  <p className="text-sm text-white/80 leading-relaxed">
-                    {req.text}
-                  </p>
+                    {/* Text */}
+                    <p className="text-[13px] text-white/80 leading-relaxed">
+                      {req.text}
+                    </p>
 
-                  {/* Footer: anonymous + pray button */}
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-white/25 italic">
-                      Аноним
-                    </span>
+                    {/* Footer: anonymous + pray button */}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-white/20 italic flex items-center gap-1">
+                        🕊️ Аноним
+                      </span>
 
-                    <button
-                      onClick={() => handlePray(req.id)}
-                      disabled={hasPrayed}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-300 ${
-                        hasPrayed
-                          ? "bg-rose-500/15 border border-rose-500/25 text-rose-400 cursor-default"
-                          : "bg-white/5 border border-white/10 text-white/60 hover:bg-rose-500/10 hover:border-rose-500/25 hover:text-rose-400 active:scale-95"
-                      }`}
-                    >
-                      <Heart
-                        size={14}
-                        className={`transition-all duration-300 ${
-                          isAnimating ? "scale-125" : ""
-                        } ${hasPrayed ? "fill-rose-400 text-rose-400" : ""}`}
-                        fill={hasPrayed ? "currentColor" : "none"}
-                      />
-                      <span className="tabular-nums">{req.pray_count}</span>
-                      {!hasPrayed && (
-                        <span className="text-[10px] text-white/30 ml-0.5">
-                          Прочитал дуа
-                        </span>
-                      )}
-                    </button>
+                      <button
+                        onClick={() => handlePray(req.id)}
+                        disabled={hasPrayed}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-300 ${
+                          hasPrayed
+                            ? "bg-gradient-to-r from-rose-500/15 to-pink-500/15 border border-rose-500/25 text-rose-400 cursor-default"
+                            : "bg-white/5 border border-white/10 text-white/60 hover:bg-gradient-to-r hover:from-rose-500/10 hover:to-pink-500/10 hover:border-rose-500/25 hover:text-rose-400 active:scale-95"
+                        }`}
+                      >
+                        <Heart
+                          size={15}
+                          className={`transition-all duration-300 ${
+                            isAnimating ? "scale-[1.4]" : ""
+                          } ${hasPrayed ? "fill-rose-400 text-rose-400" : ""}`}
+                          fill={hasPrayed ? "currentColor" : "none"}
+                        />
+                        <span className="tabular-nums">{req.pray_count}</span>
+                        {!hasPrayed && (
+                          <span className="text-[10px] text-white/30">
+                            Сделать дуа
+                          </span>
+                        )}
+                        {hasPrayed && (
+                          <span className="text-[10px] text-rose-400/60">
+                            Амин!
+                          </span>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -383,7 +484,10 @@ export default function DuaWall() {
         >
           <div
             className="w-full max-w-lg rounded-t-3xl overflow-hidden"
-            style={{ background: "var(--bg-primary)", borderTop: "1px solid var(--border-secondary)" }}
+            style={{
+              background: "var(--bg-primary)",
+              borderTop: "1px solid var(--border-secondary)",
+            }}
           >
             {/* Sheet header */}
             <div className="flex items-center justify-between px-5 py-4">
@@ -406,20 +510,19 @@ export default function DuaWall() {
                   maxLength={500}
                   rows={4}
                   className="w-full px-4 py-3 rounded-2xl text-sm text-white placeholder-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
-                  style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-secondary)" }}
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-secondary)",
+                  }}
                   autoFocus
                 />
                 <div className="flex items-center justify-between mt-1.5 px-1">
                   <span className="text-[10px] text-white/30">
-                    {newText.trim().length < 3
-                      ? "Минимум 3 символа"
-                      : ""}
+                    {newText.trim().length < 3 ? "Минимум 3 символа" : ""}
                   </span>
                   <span
                     className={`text-[10px] tabular-nums ${
-                      newText.length > 450
-                        ? "text-amber-400"
-                        : "text-white/30"
+                      newText.length > 450 ? "text-amber-400" : "text-white/30"
                     }`}
                   >
                     {newText.length}/500
@@ -487,6 +590,8 @@ export default function DuaWall() {
           50% { transform: scale(0.95); }
           100% { transform: scale(1); }
         }
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );
