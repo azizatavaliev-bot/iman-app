@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import {
@@ -492,6 +492,213 @@ const POPULAR_SURAHS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Feature Banner Carousel
+// ---------------------------------------------------------------------------
+
+const FEATURE_SLIDES = [
+  {
+    emoji: "\u{1F4D6}",
+    title: "Читай Коран",
+    desc: "С переводом и транслитерацией",
+    path: "/quran",
+    from: "from-sky-500",
+    to: "to-blue-600",
+    shadow: "shadow-sky-500/25",
+  },
+  {
+    emoji: "\u{1F54C}",
+    title: "Отслеживай намазы",
+    desc: "Получай баллы за каждый намаз",
+    path: "/prayers",
+    from: "from-emerald-500",
+    to: "to-teal-600",
+    shadow: "shadow-emerald-500/25",
+  },
+  {
+    emoji: "\u{1F4FF}",
+    title: "Делай зикры",
+    desc: "Повышай свой иман каждый день",
+    path: "/dhikr",
+    from: "from-teal-500",
+    to: "to-cyan-600",
+    shadow: "shadow-teal-500/25",
+  },
+  {
+    emoji: "\u{1F9E0}",
+    title: "Проверяй знания",
+    desc: "Викторина по исламским наукам",
+    path: "/quiz",
+    from: "from-orange-500",
+    to: "to-amber-600",
+    shadow: "shadow-orange-500/25",
+  },
+  {
+    emoji: "\u{1F319}",
+    title: "Трекер Рамадана",
+    desc: "Отмечай пост и цели месяца",
+    path: "/ramadan",
+    from: "from-violet-500",
+    to: "to-purple-600",
+    shadow: "shadow-violet-500/25",
+  },
+  {
+    emoji: "\u{1F932}",
+    title: "Читай дуа",
+    desc: "На все случаи жизни",
+    path: "/dua",
+    from: "from-pink-500",
+    to: "to-rose-600",
+    shadow: "shadow-pink-500/25",
+  },
+  {
+    emoji: "\u{1F525}",
+    title: "Собирай серию дней",
+    desc: "Повышай уровень каждый день",
+    path: "/stats",
+    from: "from-amber-500",
+    to: "to-orange-600",
+    shadow: "shadow-amber-500/25",
+  },
+  {
+    emoji: "\u{1F3A7}",
+    title: "Заучивай суры",
+    desc: "Слушай и повторяй аяты",
+    path: "/memorize",
+    from: "from-indigo-500",
+    to: "to-blue-600",
+    shadow: "shadow-indigo-500/25",
+  },
+];
+
+function FeatureBanner() {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState<"left" | "right">("left");
+  const [isAnimating, setIsAnimating] = useState(false);
+  const touchStartX = useRef(0);
+  const touchDeltaX = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startAutoPlay = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setDirection("left");
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrent((prev) => (prev + 1) % FEATURE_SLIDES.length);
+        setIsAnimating(false);
+      }, 300);
+    }, 5000);
+  }, []);
+
+  useEffect(() => {
+    startAutoPlay();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [startAutoPlay]);
+
+  const goTo = useCallback(
+    (index: number) => {
+      if (isAnimating || index === current) return;
+      setDirection(index > current ? "left" : "right");
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrent(index);
+        setIsAnimating(false);
+      }, 300);
+      startAutoPlay();
+    },
+    [current, isAnimating, startAutoPlay],
+  );
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchDeltaX.current = 0;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
+  };
+
+  const handleTouchEnd = () => {
+    const delta = touchDeltaX.current;
+    if (Math.abs(delta) > 50) {
+      if (delta < 0) {
+        // свайп влево — следующий
+        const next = (current + 1) % FEATURE_SLIDES.length;
+        goTo(next);
+      } else {
+        // свайп вправо — предыдущий
+        const prev =
+          (current - 1 + FEATURE_SLIDES.length) % FEATURE_SLIDES.length;
+        goTo(prev);
+      }
+    }
+  };
+
+  const slide = FEATURE_SLIDES[current];
+
+  return (
+    <div className="relative">
+      {/* Banner card */}
+      <button
+        onClick={() => navigate(slide.path)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`w-full rounded-2xl bg-gradient-to-br ${slide.from} ${slide.to} p-4 shadow-lg ${slide.shadow} overflow-hidden relative text-left transition-all duration-200 active:scale-[0.98]`}
+        style={{ minHeight: 88 }}
+      >
+        {/* Decorative circles */}
+        <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
+        <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/8 rounded-full blur-lg pointer-events-none" />
+
+        {/* Content */}
+        <div
+          className={`flex items-center gap-3.5 transition-all duration-300 ${
+            isAnimating
+              ? direction === "left"
+                ? "opacity-0 -translate-x-4"
+                : "opacity-0 translate-x-4"
+              : "opacity-100 translate-x-0"
+          }`}
+        >
+          <div className="w-14 h-14 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/10">
+            <span className="text-2xl">{slide.emoji}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold text-white leading-tight">
+              {slide.title}
+            </h3>
+            <p className="text-xs text-white/75 mt-0.5">{slide.desc}</p>
+            <p className="text-[10px] text-white/45 mt-1 flex items-center gap-1">
+              Нажми, чтобы открыть
+              <ChevronRight size={10} />
+            </p>
+          </div>
+        </div>
+      </button>
+
+      {/* Dot indicators */}
+      <div className="flex items-center justify-center gap-1.5 mt-2.5">
+        {FEATURE_SLIDES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`rounded-full transition-all duration-300 ${
+              i === current
+                ? "w-5 h-1.5 bg-emerald-400"
+                : "w-1.5 h-1.5 bg-white/20 hover:bg-white/35"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Welcome Modal (first visit)
 // ---------------------------------------------------------------------------
 
@@ -938,6 +1145,11 @@ export default function Dashboard() {
           <span>{currentLevel.name}</span>
         </button>
       </header>
+
+      {/* ================================================================ */}
+      {/* 1.5 FEATURE BANNER CAROUSEL                                      */}
+      {/* ================================================================ */}
+      <FeatureBanner />
 
       {/* ================================================================ */}
       {/* 2. ДВЕ БОЛЬШИЕ КНОПКИ (Инструкция + Новичкам)                   */}
