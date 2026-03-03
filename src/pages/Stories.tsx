@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
-import { STORIES, STORY_CATEGORIES, type Story } from "../data/stories";
+import {
+  STORIES,
+  STORY_CATEGORIES,
+  RELIABILITY_INFO,
+  type Story,
+} from "../data/stories";
 
 const STORAGE_KEY = "iman_stories_read";
 
@@ -90,9 +95,7 @@ export default function Stories() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">
-              Истории Ислама
-            </h1>
+            <h1 className="text-lg font-bold text-white">Истории Ислама</h1>
             <p className="text-xs text-gray-500">
               Прочитано {readCount} из {totalCount}
             </p>
@@ -127,16 +130,12 @@ export default function Stories() {
             Все ({STORIES.length})
           </button>
           {STORY_CATEGORIES.map((cat) => {
-            const count = STORIES.filter(
-              (s) => s.category === cat.key,
-            ).length;
+            const count = STORIES.filter((s) => s.category === cat.key).length;
             return (
               <button
                 key={cat.key}
                 onClick={() =>
-                  setActiveCategory(
-                    activeCategory === cat.key ? null : cat.key,
-                  )
+                  setActiveCategory(activeCategory === cat.key ? null : cat.key)
                 }
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all whitespace-nowrap ${
                   activeCategory === cat.key
@@ -173,9 +172,7 @@ export default function Stories() {
               >
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg ${
-                    isRead
-                      ? "bg-emerald-500/10"
-                      : "bg-white/5"
+                    isRead ? "bg-emerald-500/10" : "bg-white/5"
                   }`}
                 >
                   {isRead ? (
@@ -189,9 +186,10 @@ export default function Stories() {
                     <span
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${categoryColors[story.category]}`}
                     >
-                      {STORY_CATEGORIES.find(
-                        (c) => c.key === story.category,
-                      )?.label}
+                      {
+                        STORY_CATEGORIES.find((c) => c.key === story.category)
+                          ?.label
+                      }
                     </span>
                     <span className="text-[10px] text-gray-500">
                       {story.readTime} мин • +{story.xp} XP
@@ -220,6 +218,22 @@ export default function Stories() {
                     <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
                       {story.content}
                     </div>
+
+                    {/* Source & Reliability */}
+                    {story.source && story.reliability && (
+                      <div className="mt-4 pt-3 border-t border-white/5">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${RELIABILITY_INFO[story.reliability].color}`}
+                          >
+                            {RELIABILITY_INFO[story.reliability].label}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 leading-relaxed">
+                          📚 {story.source}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
