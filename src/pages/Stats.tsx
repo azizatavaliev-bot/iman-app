@@ -660,13 +660,13 @@ export default function Stats() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">
             {period === "week"
-              ? "Очки за неделю"
+              ? "Саваб за неделю"
               : period === "month"
-                ? "Очки за месяц"
-                : "Очки за всё время"}
+                ? "Саваб за месяц"
+                : "Саваб за всё время"}
           </h3>
           <span className="text-xs text-emerald-400/60 font-medium tabular-nums">
-            {totalPoints} очков
+            {totalPoints} саваб
           </span>
         </div>
 
@@ -837,7 +837,7 @@ export default function Stats() {
             </div>
             <p className="text-[10px] text-white/25">
               {profile.totalPoints.toLocaleString()} /{" "}
-              {nextLevel.minPoints.toLocaleString()} очков
+              {nextLevel.minPoints.toLocaleString()} саваб
               <span className="text-white/15"> --- </span>
               ещё {(
                 nextLevel.minPoints - profile.totalPoints
@@ -947,7 +947,7 @@ export default function Stats() {
                   cell.isToday ? "ring-1 ring-emerald-400/60" : ""
                 }`}
                 style={{ backgroundColor: bgColor }}
-                title={`${cell.day}: ${cell.points} очков`}
+                title={`${cell.day}: ${cell.points} саваб`}
               >
                 <span
                   className={`text-[10px] tabular-nums font-medium ${

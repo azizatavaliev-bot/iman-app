@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, Trophy, Medal, Award, Users, RefreshCw } from "lucide-react";
+import {
+  ChevronLeft,
+  Trophy,
+  Medal,
+  Award,
+  Users,
+  RefreshCw,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getTelegramUser } from "../lib/telegram";
 import { storage } from "../lib/storage";
@@ -23,20 +30,34 @@ export default function Leaderboard() {
   const telegramUser = getTelegramUser();
   const currentUserId = telegramUser?.id;
 
-  const fetchLeaderboard = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      }
+  const fetchLeaderboard = useCallback(
+    async (isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        }
 
-      const response = await fetch(`/api/leaderboard`);
+        const response = await fetch(`/api/leaderboard`);
 
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-        setTotalUsers(data.totalUsers || 0);
-        setTotalSubscribers(data.totalSubscribers || 0);
-      } else {
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users || []);
+          setTotalUsers(data.totalUsers || 0);
+          setTotalSubscribers(data.totalSubscribers || 0);
+        } else {
+          const profile = storage.getProfile();
+          const mockUser: LeaderboardUser = {
+            telegram_id: currentUserId || 0,
+            name: profile.name || "Вы",
+            totalPoints: profile.totalPoints || 0,
+            level: profile.level || "Новичок",
+            streak: profile.streak || 0,
+            rank: 1,
+          };
+          setUsers([mockUser]);
+        }
+      } catch (error) {
+        console.error("Leaderboard fetch error:", error);
         const profile = storage.getProfile();
         const mockUser: LeaderboardUser = {
           telegram_id: currentUserId || 0,
@@ -47,24 +68,13 @@ export default function Leaderboard() {
           rank: 1,
         };
         setUsers([mockUser]);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (error) {
-      console.error("Leaderboard fetch error:", error);
-      const profile = storage.getProfile();
-      const mockUser: LeaderboardUser = {
-        telegram_id: currentUserId || 0,
-        name: profile.name || "Вы",
-        totalPoints: profile.totalPoints || 0,
-        level: profile.level || "Новичок",
-        streak: profile.streak || 0,
-        rank: 1,
-      };
-      setUsers([mockUser]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [currentUserId]);
+    },
+    [currentUserId],
+  );
 
   useEffect(() => {
     fetchLeaderboard();
@@ -73,12 +83,9 @@ export default function Leaderboard() {
   const currentUserInList = users.find((u) => u.telegram_id === currentUserId);
 
   function getRankIcon(rank: number) {
-    if (rank === 1)
-      return <Trophy className="w-6 h-6 text-yellow-400" />;
-    if (rank === 2)
-      return <Medal className="w-6 h-6 text-gray-300" />;
-    if (rank === 3)
-      return <Medal className="w-6 h-6 text-amber-600" />;
+    if (rank === 1) return <Trophy className="w-6 h-6 text-yellow-400" />;
+    if (rank === 2) return <Medal className="w-6 h-6 text-gray-300" />;
+    if (rank === 3) return <Medal className="w-6 h-6 text-amber-600" />;
     return (
       <div className="w-6 h-6 flex items-center justify-center text-sm font-bold text-slate-400">
         #{rank}
@@ -87,9 +94,12 @@ export default function Leaderboard() {
   }
 
   function getRankBadgeColor(rank: number) {
-    if (rank === 1) return "from-yellow-500/20 to-amber-500/20 border-yellow-500/30";
-    if (rank === 2) return "from-gray-400/20 to-slate-400/20 border-gray-400/30";
-    if (rank === 3) return "from-amber-600/20 to-orange-600/20 border-amber-600/30";
+    if (rank === 1)
+      return "from-yellow-500/20 to-amber-500/20 border-yellow-500/30";
+    if (rank === 2)
+      return "from-gray-400/20 to-slate-400/20 border-gray-400/30";
+    if (rank === 3)
+      return "from-amber-600/20 to-orange-600/20 border-amber-600/30";
     return "from-slate-700/20 to-slate-800/20 border-slate-600/30";
   }
 
@@ -109,9 +119,7 @@ export default function Leaderboard() {
       >
         <div className="flex items-center gap-3">
           {/* Rank Icon */}
-          <div className="flex-shrink-0">
-            {getRankIcon(user.rank)}
-          </div>
+          <div className="flex-shrink-0">{getRankIcon(user.rank)}</div>
 
           {/* User Info */}
           <div className="flex-1 min-w-0">
@@ -128,7 +136,9 @@ export default function Leaderboard() {
               {user.streak > 0 && (
                 <div className="flex items-center gap-1">
                   <span className="text-xs">🔥</span>
-                  <span className="text-xs text-orange-400">{user.streak} дн</span>
+                  <span className="text-xs text-orange-400">
+                    {user.streak} дн
+                  </span>
                 </div>
               )}
             </div>
@@ -144,7 +154,7 @@ export default function Leaderboard() {
             <p className="text-lg font-bold text-white">
               {user.totalPoints.toLocaleString()}
             </p>
-            <p className="text-[10px] text-slate-400">баллов</p>
+            <p className="text-[10px] text-slate-400">саваб</p>
           </div>
         </div>
       </div>
@@ -211,7 +221,9 @@ export default function Leaderboard() {
                 <Award className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <p className="text-xl font-bold text-white">{totalSubscribers}</p>
+                <p className="text-xl font-bold text-white">
+                  {totalSubscribers}
+                </p>
                 <p className="text-[10px] text-slate-400">Подписчиков</p>
               </div>
             </div>
@@ -270,9 +282,13 @@ export default function Leaderboard() {
         )}
 
         {/* Info */}
-        <div className="mt-6 glass rounded-xl p-4 border" style={{ borderColor: "var(--border-secondary)" }}>
+        <div
+          className="mt-6 glass rounded-xl p-4 border"
+          style={{ borderColor: "var(--border-secondary)" }}
+        >
           <p className="text-xs text-slate-400 text-center">
-            💡 Зарабатывайте баллы выполняя намазы, читая Коран, проходя викторины и выполняя привычки
+            💡 Зарабатывайте баллы выполняя намазы, читая Коран, проходя
+            викторины и выполняя привычки
           </p>
         </div>
       </div>

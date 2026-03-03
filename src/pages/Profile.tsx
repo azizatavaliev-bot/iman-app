@@ -361,7 +361,7 @@ export default function Profile() {
                 {currentLevel.name}
               </h2>
               <p className="text-xs t-text-m">
-                {profile.totalPoints.toLocaleString()} очков
+                {profile.totalPoints.toLocaleString()} саваб
               </p>
             </div>
           </div>
@@ -403,7 +403,7 @@ export default function Profile() {
           {nextLevel && (
             <p className="text-[10px] t-text-f mt-1.5">
               Ещё {(nextLevel.minPoints - profile.totalPoints).toLocaleString()}{" "}
-              очков до{" "}
+              саваб до{" "}
               <span className="text-amber-400/50">
                 {nextLevel.icon} {nextLevel.name}
               </span>
@@ -533,7 +533,7 @@ export default function Profile() {
           />
           <StatCard
             icon={Trophy}
-            label="Всего очков"
+            label="Всего саваб"
             value={profile.totalPoints.toLocaleString()}
             color="text-yellow-400"
             bgColor="bg-yellow-400/10"

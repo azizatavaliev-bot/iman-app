@@ -38,6 +38,7 @@ import { getTelegramUser } from "../lib/telegram";
 import { isSyncDone } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
 import { trackAction } from "../lib/analytics";
+import SawabCoin from "../components/SawabCoin";
 import {
   getPrayerTimes,
   getHadithOfDay,
@@ -341,8 +342,8 @@ function DailyProgressRing({
         <span className="text-[11px] text-white/40 font-medium">
           из {possible}
         </span>
-        <span className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">
-          саваб 🪙
+        <span className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5 flex items-center gap-1 justify-center">
+          саваб <SawabCoin size={12} />
         </span>
       </div>
     </div>
@@ -877,6 +878,9 @@ export default function Dashboard() {
     setShowWelcome(false);
   };
 
+  // Sawab info modal
+  const [showSawabInfo, setShowSawabInfo] = useState(false);
+
   // Core state
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
   const [todayStats, setTodayStats] = useState<TodayStats>(
@@ -1238,6 +1242,86 @@ export default function Dashboard() {
       {/* Welcome modal (first visit) */}
       {showWelcome && <WelcomeModal onClose={dismissWelcome} />}
 
+      {/* Sawab info modal */}
+      {showSawabInfo && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in px-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowSawabInfo(false);
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl overflow-hidden"
+            style={{
+              background: "var(--bg-primary)",
+              border: "1px solid var(--border-secondary)",
+            }}
+          >
+            <div className="p-6 space-y-4">
+              {/* Header */}
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-amber-500/30">
+                  <span className="text-3xl font-black text-white">С</span>
+                </div>
+                <h2 className="text-xl font-bold text-white">Саваб-коины</h2>
+                <p className="text-xs text-white/40 mt-1">
+                  Ваша духовная валюта
+                </p>
+              </div>
+
+              {/* Explanation */}
+              <div className="space-y-3 text-[13px] text-white/60 leading-relaxed">
+                <p>
+                  <span className="text-amber-400 font-semibold">Саваб</span>{" "}
+                  (ثواب) — в исламе это награда от Аллаха за благие деяния. В
+                  приложении IMAN саваб-коины отражают вашу ежедневную
+                  активность в ибадате.
+                </p>
+                <div className="glass-card p-3 space-y-2">
+                  <p className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">
+                    Как заработать
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { icon: "🕌", text: "Намаз вовремя", pts: "+10" },
+                      { icon: "📖", text: "Чтение Корана", pts: "+5" },
+                      { icon: "📿", text: "Зикры", pts: "+3" },
+                      { icon: "🧠", text: "Викторина", pts: "+8" },
+                      { icon: "🤲", text: "Дуа", pts: "+3" },
+                      { icon: "⏰", text: "Помодоро", pts: "+5" },
+                    ].map((item) => (
+                      <div
+                        key={item.text}
+                        className="flex items-center gap-2 text-[11px]"
+                      >
+                        <span>{item.icon}</span>
+                        <span className="text-white/50 flex-1">
+                          {item.text}
+                        </span>
+                        <span className="text-emerald-400 font-semibold">
+                          {item.pts}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[11px] text-white/30 italic text-center">
+                  Чем больше саваба — тем выше ваш уровень имана
+                </p>
+              </div>
+
+              {/* Close button */}
+              <button
+                onClick={() => setShowSawabInfo(false)}
+                className="w-full py-3 rounded-2xl text-sm font-bold bg-gradient-to-r from-amber-500 to-yellow-500 text-white transition-all active:scale-[0.97] shadow-lg shadow-amber-500/30"
+              >
+                Понятно!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Celebration overlay */}
       {celebrating && <CelebrationBurst onDone={() => setCelebrating(false)} />}
 
@@ -1330,12 +1414,17 @@ export default function Dashboard() {
       {/* 3. DAILY SCORE + LEVEL (компактно в одну строку)                */}
       {/* ================================================================ */}
       <div className="glass-card p-4 flex items-center gap-4">
-        {/* Daily Score Ring */}
-        <DailyProgressRing
-          earned={pointsEarned}
-          possible={MAX_DAILY_POINTS}
-          size={90}
-        />
+        {/* Daily Score Ring — нажми для объяснения */}
+        <button
+          onClick={() => setShowSawabInfo(true)}
+          className="active:scale-95 transition-transform"
+        >
+          <DailyProgressRing
+            earned={pointsEarned}
+            possible={MAX_DAILY_POINTS}
+            size={90}
+          />
+        </button>
 
         {/* Stats + Level */}
         <div className="flex-1 min-w-0 space-y-2">
@@ -1855,7 +1944,7 @@ export default function Dashboard() {
           <div className="mt-4 pt-3 border-t t-border">
             <div className="flex items-center justify-between mb-1.5">
               <p className="text-[10px] text-white/30">
-                {profile.totalPoints.toLocaleString()} очков
+                {profile.totalPoints.toLocaleString()} саваб
               </p>
               <p className="text-[10px] text-white/20">
                 Ещё{" "}
@@ -2144,7 +2233,7 @@ export default function Dashboard() {
           </h3>
           <span className="text-xs text-emerald-400/60 font-medium tabular-nums">
             {weeklyBarData.reduce((s, d) => s + (d.isFuture ? 0 : d.points), 0)}{" "}
-            очков
+            саваб
           </span>
         </div>
 

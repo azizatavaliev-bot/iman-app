@@ -411,7 +411,8 @@ export default function Quiz() {
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {history.slice(0, 10).map((entry, i) => {
                     const catName = entry.category
-                      ? QUIZ_CATEGORIES.find((c) => c.key === entry.category)?.name || entry.category
+                      ? QUIZ_CATEGORIES.find((c) => c.key === entry.category)
+                          ?.name || entry.category
                       : "Все вопросы";
                     const d = new Date(entry.date);
                     const dateStr = d.toLocaleDateString("ru-RU", {
@@ -446,7 +447,7 @@ export default function Quiz() {
                             {entry.correct}/{entry.total} правильных
                             {entry.pointsEarned > 0 && (
                               <span className="text-emerald-400 ml-1">
-                                +{entry.pointsEarned} баллов
+                                +{entry.pointsEarned} саваб
                               </span>
                             )}
                           </p>
@@ -510,7 +511,7 @@ export default function Quiz() {
           <div className="flex items-center justify-center gap-1.5 px-4 mb-2">
             <RotateCcw size={12} className="text-slate-500" />
             <span className="text-xs text-slate-500">
-              Тренировка (без очков)
+              Тренировка (без саваба)
             </span>
           </div>
         )}
@@ -763,7 +764,7 @@ export default function Quiz() {
           <div className="mt-5 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30">
             <Zap className="w-5 h-5 text-emerald-400" />
             <span className="text-emerald-400 font-semibold text-sm">
-              +{pointsEarned} очков начислено!
+              +{pointsEarned} саваб начислено!
             </span>
           </div>
         ) : !isFirstAttempt ? (

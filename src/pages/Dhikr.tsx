@@ -175,7 +175,9 @@ function XpPopup({ amount, visible }: { amount: number; visible: boolean }) {
     <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-50 animate-xp-popup pointer-events-none">
       <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500/20 border border-amber-500/40 backdrop-blur-md">
         <Zap className="w-6 h-6 text-amber-400 fill-amber-400" />
-        <span className="text-2xl font-bold text-amber-400">+{amount} XP</span>
+        <span className="text-2xl font-bold text-amber-400">
+          +{amount} саваб
+        </span>
       </div>
       <style>{`
         @keyframes xp-float {
@@ -284,7 +286,7 @@ export default function Dhikr() {
     // Find first uncompleted dhikr to continue from where user stopped
     const catDhikr = DHIKR_DATA.filter((d: Dhikr) => d.category === categoryId);
     const firstUncompleted = catDhikr.findIndex(
-      (d) => !progress.completed.includes(d.id)
+      (d) => !progress.completed.includes(d.id),
     );
     setCurrentDhikrIndex(firstUncompleted >= 0 ? firstUncompleted : 0);
 
@@ -560,7 +562,7 @@ function MainView({
                 <span
                   className={`text-sm ${questDone ? "text-emerald-400/70" : "text-amber-400/70"}`}
                 >
-                  {questDone ? "Выполнено" : `+15 XP`}
+                  {questDone ? "Выполнено" : `+15 саваб`}
                 </span>
                 {!questDone && (
                   <span className="text-gray-500 text-xs">
@@ -774,7 +776,11 @@ function PracticeView({
       onClick={(e) => {
         // Tap anywhere on screen to count (except buttons with data-no-tap)
         const target = e.target as HTMLElement;
-        if (target.closest('[data-no-tap]') || target.closest('button:not([data-tap-ok])')) return;
+        if (
+          target.closest("[data-no-tap]") ||
+          target.closest("button:not([data-tap-ok])")
+        )
+          return;
         if (!isCompleted) {
           onTap();
         } else {
@@ -789,7 +795,10 @@ function PracticeView({
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <button
           data-no-tap
-          onClick={(e) => { e.stopPropagation(); onBack(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onBack();
+          }}
           className="w-10 h-10 rounded-full glass flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -939,7 +948,9 @@ function PracticeView({
       <div className="px-4 pb-6 pt-2">
         {isCompleted ? (
           <div className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600/20 to-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-semibold text-center text-base flex items-center justify-center gap-2">
-            {dhikrIndex + 1 >= totalDhikr ? "Тапни чтобы завершить" : "Тапни — следующий зикр →"}
+            {dhikrIndex + 1 >= totalDhikr
+              ? "Тапни чтобы завершить"
+              : "Тапни — следующий зикр →"}
           </div>
         ) : (
           <div className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-600/20 to-amber-500/20 border border-amber-500/30 text-amber-400 font-semibold text-center text-base flex items-center justify-center gap-3">
@@ -1019,7 +1030,7 @@ function CompletionView({
                 {totalXp}
               </span>
             </div>
-            <span className="text-xs text-gray-500">XP заработано</span>
+            <span className="text-xs text-gray-500">саваб заработано</span>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5 mb-1">

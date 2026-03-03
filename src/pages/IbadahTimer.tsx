@@ -1,6 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Play, Pause, Square, Clock, Star, Zap, BookOpen } from "lucide-react";
+import {
+  ChevronLeft,
+  Play,
+  Pause,
+  Square,
+  Clock,
+  Star,
+  Zap,
+  BookOpen,
+} from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import type { IbadahSession } from "../lib/storage";
 
@@ -51,7 +60,10 @@ function formatTime(totalSeconds: number): string {
 function formatTimeShort(isoString: string): string {
   try {
     const d = new Date(isoString);
-    return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch {
     return "";
   }
@@ -66,7 +78,9 @@ function getTypeLabel(type: IbadahType): string {
 }
 
 function getRandomQuote(): string {
-  return MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+  return MOTIVATIONAL_QUOTES[
+    Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)
+  ];
 }
 
 // ============================================================
@@ -123,7 +137,7 @@ function RewardAnimation({
           <span className="text-3xl">{"🌟"}</span>
           <div className="text-center">
             <div className="text-3xl font-bold text-emerald-400">+{points}</div>
-            <div className="text-sm text-emerald-400/70">баллов заработано</div>
+            <div className="text-sm text-emerald-400/70">саваб заработано</div>
           </div>
         </div>
       </div>
@@ -181,7 +195,8 @@ function TimerCircle({
           style={{
             width: size + 30,
             height: size + 30,
-            background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)",
+            background:
+              "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)",
           }}
         />
       )}
@@ -189,7 +204,13 @@ function TimerCircle({
       <svg width={size} height={size} className="transform -rotate-90">
         {/* Defs for gradient */}
         <defs>
-          <linearGradient id="timer-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient
+            id="timer-gradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
             <stop offset="0%" stopColor="#10b981" />
             <stop offset="100%" stopColor="#34d399" />
           </linearGradient>
@@ -261,7 +282,7 @@ function TimerCircle({
         )}
         {earnedPoints === 0 && elapsedSeconds > 0 && (
           <div className="text-xs text-gray-500 mt-2">
-            {"< 1 мин для баллов"}
+            {"< 1 мин для саваба"}
           </div>
         )}
       </div>
@@ -507,15 +528,21 @@ export default function IbadahTimer() {
           </h3>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-white">{todayMinutes}</div>
+              <div className="text-2xl font-bold text-white">
+                {todayMinutes}
+              </div>
               <div className="text-xs text-gray-500 mt-0.5">минут</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-amber-400">{todayPoints}</div>
-              <div className="text-xs text-gray-500 mt-0.5">баллов</div>
+              <div className="text-2xl font-bold text-amber-400">
+                {todayPoints}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">саваб</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-emerald-400">{todaySessions.length}</div>
+              <div className="text-2xl font-bold text-emerald-400">
+                {todaySessions.length}
+              </div>
               <div className="text-xs text-gray-500 mt-0.5">сессий</div>
             </div>
           </div>
@@ -532,7 +559,9 @@ export default function IbadahTimer() {
         {todaySessions.length === 0 ? (
           <div className="t-bg backdrop-blur-sm border t-border-s rounded-2xl p-6 text-center">
             <div className="text-3xl mb-2">{"🕌"}</div>
-            <p className="text-gray-400 text-sm">Начните свою первую сессию ибадата сегодня</p>
+            <p className="text-gray-400 text-sm">
+              Начните свою первую сессию ибадата сегодня
+            </p>
             <p className="text-emerald-400/50 text-xs mt-1">
               Каждая минута приближает вас к Аллаху
             </p>
@@ -579,17 +608,21 @@ export default function IbadahTimer() {
           </h3>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-white">{totalMinutes}</div>
+              <div className="text-2xl font-bold text-white">
+                {totalMinutes}
+              </div>
               <div className="text-xs text-gray-500 mt-0.5">минут всего</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-amber-400">
                 {allSessions.reduce((sum, s) => sum + s.pointsEarned, 0)}
               </div>
-              <div className="text-xs text-gray-500 mt-0.5">баллов всего</div>
+              <div className="text-xs text-gray-500 mt-0.5">саваб всего</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-emerald-400">{allSessions.length}</div>
+              <div className="text-2xl font-bold text-emerald-400">
+                {allSessions.length}
+              </div>
               <div className="text-xs text-gray-500 mt-0.5">сессий всего</div>
             </div>
           </div>

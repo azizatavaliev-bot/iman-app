@@ -1,99 +1,107 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Check, X, ChevronLeft, ChevronRight, Award, RotateCcw, Star } from 'lucide-react'
-import { NAMES_OF_ALLAH } from '../data/names'
-import { getNameStory, hasNameStory } from '../data/names-stories'
-import { storage, POINTS } from '../lib/storage'
+import { useState, useEffect, useCallback } from "react";
+import {
+  Check,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Award,
+  RotateCcw,
+  Star,
+} from "lucide-react";
+import { NAMES_OF_ALLAH } from "../data/names";
+import { getNameStory, hasNameStory } from "../data/names-stories";
+import { storage, POINTS } from "../lib/storage";
 
 // ---- Types ----
 
-type Tab = 'cards' | 'quiz' | 'all'
+type Tab = "cards" | "quiz" | "all";
 
 interface QuizQuestion {
-  nameIndex: number
-  options: string[]
-  correctIndex: number
+  nameIndex: number;
+  options: string[];
+  correctIndex: number;
 }
 
 // ---- Helpers ----
 
 function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
+  const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return a
+  return a;
 }
 
 function generateQuestion(excludeIndices: number[] = []): QuizQuestion {
   const available = NAMES_OF_ALLAH.map((_, i) => i).filter(
-    (i) => !excludeIndices.includes(i)
-  )
+    (i) => !excludeIndices.includes(i),
+  );
   const nameIndex =
     available.length > 0
       ? available[Math.floor(Math.random() * available.length)]
-      : Math.floor(Math.random() * 99)
+      : Math.floor(Math.random() * 99);
 
-  const correctAnswer = NAMES_OF_ALLAH[nameIndex].russian
+  const correctAnswer = NAMES_OF_ALLAH[nameIndex].russian;
 
   // Pick 3 wrong answers (distinct from correct)
-  const wrongPool = NAMES_OF_ALLAH.filter((_, i) => i !== nameIndex)
-  const shuffledWrong = shuffle(wrongPool).slice(0, 3)
+  const wrongPool = NAMES_OF_ALLAH.filter((_, i) => i !== nameIndex);
+  const shuffledWrong = shuffle(wrongPool).slice(0, 3);
   const options = shuffle([
     correctAnswer,
     ...shuffledWrong.map((n) => n.russian),
-  ])
+  ]);
 
   return {
     nameIndex,
     options,
     correctIndex: options.indexOf(correctAnswer),
-  }
+  };
 }
 
-const QUIZ_LENGTH = 10
-const TIMER_SECONDS = 15
+const QUIZ_LENGTH = 10;
+const TIMER_SECONDS = 15;
 
 // ============================================================
 // Main Component
 // ============================================================
 
 export default function NamesGame() {
-  const [activeTab, setActiveTab] = useState<Tab>('cards')
-  const [learned, setLearned] = useState<number[]>([])
-  const [quizHighScore, setQuizHighScore] = useState(0)
+  const [activeTab, setActiveTab] = useState<Tab>("cards");
+  const [learned, setLearned] = useState<number[]>([]);
+  const [quizHighScore, setQuizHighScore] = useState(0);
 
   // Load progress on mount
   useEffect(() => {
-    const progress = storage.getNamesProgress()
-    setLearned(progress.learned)
-    setQuizHighScore(progress.quizHighScore)
-  }, [])
+    const progress = storage.getNamesProgress();
+    setLearned(progress.learned);
+    setQuizHighScore(progress.quizHighScore);
+  }, []);
 
   const handleMarkLearned = useCallback((nameId: number) => {
-    const progress = storage.markNameLearned(nameId)
+    const progress = storage.markNameLearned(nameId);
     // Points are calculated in recalculateTotalPoints via namesProgress.learned.length
-    storage.recalculateTotalPoints()
-    setLearned([...progress.learned])
-  }, [])
+    storage.recalculateTotalPoints();
+    setLearned([...progress.learned]);
+  }, []);
 
   const handleUnmarkLearned = useCallback((nameId: number) => {
-    const progress = storage.getNamesProgress()
-    const updated = progress.learned.filter((id) => id !== nameId)
-    storage.updateNamesProgress({ learned: updated })
-    setLearned(updated)
-  }, [])
+    const progress = storage.getNamesProgress();
+    const updated = progress.learned.filter((id) => id !== nameId);
+    storage.updateNamesProgress({ learned: updated });
+    setLearned(updated);
+  }, []);
 
   const handleQuizHighScore = useCallback((score: number) => {
-    const progress = storage.updateNamesProgress({ quizHighScore: score })
-    setQuizHighScore(progress.quizHighScore)
-  }, [])
+    const progress = storage.updateNamesProgress({ quizHighScore: score });
+    setQuizHighScore(progress.quizHighScore);
+  }, []);
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'cards', label: 'Карточки' },
-    { key: 'quiz', label: 'Викторина' },
-    { key: 'all', label: 'Все имена' },
-  ]
+    { key: "cards", label: "Карточки" },
+    { key: "quiz", label: "Викторина" },
+    { key: "all", label: "Все имена" },
+  ];
 
   return (
     <div className="min-h-screen pb-24">
@@ -115,8 +123,8 @@ export default function NamesGame() {
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
               activeTab === tab.key
-                ? 'bg-emerald-500/20 text-emerald-400 shadow-lg shadow-emerald-500/10'
-                : 'text-gray-400 hover:text-gray-300'
+                ? "bg-emerald-500/20 text-emerald-400 shadow-lg shadow-emerald-500/10"
+                : "text-gray-400 hover:text-gray-300"
             }`}
           >
             {tab.label}
@@ -126,20 +134,20 @@ export default function NamesGame() {
 
       {/* Tab Content */}
       <div className="mt-4">
-        {activeTab === 'cards' && (
+        {activeTab === "cards" && (
           <FlashcardsTab
             learned={learned}
             onMarkLearned={handleMarkLearned}
             onUnmarkLearned={handleUnmarkLearned}
           />
         )}
-        {activeTab === 'quiz' && (
+        {activeTab === "quiz" && (
           <QuizTab
             highScore={quizHighScore}
             onNewHighScore={handleQuizHighScore}
           />
         )}
-        {activeTab === 'all' && (
+        {activeTab === "all" && (
           <AllNamesTab
             learned={learned}
             onMarkLearned={handleMarkLearned}
@@ -148,7 +156,7 @@ export default function NamesGame() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // ============================================================
@@ -160,46 +168,43 @@ function FlashcardsTab({
   onMarkLearned,
   onUnmarkLearned,
 }: {
-  learned: number[]
-  onMarkLearned: (id: number) => void
-  onUnmarkLearned: (id: number) => void
+  learned: number[];
+  onMarkLearned: (id: number) => void;
+  onUnmarkLearned: (id: number) => void;
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [flipAnim, setFlipAnim] = useState(false)
-  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [flipAnim, setFlipAnim] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
 
-  const name = NAMES_OF_ALLAH[currentIndex]
-  const isLearned = learned.includes(name.id)
+  const name = NAMES_OF_ALLAH[currentIndex];
+  const isLearned = learned.includes(name.id);
 
-  const goTo = useCallback(
-    (index: number) => {
-      setFlipAnim(true)
-      setTimeout(() => {
-        setCurrentIndex(
-          ((index % NAMES_OF_ALLAH.length) + NAMES_OF_ALLAH.length) %
-            NAMES_OF_ALLAH.length
-        )
-        setFlipAnim(false)
-      }, 150)
-    },
-    []
-  )
+  const goTo = useCallback((index: number) => {
+    setFlipAnim(true);
+    setTimeout(() => {
+      setCurrentIndex(
+        ((index % NAMES_OF_ALLAH.length) + NAMES_OF_ALLAH.length) %
+          NAMES_OF_ALLAH.length,
+      );
+      setFlipAnim(false);
+    }, 150);
+  }, []);
 
-  const prev = () => goTo(currentIndex - 1)
-  const next = () => goTo(currentIndex + 1)
+  const prev = () => goTo(currentIndex - 1);
+  const next = () => goTo(currentIndex + 1);
 
   // Touch swipe
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX)
-  }
+    setTouchStart(e.touches[0].clientX);
+  };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStart === null) return
-    const diff = e.changedTouches[0].clientX - touchStart
+    if (touchStart === null) return;
+    const diff = e.changedTouches[0].clientX - touchStart;
     if (Math.abs(diff) > 60) {
-      diff > 0 ? prev() : next()
+      diff > 0 ? prev() : next();
     }
-    setTouchStart(null)
-  }
+    setTouchStart(null);
+  };
 
   return (
     <div className="px-4">
@@ -222,7 +227,7 @@ function FlashcardsTab({
       {/* Card */}
       <div
         className={`glass-card relative p-8 min-h-[380px] flex flex-col items-center justify-center transition-all duration-300 ${
-          flipAnim ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+          flipAnim ? "opacity-0 scale-95" : "opacity-100 scale-100"
         }`}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -235,9 +240,7 @@ function FlashcardsTab({
         )}
 
         {/* Number */}
-        <div className="text-gray-500 text-sm mb-2">
-          {name.id} / 99
-        </div>
+        <div className="text-gray-500 text-sm mb-2">{name.id} / 99</div>
 
         {/* Arabic */}
         <div className="arabic-text text-5xl text-amber-400 mb-6 select-none leading-relaxed">
@@ -258,25 +261,38 @@ function FlashcardsTab({
         </div>
 
         {/* Story (if available) */}
-        {hasNameStory(name.id) && (() => {
-          const story = getNameStory(name.id)!;
-          return (
-            <div className="mt-5 pt-4 border-t border-white/5 w-full text-left space-y-3">
-              <div className="bg-amber-500/5 rounded-xl p-3 border border-amber-500/15">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-400/70 mb-1.5">Дуа</p>
-                <p className="text-xs text-amber-200/80 leading-relaxed italic">{story.dua}</p>
+        {hasNameStory(name.id) &&
+          (() => {
+            const story = getNameStory(name.id)!;
+            return (
+              <div className="mt-5 pt-4 border-t border-white/5 w-full text-left space-y-3">
+                <div className="bg-amber-500/5 rounded-xl p-3 border border-amber-500/15">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-400/70 mb-1.5">
+                    Дуа
+                  </p>
+                  <p className="text-xs text-amber-200/80 leading-relaxed italic">
+                    {story.dua}
+                  </p>
+                </div>
+                <div className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/15">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400/70 mb-1.5">
+                    История
+                  </p>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {story.story}
+                  </p>
+                </div>
+                <div className="bg-purple-500/5 rounded-xl p-3 border border-purple-500/15">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-purple-400/70 mb-1.5">
+                    Применение
+                  </p>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {story.application}
+                  </p>
+                </div>
               </div>
-              <div className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/15">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400/70 mb-1.5">История</p>
-                <p className="text-xs text-slate-300 leading-relaxed">{story.story}</p>
-              </div>
-              <div className="bg-purple-500/5 rounded-xl p-3 border border-purple-500/15">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-purple-400/70 mb-1.5">Применение</p>
-                <p className="text-xs text-slate-300 leading-relaxed">{story.application}</p>
-              </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
       </div>
 
       {/* Navigation */}
@@ -317,31 +333,31 @@ function FlashcardsTab({
       {/* Quick Jump */}
       <div className="mt-6 flex flex-wrap gap-1.5 justify-center">
         {Array.from({ length: 10 }, (_, i) => {
-          const start = i * 10
-          const end = Math.min(start + 9, 98)
+          const start = i * 10;
+          const end = Math.min(start + 9, 98);
           const rangeCount = NAMES_OF_ALLAH.slice(start, end + 1).filter((n) =>
-            learned.includes(n.id)
-          ).length
-          const total = end - start + 1
+            learned.includes(n.id),
+          ).length;
+          const total = end - start + 1;
           return (
             <button
               key={i}
               onClick={() => goTo(start)}
               className={`text-xs px-2 py-1 rounded-md transition-all ${
                 currentIndex >= start && currentIndex <= end
-                  ? 'bg-emerald-500/30 text-emerald-300'
+                  ? "bg-emerald-500/30 text-emerald-300"
                   : rangeCount === total
-                  ? 'bg-emerald-500/10 text-emerald-500/60'
-                  : 't-bg text-gray-500 hover:text-gray-400'
+                    ? "bg-emerald-500/10 text-emerald-500/60"
+                    : "t-bg text-gray-500 hover:text-gray-400"
               }`}
             >
               {start + 1}-{end + 1}
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 // ============================================================
@@ -352,91 +368,91 @@ function QuizTab({
   highScore,
   onNewHighScore,
 }: {
-  highScore: number
-  onNewHighScore: (score: number) => void
+  highScore: number;
+  onNewHighScore: (score: number) => void;
 }) {
-  const [phase, setPhase] = useState<'start' | 'playing' | 'results'>('start')
-  const [questions, setQuestions] = useState<QuizQuestion[]>([])
-  const [questionIndex, setQuestionIndex] = useState(0)
-  const [score, setScore] = useState(0)
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
-  const [timer, setTimer] = useState(TIMER_SECONDS)
-  const [shakeWrong, setShakeWrong] = useState(false)
-  const [streak, setStreak] = useState(0)
+  const [phase, setPhase] = useState<"start" | "playing" | "results">("start");
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [timer, setTimer] = useState(TIMER_SECONDS);
+  const [shakeWrong, setShakeWrong] = useState(false);
+  const [streak, setStreak] = useState(0);
 
   // Generate quiz questions
   const startQuiz = useCallback(() => {
-    const usedIndices: number[] = []
-    const qs: QuizQuestion[] = []
+    const usedIndices: number[] = [];
+    const qs: QuizQuestion[] = [];
     for (let i = 0; i < QUIZ_LENGTH; i++) {
-      const q = generateQuestion(usedIndices)
-      usedIndices.push(q.nameIndex)
-      qs.push(q)
+      const q = generateQuestion(usedIndices);
+      usedIndices.push(q.nameIndex);
+      qs.push(q);
     }
-    setQuestions(qs)
-    setQuestionIndex(0)
-    setScore(0)
-    setSelectedAnswer(null)
-    setIsCorrect(null)
-    setTimer(TIMER_SECONDS)
-    setStreak(0)
-    setPhase('playing')
-  }, [])
+    setQuestions(qs);
+    setQuestionIndex(0);
+    setScore(0);
+    setSelectedAnswer(null);
+    setIsCorrect(null);
+    setTimer(TIMER_SECONDS);
+    setStreak(0);
+    setPhase("playing");
+  }, []);
 
   // Timer countdown
   useEffect(() => {
-    if (phase !== 'playing' || selectedAnswer !== null) return
+    if (phase !== "playing" || selectedAnswer !== null) return;
     if (timer <= 0) {
       // Time's up - treat as wrong answer
-      handleAnswer(-1)
-      return
+      handleAnswer(-1);
+      return;
     }
     const interval = setInterval(() => {
-      setTimer((t) => t - 1)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [phase, timer, selectedAnswer])
+      setTimer((t) => t - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phase, timer, selectedAnswer]);
 
   const handleAnswer = useCallback(
     (optionIndex: number) => {
-      if (selectedAnswer !== null) return
-      const q = questions[questionIndex]
-      const correct = optionIndex === q.correctIndex
+      if (selectedAnswer !== null) return;
+      const q = questions[questionIndex];
+      const correct = optionIndex === q.correctIndex;
 
-      setSelectedAnswer(optionIndex)
-      setIsCorrect(correct)
+      setSelectedAnswer(optionIndex);
+      setIsCorrect(correct);
 
       if (correct) {
-        const points = POINTS.NAMES_QUIZ
-        setScore((s) => s + points)
-        setStreak((s) => s + 1)
-        storage.addExtraPoints(points)
+        const points = POINTS.NAMES_QUIZ;
+        setScore((s) => s + points);
+        setStreak((s) => s + 1);
+        storage.addExtraPoints(points);
       } else {
-        setShakeWrong(true)
-        setStreak(0)
-        setTimeout(() => setShakeWrong(false), 500)
+        setShakeWrong(true);
+        setStreak(0);
+        setTimeout(() => setShakeWrong(false), 500);
       }
 
       // Move to next question after delay
       setTimeout(() => {
         if (questionIndex + 1 >= QUIZ_LENGTH) {
-          const finalScore = correct ? score + POINTS.NAMES_QUIZ : score
-          onNewHighScore(finalScore)
-          setPhase('results')
+          const finalScore = correct ? score + POINTS.NAMES_QUIZ : score;
+          onNewHighScore(finalScore);
+          setPhase("results");
         } else {
-          setQuestionIndex((i) => i + 1)
-          setSelectedAnswer(null)
-          setIsCorrect(null)
-          setTimer(TIMER_SECONDS)
+          setQuestionIndex((i) => i + 1);
+          setSelectedAnswer(null);
+          setIsCorrect(null);
+          setTimer(TIMER_SECONDS);
         }
-      }, 1200)
+      }, 1200);
     },
-    [selectedAnswer, questions, questionIndex, score, onNewHighScore]
-  )
+    [selectedAnswer, questions, questionIndex, score, onNewHighScore],
+  );
 
   // ---- Start Screen ----
-  if (phase === 'start') {
+  if (phase === "start") {
     return (
       <div className="px-4 flex flex-col items-center">
         <div className="glass-card p-8 w-full max-w-sm text-center">
@@ -445,7 +461,7 @@ function QuizTab({
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Викторина</h2>
           <p className="text-gray-400 text-sm mb-6">
-            Проверьте свои знания 99 Имён Аллаха. {QUIZ_LENGTH} вопросов,{' '}
+            Проверьте свои знания 99 Имён Аллаха. {QUIZ_LENGTH} вопросов,{" "}
             {TIMER_SECONDS} секунд на ответ.
           </p>
 
@@ -466,14 +482,14 @@ function QuizTab({
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   // ---- Results Screen ----
-  if (phase === 'results') {
-    const maxPossible = QUIZ_LENGTH * POINTS.NAMES_QUIZ
-    const percentage = Math.round((score / maxPossible) * 100)
-    const isNewRecord = score >= highScore && score > 0
+  if (phase === "results") {
+    const maxPossible = QUIZ_LENGTH * POINTS.NAMES_QUIZ;
+    const percentage = Math.round((score / maxPossible) * 100);
+    const isNewRecord = score >= highScore && score > 0;
 
     return (
       <div className="px-4 flex flex-col items-center animate-fade-in">
@@ -488,10 +504,10 @@ function QuizTab({
           <div
             className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${
               percentage >= 70
-                ? 'bg-emerald-500/20 glow-green'
+                ? "bg-emerald-500/20 glow-green"
                 : percentage >= 40
-                ? 'bg-amber-500/20 glow-gold'
-                : 'bg-red-500/20'
+                  ? "bg-amber-500/20 glow-gold"
+                  : "bg-red-500/20"
             }`}
           >
             <span className="text-3xl font-bold text-white">{percentage}%</span>
@@ -499,18 +515,18 @@ function QuizTab({
 
           <h2 className="text-xl font-bold text-white mb-1">
             {percentage >= 90
-              ? 'Превосходно!'
+              ? "Превосходно!"
               : percentage >= 70
-              ? 'Отлично!'
-              : percentage >= 50
-              ? 'Хорошо!'
-              : 'Продолжайте учить!'}
+                ? "Отлично!"
+                : percentage >= 50
+                  ? "Хорошо!"
+                  : "Продолжайте учить!"}
           </h2>
 
           <p className="text-gray-400 text-sm mb-6">
-            Вы набрали{' '}
-            <span className="text-emerald-400 font-semibold">{score}</span> из{' '}
-            <span className="text-gray-300">{maxPossible}</span> баллов
+            Вы набрали{" "}
+            <span className="text-emerald-400 font-semibold">{score}</span> из{" "}
+            <span className="text-gray-300">{maxPossible}</span> саваб
           </p>
 
           <div className="flex items-center justify-center gap-4 mb-6">
@@ -538,7 +554,7 @@ function QuizTab({
 
           <div className="flex gap-3">
             <button
-              onClick={() => setPhase('start')}
+              onClick={() => setPhase("start")}
               className="flex-1 py-3 rounded-xl glass text-gray-300 font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
             >
               <RotateCcw className="w-4 h-4" />
@@ -553,13 +569,13 @@ function QuizTab({
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // ---- Playing Screen ----
-  const currentQ = questions[questionIndex]
-  const currentName = NAMES_OF_ALLAH[currentQ.nameIndex]
-  const timerPct = (timer / TIMER_SECONDS) * 100
+  const currentQ = questions[questionIndex];
+  const currentName = NAMES_OF_ALLAH[currentQ.nameIndex];
+  const timerPct = (timer / TIMER_SECONDS) * 100;
 
   return (
     <div className="px-4">
@@ -567,15 +583,14 @@ function QuizTab({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-emerald-400 font-bold text-lg">{score}</span>
-          <span className="text-gray-500 text-sm">баллов</span>
+          <span className="text-gray-500 text-sm">саваб</span>
         </div>
         <div className="text-gray-400 text-sm">
           {questionIndex + 1} / {QUIZ_LENGTH}
         </div>
         {streak >= 2 && (
           <div className="flex items-center gap-1 text-amber-400 text-sm font-medium">
-            <Star className="w-4 h-4 fill-amber-400" />
-            x{streak}
+            <Star className="w-4 h-4 fill-amber-400" />x{streak}
           </div>
         )}
       </div>
@@ -584,7 +599,11 @@ function QuizTab({
       <div className="w-full h-1.5 rounded-full t-bg mb-6 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-1000 linear ${
-            timer <= 5 ? 'bg-red-500' : timer <= 10 ? 'bg-amber-500' : 'bg-emerald-500'
+            timer <= 5
+              ? "bg-red-500"
+              : timer <= 10
+                ? "bg-amber-500"
+                : "bg-emerald-500"
           }`}
           style={{ width: `${timerPct}%` }}
         />
@@ -593,12 +612,12 @@ function QuizTab({
       {/* Question Card */}
       <div
         className={`glass-card p-8 text-center mb-6 transition-transform duration-300 ${
-          shakeWrong ? 'animate-[shake_0.5s_ease-in-out]' : ''
+          shakeWrong ? "animate-[shake_0.5s_ease-in-out]" : ""
         }`}
         style={
           shakeWrong
             ? {
-                animation: 'shake 0.5s ease-in-out',
+                animation: "shake 0.5s ease-in-out",
               }
             : undefined
         }
@@ -609,23 +628,25 @@ function QuizTab({
         <div className="arabic-text text-5xl text-amber-400 mb-4 select-none">
           {currentName.arabic}
         </div>
-        <div className="text-gray-400 text-sm">{currentName.transliteration}</div>
+        <div className="text-gray-400 text-sm">
+          {currentName.transliteration}
+        </div>
       </div>
 
       {/* Answer Options */}
       <div className="grid grid-cols-1 gap-3">
         {currentQ.options.map((option, i) => {
-          let btnClass = 'glass text-gray-200 hover:t-bg active:scale-[0.97]'
+          let btnClass = "glass text-gray-200 hover:t-bg active:scale-[0.97]";
 
           if (selectedAnswer !== null) {
             if (i === currentQ.correctIndex) {
               btnClass =
-                'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 ring-1 ring-emerald-500/30'
+                "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 ring-1 ring-emerald-500/30";
             } else if (i === selectedAnswer && !isCorrect) {
               btnClass =
-                'bg-red-500/20 border-red-500/50 text-red-300 ring-1 ring-red-500/30'
+                "bg-red-500/20 border-red-500/50 text-red-300 ring-1 ring-red-500/30";
             } else {
-              btnClass = 'glass text-gray-500 opacity-50'
+              btnClass = "glass text-gray-500 opacity-50";
             }
           }
 
@@ -640,12 +661,12 @@ function QuizTab({
                 <span
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${
                     selectedAnswer !== null && i === currentQ.correctIndex
-                      ? 'bg-emerald-500/30 text-emerald-300'
+                      ? "bg-emerald-500/30 text-emerald-300"
                       : selectedAnswer !== null &&
-                        i === selectedAnswer &&
-                        !isCorrect
-                      ? 'bg-red-500/30 text-red-300'
-                      : 't-bg text-gray-400'
+                          i === selectedAnswer &&
+                          !isCorrect
+                        ? "bg-red-500/30 text-red-300"
+                        : "t-bg text-gray-400"
                   }`}
                 >
                   {selectedAnswer !== null && i === currentQ.correctIndex ? (
@@ -661,7 +682,7 @@ function QuizTab({
                 <span>{option}</span>
               </span>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -674,7 +695,7 @@ function QuizTab({
         }
       `}</style>
     </div>
-  )
+  );
 }
 
 // ============================================================
@@ -686,25 +707,28 @@ function AllNamesTab({
   onMarkLearned,
   onUnmarkLearned,
 }: {
-  learned: number[]
-  onMarkLearned: (id: number) => void
-  onUnmarkLearned: (id: number) => void
+  learned: number[];
+  onMarkLearned: (id: number) => void;
+  onUnmarkLearned: (id: number) => void;
 }) {
-  const [selectedName, setSelectedName] = useState<number | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedName, setSelectedName] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredNames = NAMES_OF_ALLAH.filter((name) => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
     return (
       name.transliteration.toLowerCase().includes(q) ||
       name.russian.toLowerCase().includes(q) ||
       name.arabic.includes(searchQuery) ||
       String(name.id).includes(q)
-    )
-  })
+    );
+  });
 
-  const selected = selectedName !== null ? NAMES_OF_ALLAH.find((n) => n.id === selectedName) : null
+  const selected =
+    selectedName !== null
+      ? NAMES_OF_ALLAH.find((n) => n.id === selectedName)
+      : null;
 
   return (
     <div className="px-4">
@@ -719,7 +743,7 @@ function AllNamesTab({
         />
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => setSearchQuery("")}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
           >
             <X className="w-4 h-4" />
@@ -730,8 +754,8 @@ function AllNamesTab({
       {/* Stats */}
       <div className="flex items-center justify-between mb-4 text-sm">
         <span className="text-gray-400">
-          Выучено:{' '}
-          <span className="text-emerald-400 font-medium">{learned.length}</span>{' '}
+          Выучено:{" "}
+          <span className="text-emerald-400 font-medium">{learned.length}</span>{" "}
           / 99
         </span>
         <span className="text-gray-500">
@@ -742,15 +766,15 @@ function AllNamesTab({
       {/* Grid */}
       <div className="grid grid-cols-3 gap-2">
         {filteredNames.map((name) => {
-          const isLearned = learned.includes(name.id)
+          const isLearned = learned.includes(name.id);
           return (
             <button
               key={name.id}
               onClick={() => setSelectedName(name.id)}
               className={`relative p-3 rounded-xl text-center transition-all duration-200 active:scale-95 ${
                 isLearned
-                  ? 'glass border border-emerald-500/30 shadow-sm shadow-emerald-500/10'
-                  : 'glass'
+                  ? "glass border border-emerald-500/30 shadow-sm shadow-emerald-500/10"
+                  : "glass"
               }`}
             >
               {isLearned && (
@@ -763,9 +787,7 @@ function AllNamesTab({
                   <span className="text-[8px] text-amber-400">📖</span>
                 </div>
               )}
-              <div className="text-gray-500 text-[10px] mb-0.5">
-                {name.id}
-              </div>
+              <div className="text-gray-500 text-[10px] mb-0.5">{name.id}</div>
               <div className="arabic-text text-lg text-amber-400 leading-tight mb-1">
                 {name.arabic}
               </div>
@@ -773,7 +795,7 @@ function AllNamesTab({
                 {name.transliteration}
               </div>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -822,31 +844,44 @@ function AllNamesTab({
               </div>
 
               {/* Story section (if available) */}
-              {hasNameStory(selected.id) && (() => {
-                const story = getNameStory(selected.id)!;
-                return (
-                  <div className="text-left space-y-2.5 mb-5">
-                    <div className="bg-amber-500/5 rounded-lg p-2.5 border border-amber-500/15">
-                      <p className="text-[9px] font-semibold uppercase tracking-widest text-amber-400/70 mb-1">Дуа</p>
-                      <p className="text-[11px] text-amber-200/80 leading-relaxed italic">{story.dua}</p>
+              {hasNameStory(selected.id) &&
+                (() => {
+                  const story = getNameStory(selected.id)!;
+                  return (
+                    <div className="text-left space-y-2.5 mb-5">
+                      <div className="bg-amber-500/5 rounded-lg p-2.5 border border-amber-500/15">
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-amber-400/70 mb-1">
+                          Дуа
+                        </p>
+                        <p className="text-[11px] text-amber-200/80 leading-relaxed italic">
+                          {story.dua}
+                        </p>
+                      </div>
+                      <div className="bg-emerald-500/5 rounded-lg p-2.5 border border-emerald-500/15">
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-emerald-400/70 mb-1">
+                          История
+                        </p>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          {story.story}
+                        </p>
+                      </div>
+                      <div className="bg-purple-500/5 rounded-lg p-2.5 border border-purple-500/15">
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-purple-400/70 mb-1">
+                          Применение
+                        </p>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          {story.application}
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-emerald-500/5 rounded-lg p-2.5 border border-emerald-500/15">
-                      <p className="text-[9px] font-semibold uppercase tracking-widest text-emerald-400/70 mb-1">История</p>
-                      <p className="text-[11px] text-slate-300 leading-relaxed">{story.story}</p>
-                    </div>
-                    <div className="bg-purple-500/5 rounded-lg p-2.5 border border-purple-500/15">
-                      <p className="text-[9px] font-semibold uppercase tracking-widest text-purple-400/70 mb-1">Применение</p>
-                      <p className="text-[11px] text-slate-300 leading-relaxed">{story.application}</p>
-                    </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
               {/* Learn/Unlearn button */}
               {learned.includes(selected.id) ? (
                 <button
                   onClick={() => {
-                    onUnmarkLearned(selected.id)
+                    onUnmarkLearned(selected.id);
                   }}
                   className="w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
                 >
@@ -856,7 +891,7 @@ function AllNamesTab({
               ) : (
                 <button
                   onClick={() => {
-                    onMarkLearned(selected.id)
+                    onMarkLearned(selected.id);
                   }}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-medium flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
                 >
@@ -869,5 +904,5 @@ function AllNamesTab({
         </div>
       )}
     </div>
-  )
+  );
 }

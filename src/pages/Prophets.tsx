@@ -69,9 +69,7 @@ export default function Prophets() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">
-              Истории пророков
-            </h1>
+            <h1 className="text-lg font-bold text-white">Истории пророков</h1>
             <p className="text-xs text-gray-500">
               Прочитано {readCount} из {totalCount}
             </p>
@@ -151,15 +149,11 @@ function ProphetCard({
               {prophet.arabicName}
             </span>
             <span className="text-[10px] text-gray-500">
-              {prophet.readTime} мин &bull; +{prophet.xp} XP
+              {prophet.readTime} мин &bull; +{prophet.xp} саваб
             </span>
           </div>
-          <h3 className="font-semibold text-white text-sm">
-            {prophet.name}
-          </h3>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {prophet.title}
-          </p>
+          <h3 className="font-semibold text-white text-sm">{prophet.name}</h3>
+          <p className="text-xs text-gray-400 mt-0.5">{prophet.title}</p>
         </div>
         <div className="shrink-0 pt-1">
           {isExpanded ? (

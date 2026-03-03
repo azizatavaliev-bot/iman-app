@@ -44,25 +44,106 @@ interface AssetField {
 }
 
 const ASSET_FIELDS: AssetField[] = [
-  { key: "cash", label: "Наличные", icon: Coins, placeholder: "0", hint: "Деньги дома и в кошельке" },
-  { key: "savings", label: "Банковские счета", icon: Landmark, placeholder: "0", hint: "Вклады, карты, накопительные счета" },
-  { key: "gold_grams", label: "Золото (граммы)", icon: Gem, placeholder: "0", hint: "Ювелирные изделия, слитки, монеты" },
-  { key: "silver_grams", label: "Серебро (граммы)", icon: Gem, placeholder: "0", hint: "Серебряные изделия, слитки" },
-  { key: "investments", label: "Инвестиции", icon: TrendingUp, placeholder: "0", hint: "Акции, облигации, крипто, фонды" },
-  { key: "business", label: "Бизнес-активы", icon: Briefcase, placeholder: "0", hint: "Товары на продажу, оборотные средства" },
-  { key: "debts_owed_to_you", label: "Долги вам", icon: ArrowDownLeft, placeholder: "0", hint: "Деньги, которые вам должны вернуть" },
-  { key: "debts_you_owe", label: "Ваши долги", icon: ArrowUpRight, placeholder: "0", hint: "Деньги, которые вы должны", isDebt: true },
+  {
+    key: "cash",
+    label: "Наличные",
+    icon: Coins,
+    placeholder: "0",
+    hint: "Деньги дома и в кошельке",
+  },
+  {
+    key: "savings",
+    label: "Банковские счета",
+    icon: Landmark,
+    placeholder: "0",
+    hint: "Вклады, карты, накопительные счета",
+  },
+  {
+    key: "gold_grams",
+    label: "Золото (граммы)",
+    icon: Gem,
+    placeholder: "0",
+    hint: "Ювелирные изделия, слитки, монеты",
+  },
+  {
+    key: "silver_grams",
+    label: "Серебро (граммы)",
+    icon: Gem,
+    placeholder: "0",
+    hint: "Серебряные изделия, слитки",
+  },
+  {
+    key: "investments",
+    label: "Инвестиции",
+    icon: TrendingUp,
+    placeholder: "0",
+    hint: "Акции, облигации, крипто, фонды",
+  },
+  {
+    key: "business",
+    label: "Бизнес-активы",
+    icon: Briefcase,
+    placeholder: "0",
+    hint: "Товары на продажу, оборотные средства",
+  },
+  {
+    key: "debts_owed_to_you",
+    label: "Долги вам",
+    icon: ArrowDownLeft,
+    placeholder: "0",
+    hint: "Деньги, которые вам должны вернуть",
+  },
+  {
+    key: "debts_you_owe",
+    label: "Ваши долги",
+    icon: ArrowUpRight,
+    placeholder: "0",
+    hint: "Деньги, которые вы должны",
+    isDebt: true,
+  },
 ];
 
 const RECIPIENTS = [
-  { emoji: "1️⃣", title: "Бедные (аль-фукара)", desc: "Те, у кого нет средств для основных нужд" },
-  { emoji: "2️⃣", title: "Нуждающиеся (аль-масакин)", desc: "Те, чей доход не покрывает базовые потребности" },
-  { emoji: "3️⃣", title: "Сборщики закята", desc: "Работники, занимающиеся сбором и распределением" },
-  { emoji: "4️⃣", title: "Новообращённые (муалляфат аль-кулюб)", desc: "Те, чьи сердца склоняются к Исламу" },
-  { emoji: "5️⃣", title: "Освобождение рабов", desc: "Помощь в освобождении от рабства/долгового рабства" },
-  { emoji: "6️⃣", title: "Должники (аль-гаримин)", desc: "Те, кто не может выплатить свои долги" },
-  { emoji: "7️⃣", title: "На пути Аллаха (фи сабилиллях)", desc: "Расходы на благие дела и защиту Ислама" },
-  { emoji: "8️⃣", title: "Путники (ибн ас-сабиль)", desc: "Странники, оказавшиеся без средств в пути" },
+  {
+    emoji: "1️⃣",
+    title: "Бедные (аль-фукара)",
+    desc: "Те, у кого нет средств для основных нужд",
+  },
+  {
+    emoji: "2️⃣",
+    title: "Нуждающиеся (аль-масакин)",
+    desc: "Те, чей доход не покрывает базовые потребности",
+  },
+  {
+    emoji: "3️⃣",
+    title: "Сборщики закята",
+    desc: "Работники, занимающиеся сбором и распределением",
+  },
+  {
+    emoji: "4️⃣",
+    title: "Новообращённые (муалляфат аль-кулюб)",
+    desc: "Те, чьи сердца склоняются к Исламу",
+  },
+  {
+    emoji: "5️⃣",
+    title: "Освобождение рабов",
+    desc: "Помощь в освобождении от рабства/долгового рабства",
+  },
+  {
+    emoji: "6️⃣",
+    title: "Должники (аль-гаримин)",
+    desc: "Те, кто не может выплатить свои долги",
+  },
+  {
+    emoji: "7️⃣",
+    title: "На пути Аллаха (фи сабилиллях)",
+    desc: "Расходы на благие дела и защиту Ислама",
+  },
+  {
+    emoji: "8️⃣",
+    title: "Путники (ибн ас-сабиль)",
+    desc: "Странники, оказавшиеся без средств в пути",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -80,7 +161,20 @@ function formatCurrency(amount: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  const months = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const months = [
+    "янв",
+    "фев",
+    "мар",
+    "апр",
+    "мая",
+    "июн",
+    "июл",
+    "авг",
+    "сен",
+    "окт",
+    "ноя",
+    "дек",
+  ];
   const [y, m, d] = dateStr.split("-");
   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
 }
@@ -107,8 +201,12 @@ function calculateTotalAssets(assets: ZakatAssets): number {
 export default function Zakat() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("calculator");
-  const [assets, setAssets] = useState<ZakatAssets>(() => storage.getZakatAssets());
-  const [history, setHistory] = useState<ZakatHistoryEntry[]>(() => storage.getZakatHistory());
+  const [assets, setAssets] = useState<ZakatAssets>(() =>
+    storage.getZakatAssets(),
+  );
+  const [history, setHistory] = useState<ZakatHistoryEntry[]>(() =>
+    storage.getZakatHistory(),
+  );
   const [saved, setSaved] = useState(false);
   const [currency, setCurrency] = useState("USD");
 
@@ -168,7 +266,10 @@ export default function Zakat() {
           <ChevronLeft size={20} style={{ color: "var(--text-secondary)" }} />
         </button>
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+          <h1
+            className="text-xl font-bold"
+            style={{ color: "var(--text-primary)" }}
+          >
             Калькулятор закята
           </h1>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -178,12 +279,15 @@ export default function Zakat() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "var(--bg-tertiary)" }}>
-        {([
+      <div
+        className="flex gap-1 p-1 rounded-2xl"
+        style={{ background: "var(--bg-tertiary)" }}
+      >
+        {[
           { key: "calculator" as Tab, label: "Калькулятор", icon: Calculator },
           { key: "history" as Tab, label: "История", icon: History },
           { key: "info" as Tab, label: "О закяте", icon: BookOpen },
-        ]).map(({ key, label, icon: Icon }) => (
+        ].map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -214,7 +318,12 @@ export default function Zakat() {
         />
       )}
       {tab === "history" && (
-        <HistoryTab history={history} yearTotal={yearTotal} currency={currency} togglePaid={togglePaid} />
+        <HistoryTab
+          history={history}
+          yearTotal={yearTotal}
+          currency={currency}
+          togglePaid={togglePaid}
+        />
       )}
       {tab === "info" && <InfoTab />}
     </div>
@@ -250,7 +359,9 @@ function CalculatorTab({
     <div className="space-y-4">
       {/* Currency selector */}
       <div className="flex items-center gap-2">
-        <span className="text-xs" style={{ color: "var(--text-muted)" }}>Валюта:</span>
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+          Валюта:
+        </span>
         {["USD", "KGS", "RUB", "KZT"].map((c) => (
           <button
             key={c}
@@ -273,72 +384,117 @@ function CalculatorTab({
           <Info size={16} className="text-amber-400" />
         </div>
         <div>
-          <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+          <p
+            className="text-xs font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
             Нисаб (минимальный порог)
           </p>
-          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-            85г золота ~ {formatCurrency(DEFAULT_NISAB)} {currency}. Если ваши активы ниже нисаба, закят не обязателен.
+          <p
+            className="text-[10px] mt-0.5"
+            style={{ color: "var(--text-muted)" }}
+          >
+            85г золота ~ {formatCurrency(DEFAULT_NISAB)} {currency}. Если ваши
+            активы ниже нисаба, закят не обязателен.
           </p>
         </div>
       </div>
 
       {/* Asset fields */}
       <div className="space-y-3">
-        {ASSET_FIELDS.map(({ key, label, icon: Icon, placeholder, hint, isDebt }) => (
-          <div key={key} className="glass-card p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                isDebt ? "bg-red-500/10" : "bg-emerald-500/10"
-              }`}>
-                <Icon size={14} className={isDebt ? "text-red-400" : "text-emerald-400"} />
+        {ASSET_FIELDS.map(
+          ({ key, label, icon: Icon, placeholder, hint, isDebt }) => (
+            <div key={key} className="glass-card p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                    isDebt ? "bg-red-500/10" : "bg-emerald-500/10"
+                  }`}
+                >
+                  <Icon
+                    size={14}
+                    className={isDebt ? "text-red-400" : "text-emerald-400"}
+                  />
+                </div>
+                <div className="flex-1">
+                  <p
+                    className="text-xs font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {label}
+                    {isDebt && (
+                      <span className="text-red-400 ml-1">(вычитается)</span>
+                    )}
+                  </p>
+                  <p
+                    className="text-[9px]"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {hint}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
-                  {label}
-                  {isDebt && <span className="text-red-400 ml-1">(вычитается)</span>}
-                </p>
-                <p className="text-[9px]" style={{ color: "var(--text-muted)" }}>{hint}</p>
+              <div className="relative">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  placeholder={placeholder}
+                  value={assets[key] || ""}
+                  onChange={(e) => updateField(key, e.target.value)}
+                  className="w-full py-2.5 px-3 pr-12 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-emerald-500/30"
+                  style={{
+                    background: "var(--bg-tertiary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-secondary)",
+                  }}
+                />
+                <span
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {key === "gold_grams" || key === "silver_grams"
+                    ? "г"
+                    : currency}
+                </span>
               </div>
             </div>
-            <div className="relative">
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder={placeholder}
-                value={assets[key] || ""}
-                onChange={(e) => updateField(key, e.target.value)}
-                className="w-full py-2.5 px-3 pr-12 rounded-xl text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-emerald-500/30"
-                style={{
-                  background: "var(--bg-tertiary)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border-secondary)",
-                }}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>
-                {key === "gold_grams" || key === "silver_grams" ? "г" : currency}
-              </span>
-            </div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
 
       {/* Result card */}
-      <div className={`glass-card p-5 text-center space-y-3 ${meetsNisab ? "border border-emerald-500/20" : ""}`}>
+      <div
+        className={`glass-card p-5 text-center space-y-3 ${meetsNisab ? "border border-emerald-500/20" : ""}`}
+      >
         <div className="flex items-center justify-center gap-2">
-          <CircleDollarSign size={20} className={meetsNisab ? "text-emerald-400" : "text-white/30"} />
-          <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+          <CircleDollarSign
+            size={20}
+            className={meetsNisab ? "text-emerald-400" : "text-white/30"}
+          />
+          <span
+            className="text-xs font-semibold"
+            style={{ color: "var(--text-muted)" }}
+          >
             Общие активы
           </span>
         </div>
-        <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+        <p
+          className="text-2xl font-bold"
+          style={{ color: "var(--text-primary)" }}
+        >
           {formatCurrency(totalAssets)} {currency}
         </p>
 
         {meetsNisab ? (
           <>
-            <div className="h-px" style={{ background: "var(--border-secondary)" }} />
+            <div
+              className="h-px"
+              style={{ background: "var(--border-secondary)" }}
+            />
             <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Ваш закят (2.5%)</p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Ваш закят (2.5%)
+              </p>
               <p className="text-3xl font-bold text-emerald-400 mt-1">
                 {formatCurrency(zakatAmount)} {currency}
               </p>
@@ -365,7 +521,7 @@ function CalculatorTab({
       >
         {saved ? (
           <span className="flex items-center justify-center gap-2">
-            <Check size={16} /> Сохранено! +{POINTS.ZAKAT_LOGGED} баллов
+            <Check size={16} /> Сохранено! +{POINTS.ZAKAT_LOGGED} саваб
           </span>
         ) : (
           <span className="flex items-center justify-center gap-2">
@@ -396,7 +552,10 @@ function HistoryTab({
     return (
       <div className="glass-card p-8 text-center">
         <History size={40} className="mx-auto text-white/10 mb-3" />
-        <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+        <p
+          className="text-sm font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
           Пока нет записей
         </p>
         <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
@@ -423,7 +582,10 @@ function HistoryTab({
         {history.map((entry) => (
           <div key={entry.id} className="glass-card p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
                 {formatDate(entry.date)}
               </span>
               <button
@@ -438,7 +600,10 @@ function HistoryTab({
               </button>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              <span
+                className="text-[10px]"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Активы: {formatCurrency(entry.totalAssets)} {currency}
               </span>
               <span className="text-lg font-bold text-emerald-400">
@@ -461,31 +626,65 @@ function InfoTab() {
     <div className="space-y-4">
       {/* What is Zakat */}
       <div className="glass-card p-4 space-y-3">
-        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+        <h3
+          className="text-sm font-bold flex items-center gap-2"
+          style={{ color: "var(--text-primary)" }}
+        >
           <span>🕌</span> Что такое закят?
         </h3>
-        <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-          Закят — один из пяти столпов Ислама. Это обязательная милостыня, которую мусульманин выплачивает раз в год с накопленного имущества. Размер закята составляет 2.5% от стоимости имущества, превышающего нисаб.
+        <p
+          className="text-xs leading-relaxed"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          Закят — один из пяти столпов Ислама. Это обязательная милостыня,
+          которую мусульманин выплачивает раз в год с накопленного имущества.
+          Размер закята составляет 2.5% от стоимости имущества, превышающего
+          нисаб.
         </p>
       </div>
 
       {/* Conditions */}
       <div className="glass-card p-4 space-y-3">
-        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+        <h3
+          className="text-sm font-bold flex items-center gap-2"
+          style={{ color: "var(--text-primary)" }}
+        >
           <span>📋</span> Условия обязательности
         </h3>
         <div className="space-y-2">
           {[
-            { title: "Нисаб", desc: "Имущество должно достигнуть нисаба — эквивалент 85г золота" },
-            { title: "Хавль (год)", desc: "Имущество должно находиться во владении не менее одного лунного года" },
-            { title: "Полное владение", desc: "Имущество должно полностью принадлежать вам" },
-            { title: "Свобода от долгов", desc: "Долги вычитаются из общей суммы активов" },
+            {
+              title: "Нисаб",
+              desc: "Имущество должно достигнуть нисаба — эквивалент 85г золота",
+            },
+            {
+              title: "Хавль (год)",
+              desc: "Имущество должно находиться во владении не менее одного лунного года",
+            },
+            {
+              title: "Полное владение",
+              desc: "Имущество должно полностью принадлежать вам",
+            },
+            {
+              title: "Свобода от долгов",
+              desc: "Долги вычитаются из общей суммы активов",
+            },
           ].map((item) => (
             <div key={item.title} className="flex items-start gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
               <div>
-                <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{item.title}</p>
-                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{item.desc}</p>
+                <p
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {item.title}
+                </p>
+                <p
+                  className="text-[10px]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {item.desc}
+                </p>
               </div>
             </div>
           ))}
@@ -494,7 +693,10 @@ function InfoTab() {
 
       {/* 8 Recipients */}
       <div className="glass-card p-4 space-y-3">
-        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+        <h3
+          className="text-sm font-bold flex items-center gap-2"
+          style={{ color: "var(--text-primary)" }}
+        >
           <span>🤲</span> 8 категорий получателей закята
         </h3>
         <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
@@ -505,8 +707,18 @@ function InfoTab() {
             <div key={r.title} className="flex items-start gap-2.5">
               <span className="text-sm">{r.emoji}</span>
               <div>
-                <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{r.title}</p>
-                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{r.desc}</p>
+                <p
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {r.title}
+                </p>
+                <p
+                  className="text-[10px]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {r.desc}
+                </p>
               </div>
             </div>
           ))}
@@ -515,16 +727,26 @@ function InfoTab() {
 
       {/* Formula */}
       <div className="glass-card p-4 space-y-2">
-        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+        <h3
+          className="text-sm font-bold flex items-center gap-2"
+          style={{ color: "var(--text-primary)" }}
+        >
           <span>🧮</span> Формула расчёта
         </h3>
-        <div className="p-3 rounded-xl text-center" style={{ background: "var(--bg-tertiary)" }}>
-          <p className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
+        <div
+          className="p-3 rounded-xl text-center"
+          style={{ background: "var(--bg-tertiary)" }}
+        >
+          <p
+            className="text-xs font-mono"
+            style={{ color: "var(--text-secondary)" }}
+          >
             (Активы - Долги) &times; 2.5% = Закят
           </p>
         </div>
         <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-          Активы включают: наличные, банковские счета, золото, серебро, инвестиции, товары для бизнеса и долги, которые вам должны вернуть.
+          Активы включают: наличные, банковские счета, золото, серебро,
+          инвестиции, товары для бизнеса и долги, которые вам должны вернуть.
         </p>
       </div>
     </div>

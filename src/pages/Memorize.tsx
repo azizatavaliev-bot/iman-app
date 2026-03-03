@@ -985,7 +985,7 @@ export default function Memorize() {
                     {showConfidence && (
                       <div className="mt-3 t-bg rounded-xl p-3">
                         <p className="text-slate-400 text-xs mb-2.5 text-center">
-                          Как хорошо помнишь? (+{POINTS.MEMORIZE_REPEAT} баллов)
+                          Как хорошо помнишь? (+{POINTS.MEMORIZE_REPEAT} саваб)
                         </p>
                         <div className="grid grid-cols-4 gap-2">
                           {CONFIDENCE_OPTIONS.map((opt) => (
@@ -1019,7 +1019,7 @@ export default function Memorize() {
                       <div className="mt-2 flex items-center justify-center gap-1">
                         <TrendingUp className="w-3 h-3 text-emerald-500/50" />
                         <span className="text-emerald-500/50 text-[10px]">
-                          +{surah.pointsEarned} баллов заработано
+                          +{surah.pointsEarned} саваб заработано
                         </span>
                       </div>
                     )}

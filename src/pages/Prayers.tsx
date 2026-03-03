@@ -342,7 +342,10 @@ export default function Prayers() {
     d.setDate(d.getDate() + dateOffset);
     return d;
   }, [dateOffset]);
-  const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
+  const selectedDateKey = useMemo(
+    () => toDateKey(selectedDate),
+    [selectedDate],
+  );
 
   // Prayer log for selected day
   const todayKey = selectedDateKey;
@@ -885,7 +888,12 @@ export default function Prayers() {
                     const day = d.getDate();
                     const month = GREGORIAN_MONTHS[d.getMonth()];
                     const year = d.getFullYear();
-                    const label = dateOffset === -1 ? " (вчера)" : dateOffset === -2 ? " (позавчера)" : "";
+                    const label =
+                      dateOffset === -1
+                        ? " (вчера)"
+                        : dateOffset === -2
+                          ? " (позавчера)"
+                          : "";
                     return `${day} ${month} ${year}${label}`;
                   })()}
             </p>
@@ -1087,7 +1095,9 @@ export default function Prayers() {
                   {isToday && phase === "future" && entry.status === "none" && (
                     <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl t-bg border t-border-s opacity-40">
                       <Lock className="w-3.5 h-3.5 text-white/30" />
-                      <span className="text-xs text-white/30">Время ещё не наступило</span>
+                      <span className="text-xs text-white/30">
+                        Время ещё не наступило
+                      </span>
                     </div>
                   )}
 
@@ -1316,7 +1326,7 @@ export default function Prayers() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5 text-amber-400" />
-            Система баллов
+            Система саваба
           </h2>
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25">
             <Zap className="w-3 h-3 text-emerald-400" />

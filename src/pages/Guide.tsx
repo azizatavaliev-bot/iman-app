@@ -36,8 +36,12 @@ export default function Guide() {
     }
   }, []);
 
-  const currentLevel = profile ? getCurrentLevel(profile.totalPoints) : LEVELS[0];
-  const currentLevelIndex = LEVELS.findIndex((l) => l.name === currentLevel.name);
+  const currentLevel = profile
+    ? getCurrentLevel(profile.totalPoints)
+    : LEVELS[0];
+  const currentLevelIndex = LEVELS.findIndex(
+    (l) => l.name === currentLevel.name,
+  );
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "features", label: "Функции", icon: "📱" },
@@ -96,53 +100,53 @@ export default function Guide() {
         <div className="space-y-6 animate-fade-in">
           <div className="glass-card p-4">
             <p className="text-sm text-white/70 leading-relaxed">
-              IMAN — это ваш личный помощник на пути к Аллаху.
-              Уделяйте хотя бы 5-10 минут в день изучению дина.
-              Вот что вы можете делать в приложении:
+              IMAN — это ваш личный помощник на пути к Аллаху. Уделяйте хотя бы
+              5-10 минут в день изучению дина. Вот что вы можете делать в
+              приложении:
             </p>
           </div>
 
-          {(Object.keys(FEATURE_GROUPS) as Array<keyof typeof FEATURE_GROUPS>).map(
-            (groupKey) => {
-              const features = APP_FEATURES.filter((f) => f.group === groupKey);
-              if (features.length === 0) return null;
+          {(
+            Object.keys(FEATURE_GROUPS) as Array<keyof typeof FEATURE_GROUPS>
+          ).map((groupKey) => {
+            const features = APP_FEATURES.filter((f) => f.group === groupKey);
+            if (features.length === 0) return null;
 
-              return (
-                <div key={groupKey}>
-                  <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3 px-1">
-                    {FEATURE_GROUPS[groupKey]}
-                  </h3>
-                  <div className="space-y-2">
-                    {features.map((feature) => (
-                      <button
-                        key={feature.path}
-                        onClick={() => navigate(feature.path)}
-                        className="w-full glass-card p-4 flex items-start gap-3 text-left hover:scale-[0.99] active:scale-[0.97] transition-transform"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl shrink-0">
-                          {feature.icon}
+            return (
+              <div key={groupKey}>
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3 px-1">
+                  {FEATURE_GROUPS[groupKey]}
+                </h3>
+                <div className="space-y-2">
+                  {features.map((feature) => (
+                    <button
+                      key={feature.path}
+                      onClick={() => navigate(feature.path)}
+                      className="w-full glass-card p-4 flex items-start gap-3 text-left hover:scale-[0.99] active:scale-[0.97] transition-transform"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xl shrink-0">
+                        {feature.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-white font-semibold text-sm">
+                            {feature.name}
+                          </h4>
+                          <ChevronRight
+                            size={16}
+                            className="text-white/20 shrink-0"
+                          />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-white font-semibold text-sm">
-                              {feature.name}
-                            </h4>
-                            <ChevronRight
-                              size={16}
-                              className="text-white/20 shrink-0"
-                            />
-                          </div>
-                          <p className="text-white/50 text-xs leading-relaxed mt-1">
-                            {feature.description}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                        <p className="text-white/50 text-xs leading-relaxed mt-1">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              );
-            },
-          )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -151,9 +155,8 @@ export default function Guide() {
         <div className="space-y-2 animate-fade-in">
           <div className="glass-card p-4 mb-4">
             <p className="text-sm text-white/70 leading-relaxed">
-              Основные термины, которые встретятся вам в приложении
-              и в изучении ислама. Нажмите на термин, чтобы прочитать
-              пояснение.
+              Основные термины, которые встретятся вам в приложении и в изучении
+              ислама. Нажмите на термин, чтобы прочитать пояснение.
             </p>
           </div>
 
@@ -192,9 +195,11 @@ export default function Guide() {
           {/* Current status */}
           <div className="glass-card p-5 text-center">
             <div className="text-4xl mb-2">{currentLevel.icon}</div>
-            <h3 className="text-white font-bold text-lg">{currentLevel.name}</h3>
+            <h3 className="text-white font-bold text-lg">
+              {currentLevel.name}
+            </h3>
             <p className="text-emerald-400 text-sm font-medium mt-1">
-              {profile?.totalPoints?.toLocaleString() || 0} очков
+              {profile?.totalPoints?.toLocaleString() || 0} саваб
             </p>
             {currentLevelIndex < LEVELS.length - 1 && (
               <div className="mt-3">
@@ -206,12 +211,14 @@ export default function Guide() {
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
                     style={{
-                      width: `${Math.min(100, ((profile?.totalPoints || 0) - currentLevel.minPoints) / (LEVELS[currentLevelIndex + 1].minPoints - currentLevel.minPoints) * 100)}%`,
+                      width: `${Math.min(100, (((profile?.totalPoints || 0) - currentLevel.minPoints) / (LEVELS[currentLevelIndex + 1].minPoints - currentLevel.minPoints)) * 100)}%`,
                     }}
                   />
                 </div>
                 <p className="text-xs text-white/30 mt-1">
-                  {LEVELS[currentLevelIndex + 1].minPoints - (profile?.totalPoints || 0)} очков до следующего уровня
+                  {LEVELS[currentLevelIndex + 1].minPoints -
+                    (profile?.totalPoints || 0)}{" "}
+                  саваб до следующего уровня
                 </p>
               </div>
             )}
@@ -224,9 +231,7 @@ export default function Guide() {
 
           <div className="relative">
             {/* Vertical connecting line */}
-            <div
-              className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-emerald-500/40 via-emerald-500/20 to-white/5"
-            />
+            <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-emerald-500/40 via-emerald-500/20 to-white/5" />
 
             <div className="space-y-1">
               {LEVELS.map((level, i) => {
@@ -331,8 +336,8 @@ export default function Guide() {
             </div>
             <div className="mt-3 pt-3 border-t t-border">
               <p className="text-white/30 text-[11px] leading-relaxed">
-                Все 5 намазов + привычки = ~79 очков/день. Уровень "Муслим" можно
-                достичь за 3 дня активного использования.
+                Все 5 намазов + привычки = ~79 саваб/день. Уровень "Муслим"
+                можно достичь за 3 дня активного использования.
               </p>
             </div>
           </div>

@@ -541,7 +541,7 @@ export default function Habits() {
                   )}
                 </div>
                 <p className="text-[11px] t-text-f mt-0.5">
-                  +{habit.points} очков
+                  +{habit.points} саваб
                 </p>
               </div>
 

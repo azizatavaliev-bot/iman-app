@@ -17,7 +17,11 @@ import {
   BarChart3,
 } from "lucide-react";
 import { isAdmin } from "../lib/adminConfig";
-import { getAdminDashboard, getAdminHeaders, type AdminDashboard } from "../lib/adminStats";
+import {
+  getAdminDashboard,
+  getAdminHeaders,
+  type AdminDashboard,
+} from "../lib/adminStats";
 import { getTelegramUser } from "../lib/telegram";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
@@ -209,7 +213,8 @@ export default function AdminNew() {
       const [dashData, analyticsData] = await Promise.all([
         getAdminDashboard(),
         fetch(`${API_BASE}/api/admin/analytics`, { headers }).then((r) => {
-          if (!r.ok) throw new Error(`Analytics API: ${r.status} ${r.statusText}`);
+          if (!r.ok)
+            throw new Error(`Analytics API: ${r.status} ${r.statusText}`);
           return r.json();
         }),
       ]);
@@ -255,7 +260,9 @@ export default function AdminNew() {
             {tgUser ? `TG ID: ${tgUser.id}` : "Telegram не обнаружен"}
           </p>
           <button
-            onClick={() => { loadData(); }}
+            onClick={() => {
+              loadData();
+            }}
             disabled={loading}
             className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
           >
@@ -501,7 +508,7 @@ export default function AdminNew() {
                       className="text-xs"
                       style={{ color: "var(--text-faint)" }}
                     >
-                      баллов
+                      саваб
                     </p>
                   </div>
                 </div>
@@ -641,32 +648,59 @@ export default function AdminNew() {
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 size={18} className="text-violet-400" />
-              <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              <h3
+                className="font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
                 Топ-фичи
               </h3>
-              <span className="ml-auto text-xs" style={{ color: "var(--text-faint)" }}>
+              <span
+                className="ml-auto text-xs"
+                style={{ color: "var(--text-faint)" }}
+              >
                 использований
               </span>
             </div>
             <div className="space-y-3">
               {dashboard.topFeatures.map((feat, i) => {
-                const maxUsage = Math.max(dashboard.topFeatures[0]?.usage || 1, 1);
+                const maxUsage = Math.max(
+                  dashboard.topFeatures[0]?.usage || 1,
+                  1,
+                );
                 const pct = Math.round((feat.usage / maxUsage) * 100);
-                const colors = ["bg-violet-400", "bg-blue-400", "bg-emerald-400", "bg-amber-400", "bg-pink-400"];
+                const colors = [
+                  "bg-violet-400",
+                  "bg-blue-400",
+                  "bg-emerald-400",
+                  "bg-amber-400",
+                  "bg-pink-400",
+                ];
                 return (
                   <div key={feat.name}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "var(--text-primary)" }}
+                      >
                         {feat.name}
                       </span>
-                      <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>
+                      <span
+                        className="text-xs font-mono"
+                        style={{ color: "var(--text-muted)" }}
+                      >
                         {feat.usage}
                       </span>
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--progress-bg)" }}>
+                    <div
+                      className="h-2 rounded-full overflow-hidden"
+                      style={{ background: "var(--progress-bg)" }}
+                    >
                       <div
                         className={`h-full rounded-full ${colors[i % colors.length]}`}
-                        style={{ width: `${pct}%`, transition: "width 0.5s ease" }}
+                        style={{
+                          width: `${pct}%`,
+                          transition: "width 0.5s ease",
+                        }}
                       />
                     </div>
                   </div>
@@ -683,13 +717,19 @@ export default function AdminNew() {
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-4">
               <Clock size={18} className="text-cyan-400" />
-              <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              <h3
+                className="font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
                 Активность по часам (24ч)
               </h3>
             </div>
             <div className="flex items-end gap-0.5 h-20">
               {analytics.timeline.map((slot, i) => {
-                const maxUsers = Math.max(...analytics.timeline.map((s) => s.users), 1);
+                const maxUsers = Math.max(
+                  ...analytics.timeline.map((s) => s.users),
+                  1,
+                );
                 const heightPct = Math.round((slot.users / maxUsers) * 100);
                 const isNow = new Date().getHours() === parseInt(slot.hour);
                 return (
@@ -705,7 +745,11 @@ export default function AdminNew() {
             </div>
             <div className="flex justify-between mt-1 px-0.5">
               {[0, 6, 12, 18, 23].map((h) => (
-                <span key={h} className="text-xs" style={{ color: "var(--text-faint)", fontSize: "9px" }}>
+                <span
+                  key={h}
+                  className="text-xs"
+                  style={{ color: "var(--text-faint)", fontSize: "9px" }}
+                >
                   {h}:00
                 </span>
               ))}
@@ -857,8 +901,15 @@ export default function AdminNew() {
                       </span>
                     </td>
                     <td className="text-right py-3 px-2">
-                      <span className="text-xs font-mono" style={{ color: "var(--text-faint)" }}>
-                        {new Date(user.joinedAt).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" })}
+                      <span
+                        className="text-xs font-mono"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        {new Date(user.joinedAt).toLocaleDateString("ru-RU", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "2-digit",
+                        })}
                       </span>
                     </td>
                   </tr>

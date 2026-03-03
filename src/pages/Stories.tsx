@@ -192,7 +192,7 @@ export default function Stories() {
                       }
                     </span>
                     <span className="text-[10px] text-gray-500">
-                      {story.readTime} мин • +{story.xp} XP
+                      {story.readTime} мин • +{story.xp} саваб
                     </span>
                   </div>
                   <h3 className="font-semibold text-white text-sm">
