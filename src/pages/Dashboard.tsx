@@ -32,6 +32,7 @@ import {
   Users,
   Calculator,
   Lock,
+  Search,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { getTelegramUser } from "../lib/telegram";
@@ -39,6 +40,7 @@ import { isSyncDone } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
 import { trackAction } from "../lib/analytics";
 import SawabCoin from "../components/SawabCoin";
+import GlobalSearch from "../components/GlobalSearch";
 import {
   getPrayerTimes,
   getHadithOfDay,
@@ -881,6 +883,9 @@ export default function Dashboard() {
   // Sawab info modal
   const [showSawabInfo, setShowSawabInfo] = useState(false);
 
+  // Global search
+  const [showSearch, setShowSearch] = useState(false);
+
   // Core state
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
   const [todayStats, setTodayStats] = useState<TodayStats>(
@@ -1339,8 +1344,15 @@ export default function Dashboard() {
           </h1>
         </div>
         <button
+          onClick={() => setShowSearch(true)}
+          className="w-9 h-9 rounded-xl glass-card flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shrink-0 ml-2"
+          title="Поиск"
+        >
+          <Search size={16} className="text-white/50" />
+        </button>
+        <button
           onClick={() => navigate("/profile")}
-          className="flex items-center gap-1.5 glass-card px-3 py-1.5 text-xs font-medium text-amber-400 hover:scale-105 active:scale-95 transition-transform shrink-0 ml-3"
+          className="flex items-center gap-1.5 glass-card px-3 py-1.5 text-xs font-medium text-amber-400 hover:scale-105 active:scale-95 transition-transform shrink-0 ml-1.5"
         >
           <span>{currentLevel.icon}</span>
           <span>{currentLevel.name}</span>
@@ -2358,6 +2370,9 @@ export default function Dashboard() {
           75% { transform: scaleY(1.1) scaleX(0.95); }
         }
       `}</style>
+
+      {/* Global Search */}
+      <GlobalSearch isOpen={showSearch} onClose={() => setShowSearch(false)} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import { NAMAZ_GUIDE_SECTIONS, USEFUL_MATERIALS } from "../data/namazGuide";
+import type { UsefulMaterial } from "../data/namazGuide";
 
 const STORAGE_KEY = "iman_namaz_guide_read";
 
@@ -24,6 +25,7 @@ function saveReadSections(ids: number[]): void {
 export default function NamazGuide() {
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedMaterial, setExpandedMaterial] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = getReadSections();
@@ -287,33 +289,141 @@ export default function NamazGuide() {
         >
           Полезные материалы
         </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {USEFUL_MATERIALS.map((material) => (
-            <div
-              key={material.id}
-              className="glass-card p-4 flex flex-col gap-2 opacity-70"
-            >
-              <span className="text-2xl">{material.icon}</span>
-              <h4
-                className="text-sm font-semibold leading-snug"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {material.title}
-              </h4>
-              <p
-                className="text-[11px] leading-relaxed"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {material.description}
-              </p>
-              <span
-                className="text-[10px] mt-auto font-medium"
-                style={{ color: "var(--text-faint)" }}
-              >
-                Скоро
-              </span>
-            </div>
-          ))}
+        <div className="space-y-3">
+          {USEFUL_MATERIALS.map((material: UsefulMaterial) => {
+            const isOpen = expandedMaterial === material.id;
+            return (
+              <div key={material.id} className="animate-fade-in">
+                <div
+                  className={`glass-card overflow-hidden transition-all duration-300 ${
+                    isOpen
+                      ? "ring-1 ring-amber-500/20"
+                      : "hover:bg-white/[0.04] active:scale-[0.99]"
+                  }`}
+                >
+                  {/* Header */}
+                  <button
+                    onClick={() =>
+                      setExpandedMaterial(isOpen ? null : material.id)
+                    }
+                    className="w-full p-4 flex items-center gap-3 text-left"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                      style={{
+                        background: isOpen
+                          ? "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.08))"
+                          : "rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <span>{material.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4
+                        className="text-sm font-semibold leading-snug"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        {material.title}
+                      </h4>
+                      <p
+                        className="text-xs mt-0.5"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        {material.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-[10px] text-amber-400/60 font-medium">
+                        {material.content.length} тем
+                      </span>
+                      {isOpen ? (
+                        <ChevronUp
+                          size={16}
+                          style={{ color: "var(--text-muted)" }}
+                        />
+                      ) : (
+                        <ChevronDown
+                          size={16}
+                          style={{ color: "var(--text-muted)" }}
+                        />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Expanded Content */}
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      isOpen
+                        ? "max-h-[8000px] opacity-100"
+                        : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <div className="px-4 pb-4">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+                        <div className="w-1 h-1 rounded-full bg-amber-500/30" />
+                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+                      </div>
+
+                      <div className="space-y-4">
+                        {material.content.map((item, idx) => (
+                          <div key={idx}>
+                            <h5
+                              className="text-sm font-semibold mb-1.5"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {item.title}
+                            </h5>
+                            <p
+                              className="text-xs leading-relaxed"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              {item.text}
+                            </p>
+                            {item.arabic && (
+                              <div
+                                className="mt-2.5 rounded-xl p-3"
+                                style={{
+                                  background: "rgba(245,158,11,0.06)",
+                                  border: "1px solid rgba(245,158,11,0.12)",
+                                }}
+                              >
+                                <p
+                                  className="text-base leading-loose text-right"
+                                  style={{
+                                    fontFamily:
+                                      "'Amiri', 'Scheherazade New', serif",
+                                    color: "var(--text-primary)",
+                                    direction: "rtl",
+                                  }}
+                                >
+                                  {item.arabic}
+                                </p>
+                              </div>
+                            )}
+                            {item.source && (
+                              <p className="text-[10px] text-amber-400/50 mt-1.5 italic">
+                                {item.source}
+                              </p>
+                            )}
+                            {idx < material.content.length - 1 && (
+                              <div
+                                className="mt-4 h-px"
+                                style={{
+                                  background:
+                                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
+                                }}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

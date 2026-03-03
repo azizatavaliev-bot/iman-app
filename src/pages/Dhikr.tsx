@@ -7,11 +7,13 @@ import {
   RotateCcw,
   Zap,
   Target,
+  Share2,
 } from "lucide-react";
 import { DHIKR_DATA, DHIKR_CATEGORIES } from "../data/dhikr";
 import type { Dhikr } from "../data/dhikr";
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
+import ShareCard from "../components/ShareCard";
 
 // ============================================================
 // Types
@@ -267,6 +269,11 @@ export default function Dhikr() {
   const [tapScale, setTapScale] = useState(1);
   const [completedInSession, setCompletedInSession] = useState<number[]>([]);
   const [, setTick] = useState(0); // force re-render on progress change
+  const [shareDhikr, setShareDhikr] = useState<{
+    arabic: string;
+    text: string;
+    source: string;
+  } | null>(null);
 
   // Get dhikr for active category
   const categoryDhikr = activeCategory
@@ -369,20 +376,38 @@ export default function Dhikr() {
   // ---- Render by view mode ----
   if (viewMode === "practice" && currentDhikr) {
     return (
-      <PracticeView
-        dhikr={currentDhikr}
-        dhikrIndex={currentDhikrIndex}
-        totalDhikr={categoryDhikr.length}
-        tapCount={tapCount}
-        tapScale={tapScale}
-        onTap={handleTap}
-        onNext={goNext}
-        onBack={goBack}
-        showConfetti={showConfetti}
-        showXp={showXp}
-        xpAmount={xpAmount}
-        isCompleted={tapCount >= currentDhikr.count}
-      />
+      <>
+        <PracticeView
+          dhikr={currentDhikr}
+          dhikrIndex={currentDhikrIndex}
+          totalDhikr={categoryDhikr.length}
+          tapCount={tapCount}
+          tapScale={tapScale}
+          onTap={handleTap}
+          onNext={goNext}
+          onBack={goBack}
+          showConfetti={showConfetti}
+          showXp={showXp}
+          xpAmount={xpAmount}
+          isCompleted={tapCount >= currentDhikr.count}
+          onShare={() =>
+            setShareDhikr({
+              arabic: currentDhikr.arabic,
+              text: currentDhikr.russian,
+              source: currentDhikr.reward,
+            })
+          }
+        />
+        {shareDhikr && (
+          <ShareCard
+            type="dhikr"
+            arabic={shareDhikr.arabic}
+            text={shareDhikr.text}
+            source={shareDhikr.source}
+            onClose={() => setShareDhikr(null)}
+          />
+        )}
+      </>
     );
   }
 
@@ -753,6 +778,7 @@ function PracticeView({
   showXp,
   xpAmount,
   isCompleted,
+  onShare,
 }: {
   dhikr: Dhikr;
   dhikrIndex: number;
@@ -766,6 +792,7 @@ function PracticeView({
   showXp: boolean;
   xpAmount: number;
   isCompleted: boolean;
+  onShare: () => void;
 }) {
   const progress = tapCount / dhikr.count;
   const circumference = 2 * Math.PI * 72; // radius 72 for the big counter
@@ -941,6 +968,13 @@ function PracticeView({
               </div>
             </div>
           </div>
+          <button
+            onClick={onShare}
+            className="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white/10"
+          >
+            <Share2 size={14} />
+            Поделиться зикром
+          </button>
         </div>
       </div>
 

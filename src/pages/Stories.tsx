@@ -8,6 +8,7 @@ import {
   Star,
   Heart,
   Sparkles,
+  Share2,
 } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
@@ -234,6 +235,25 @@ export default function Stories() {
                         </p>
                       </div>
                     )}
+
+                    {/* Кнопка шеринга */}
+                    <button
+                      onClick={() => {
+                        const shareText = `${story.title}\n\n${story.content.slice(0, 300)}...\n\n${story.source ? `📚 ${story.source}` : ""}\n\n— IMAN App`;
+                        if (navigator.share) {
+                          navigator.share({
+                            title: story.title,
+                            text: shareText,
+                          });
+                        } else {
+                          navigator.clipboard.writeText(shareText);
+                        }
+                      }}
+                      className="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
+                    >
+                      <Share2 size={14} />
+                      Поделиться историей
+                    </button>
                   </div>
                 </div>
               )}
