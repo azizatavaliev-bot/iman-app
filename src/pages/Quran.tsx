@@ -247,7 +247,11 @@ export default function Quran() {
   const [expandedTafsir, setExpandedTafsir] = useState<number | null>(null);
 
   // --- Share state ---
-  const [shareAyah, setShareAyah] = useState<{arabic: string; text: string; surah: string} | null>(null);
+  const [shareAyah, setShareAyah] = useState<{
+    arabic: string;
+    text: string;
+    surah: string;
+  } | null>(null);
 
   // --- Notes state ---
   const NOTES_KEY = "iman_quran_notes";
@@ -255,12 +259,16 @@ export default function Quran() {
     try {
       const raw = localStorage.getItem(NOTES_KEY);
       return raw ? JSON.parse(raw) : {};
-    } catch { return {}; }
+    } catch {
+      return {};
+    }
   });
   const [editingNote, setEditingNote] = useState<string | null>(null); // "surah:ayah" key
   const [noteText, setNoteText] = useState("");
 
-  function noteKey(surah: number, ayah: number) { return `${surah}:${ayah}`; }
+  function noteKey(surah: number, ayah: number) {
+    return `${surah}:${ayah}`;
+  }
 
   function saveNote(surah: number, ayah: number, text: string) {
     const key = noteKey(surah, ayah);
@@ -1202,11 +1210,13 @@ export default function Quran() {
 
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setShareAyah({
-                          arabic: ayah.arabic,
-                          text: ayah.translation,
-                          surah: `${SURAH_NAMES_RU[selectedSurah] || surahDetail?.englishName} : ${ayah.numberInSurah}`
-                        })}
+                        onClick={() =>
+                          setShareAyah({
+                            arabic: ayah.arabic,
+                            text: ayah.translation,
+                            surah: `${SURAH_NAMES_RU[selectedSurah] || surahDetail?.englishName} : ${ayah.numberInSurah}`,
+                          })
+                        }
                         className="p-2 rounded-full hover:t-bg transition-colors"
                       >
                         <Share2 className="w-5 h-5 text-slate-500 hover:text-emerald-400 transition-colors" />
@@ -1312,20 +1322,30 @@ export default function Quran() {
                               </span>
                               <div className="flex gap-1">
                                 <button
-                                  onClick={() => { setEditingNote(nk); setNoteText(existingNote); }}
+                                  onClick={() => {
+                                    setEditingNote(nk);
+                                    setNoteText(existingNote);
+                                  }}
                                   className="p-1 rounded hover:bg-amber-500/10"
                                 >
                                   <PenLine className="w-3 h-3 text-amber-400/60" />
                                 </button>
                                 <button
-                                  onClick={() => deleteNote(selectedSurah, ayah.numberInSurah)}
+                                  onClick={() =>
+                                    deleteNote(
+                                      selectedSurah,
+                                      ayah.numberInSurah,
+                                    )
+                                  }
                                   className="p-1 rounded hover:bg-red-500/10"
                                 >
                                   <Trash2 className="w-3 h-3 text-red-400/60" />
                                 </button>
                               </div>
                             </div>
-                            <p className="text-sm text-amber-200/80 leading-relaxed">{existingNote}</p>
+                            <p className="text-sm text-amber-200/80 leading-relaxed">
+                              {existingNote}
+                            </p>
                           </div>
                         )}
 
@@ -1341,27 +1361,41 @@ export default function Quran() {
                             />
                             <div className="flex gap-2 mt-2 justify-end">
                               <button
-                                onClick={() => { setEditingNote(null); setNoteText(""); }}
+                                onClick={() => {
+                                  setEditingNote(null);
+                                  setNoteText("");
+                                }}
                                 className="px-3 py-1 rounded-lg text-xs text-slate-400 hover:bg-slate-700/50"
                               >
                                 Отмена
                               </button>
                               <button
-                                onClick={() => saveNote(selectedSurah, ayah.numberInSurah, noteText)}
+                                onClick={() =>
+                                  saveNote(
+                                    selectedSurah,
+                                    ayah.numberInSurah,
+                                    noteText,
+                                  )
+                                }
                                 className="px-3 py-1 rounded-lg text-xs bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
                               >
                                 Сохранить
                               </button>
                             </div>
                           </div>
-                        ) : !existingNote && (
-                          <button
-                            onClick={() => { setEditingNote(nk); setNoteText(""); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-amber-300 hover:bg-amber-500/10 t-bg transition-all"
-                          >
-                            <PenLine className="w-3.5 h-3.5" />
-                            Заметка
-                          </button>
+                        ) : (
+                          !existingNote && (
+                            <button
+                              onClick={() => {
+                                setEditingNote(nk);
+                                setNoteText("");
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-500 hover:text-amber-300 hover:bg-amber-500/10 t-bg transition-all"
+                            >
+                              <PenLine className="w-3.5 h-3.5" />
+                              Заметка
+                            </button>
+                          )
                         )}
                       </div>
                     );
@@ -1410,10 +1444,33 @@ export default function Quran() {
   // ============================
   return (
     <div className="min-h-screen pb-24">
-      {/* Page header */}
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-white mb-1">Коран</h1>
-        <p className="text-slate-400 text-sm">114 сур Священного Корана</p>
+      {/* Page header — восточный стиль */}
+      <div className="relative px-4 pt-6 pb-5 overflow-hidden">
+        {/* Декоративный фон */}
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/30 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-2 left-4 w-20 h-20 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative text-center">
+          {/* Бисмиллях */}
+          <p
+            className="text-amber-400/60 text-lg font-serif mb-1"
+            style={{ fontFamily: "'Amiri', serif" }}
+          >
+            ﷽
+          </p>
+          {/* Заголовок */}
+          <h1 className="text-2xl font-bold text-white mb-1">
+            Священный Коран
+          </h1>
+          <p className="text-emerald-400/60 text-sm">114 сур • Слово Аллаха</p>
+          {/* Декоративная линия */}
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="h-px w-12 bg-gradient-to-r from-transparent to-emerald-500/40" />
+            <span className="text-emerald-500/40 text-xs">✦</span>
+            <div className="h-px w-12 bg-gradient-to-l from-transparent to-emerald-500/40" />
+          </div>
+        </div>
       </div>
 
       {/* Search */}
@@ -1469,16 +1526,14 @@ export default function Quran() {
                            hover:bg-white/[0.04] active:scale-[0.99]
                            transition-all duration-150 text-left"
               >
-                {/* Surah number circle */}
-                <div
-                  className="relative flex items-center justify-center w-12 h-12 shrink-0
-                             rounded-full border border-emerald-500/30 bg-emerald-500/10"
-                >
-                  <span className="text-emerald-400 text-sm font-bold">
+                {/* Surah number — восточный ромб */}
+                <div className="relative flex items-center justify-center w-11 h-11 shrink-0">
+                  <div className="absolute inset-0 rotate-45 rounded-lg border border-emerald-500/30 bg-emerald-500/10" />
+                  <span className="relative text-emerald-400 text-sm font-bold">
                     {surah.number}
                   </span>
                   {bookmarked && (
-                    <div className="absolute -top-1 -right-1">
+                    <div className="absolute -top-1.5 -right-1.5 z-10">
                       <svg
                         className="w-4 h-4 text-amber-400 fill-amber-400"
                         viewBox="0 0 24 24"
@@ -1516,12 +1571,12 @@ export default function Quran() {
                 </div>
 
                 {/* Arabic name */}
-                <span className="arabic-text text-amber-100/80 text-lg shrink-0">
+                <span
+                  className="text-amber-400/70 text-lg shrink-0"
+                  style={{ fontFamily: "'Amiri', serif" }}
+                >
                   {surah.name}
                 </span>
-
-                {/* Chevron */}
-                <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
               </button>
             );
           })}

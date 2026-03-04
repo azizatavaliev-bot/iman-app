@@ -1,4 +1,12 @@
-import { lazy, Suspense, useState, useCallback, useEffect, Component, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  Component,
+  type ReactNode,
+} from "react";
 import {
   BrowserRouter,
   Routes,
@@ -6,7 +14,15 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { Home, Moon, BookOpen, Compass, User, ArrowLeft } from "lucide-react";
+import {
+  Home,
+  Moon,
+  BookOpen,
+  Compass,
+  User,
+  ArrowLeft,
+  Heart,
+} from "lucide-react";
 import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
 import { getTelegramUser } from "./lib/telegram";
@@ -31,7 +47,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  ErrorBoundaryState
+> {
   constructor(props: { children: ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -48,22 +67,36 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "2rem",
-          background: "linear-gradient(to bottom, #0f172a, #1e293b)",
-          color: "#e2e8f0",
-          textAlign: "center",
-        }}>
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "2rem",
+            background: "linear-gradient(to bottom, #0f172a, #1e293b)",
+            color: "#e2e8f0",
+            textAlign: "center",
+          }}
+        >
           <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🕌</div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
+          <h1
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              marginBottom: "0.5rem",
+            }}
+          >
             Произошла ошибка
           </h1>
-          <p style={{ color: "#94a3b8", marginBottom: "1.5rem", maxWidth: "300px" }}>
+          <p
+            style={{
+              color: "#94a3b8",
+              marginBottom: "1.5rem",
+              maxWidth: "300px",
+            }}
+          >
             Попробуйте перезапустить приложение
           </p>
           <button
@@ -140,7 +173,7 @@ const NAV_ITEMS = [
   { path: "/", icon: Home, label: "Главная" },
   { path: "/prayers", icon: Moon, label: "Намазы" },
   { path: "/quran", icon: BookOpen, label: "Коран" },
-  { path: "/qibla", icon: Compass, label: "Кибла" },
+  { path: "/dua-wall", icon: Heart, label: "Дуа" },
   { path: "/profile", icon: User, label: "Профиль" },
 ];
 
@@ -191,8 +224,17 @@ function BottomNav() {
 
 // Pages that already have their own back button in their header
 const PAGES_WITH_OWN_BACK = new Set([
-  "/", "/prayers", "/dua-wall", "/leaderboard", "/ibadah", "/ramadan",
-  "/dua", "/zakat", "/about-app", "/memorize", "/quiz",
+  "/",
+  "/prayers",
+  "/dua-wall",
+  "/leaderboard",
+  "/ibadah",
+  "/ramadan",
+  "/dua",
+  "/zakat",
+  "/about-app",
+  "/memorize",
+  "/quiz",
 ]);
 
 function GlobalBackButton() {
@@ -202,7 +244,10 @@ function GlobalBackButton() {
   if (PAGES_WITH_OWN_BACK.has(location.pathname)) return null;
 
   return (
-    <div className="sticky top-0 z-40 glass" style={{ borderBottom: "1px solid var(--border-secondary)" }}>
+    <div
+      className="sticky top-0 z-40 glass"
+      style={{ borderBottom: "1px solid var(--border-secondary)" }}
+    >
       <div className="max-w-lg mx-auto flex items-center px-3 py-2.5">
         <button
           onClick={() => navigate(-1)}

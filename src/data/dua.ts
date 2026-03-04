@@ -884,7 +884,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 49,
     category: "study",
-    situation: "exam",
+    situation: "Перед экзаменом",
     arabic: "رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي",
     transcription: "Раббиш-рахли садри ва яссир ли амри",
     translation:
@@ -894,7 +894,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 50,
     category: "study",
-    situation: "exam",
+    situation: "Перед экзаменом",
     arabic:
       "اللَّهُمَّ لَا سَهْلَ إِلَّا مَا جَعَلْتَهُ سَهْلًا وَأَنْتَ تَجْعَلُ الْحَزْنَ إِذَا شِئْتَ سَهْلًا",
     transcription:
@@ -908,7 +908,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 51,
     category: "protection",
-    situation: "conflict",
+    situation: "При конфликте",
     arabic: "اللَّهُمَّ أَلِّفْ بَيْنَ قُلُوبِنَا وَأَصْلِحْ ذَاتَ بَيْنِنَا",
     transcription: "Аллахумма аллиф байна кулюбина ва аслих зата байнина",
     translation: "О Аллах, породни наши сердца и исправь наши отношения.",
@@ -917,7 +917,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 52,
     category: "protection",
-    situation: "conflict",
+    situation: "При конфликте",
     arabic:
       "رَبَّنَا اغْفِرْ لَنَا وَلِإِخْوَانِنَا الَّذِينَ سَبَقُونَا بِالْإِيمَانِ وَلَا تَجْعَلْ فِي قُلُوبِنَا غِلًّا لِلَّذِينَ آمَنُوا",
     transcription:
@@ -931,7 +931,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 53,
     category: "study",
-    situation: "interview",
+    situation: "Перед собеседованием",
     arabic:
       "رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي وَاحْلُلْ عُقْدَةً مِنْ لِسَانِي يَفْقَهُوا قَوْلِي",
     transcription:
@@ -945,7 +945,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 54,
     category: "protection",
-    situation: "fear",
+    situation: "При страхе",
     arabic: "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
     transcription: "ХасбуналЛаху ва ни'маль-вакиль",
     translation: "Достаточен для нас Аллах, и Он — прекрасный Покровитель.",
@@ -954,7 +954,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 55,
     category: "protection",
-    situation: "fear",
+    situation: "При страхе",
     arabic:
       "اللَّهُمَّ إِنَّا نَجْعَلُكَ فِي نُحُورِهِمْ وَنَعُوذُ بِكَ مِنْ شُرُورِهِمْ",
     transcription:
@@ -968,7 +968,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 56,
     category: "protection",
-    situation: "anxiety",
+    situation: "При тревоге",
     arabic:
       "لَا إِلَهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
     transcription: "Ля иляха илля Анта субханакя инни кунту миназ-залимин",
@@ -979,7 +979,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 57,
     category: "protection",
-    situation: "anxiety",
+    situation: "При тревоге",
     arabic: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ",
     transcription: "Аллахумма инни а'узу бикя миналь-хамми валь-хазан",
     translation: "О Аллах, я прибегаю к Тебе от беспокойства и печали.",
@@ -990,7 +990,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 58,
     category: "protection",
-    situation: "anger",
+    situation: "При гневе",
     arabic: "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
     transcription: "А'узу биЛляхи минаш-шайтанир-раджим",
     translation:
@@ -1000,7 +1000,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 59,
     category: "protection",
-    situation: "anger",
+    situation: "При гневе",
     arabic:
       "اللَّهُمَّ اغْفِرْ لِي ذَنْبِي وَأَذْهِبْ غَيْظَ قَلْبِي وَأَعِذْنِي مِنَ الشَّيْطَانِ",
     transcription:
@@ -1014,7 +1014,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 60,
     category: "protection",
-    situation: "decision",
+    situation: "Истихара (выбор)",
     arabic:
       "اللَّهُمَّ إِنِّي أَسْتَخِيرُكَ بِعِلْمِكَ وَأَسْتَقْدِرُكَ بِقُدْرَتِكَ وَأَسْأَلُكَ مِنْ فَضْلِكَ الْعَظِيمِ فَإِنَّكَ تَقْدِرُ وَلَا أَقْدِرُ وَتَعْلَمُ وَلَا أَعْلَمُ وَأَنْتَ عَلَّامُ الْغُيُوبِ",
     transcription:
@@ -1026,7 +1026,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 61,
     category: "study",
-    situation: "decision",
+    situation: "Истихара (выбор)",
     arabic:
       "رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ وَأَنْ أَعْمَلَ صَالِحًا تَرْضَاهُ وَأَصْلِحْ لِي فِي ذُرِّيَّتِي",
     transcription:
@@ -1040,7 +1040,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 62,
     category: "gratitude",
-    situation: "parents",
+    situation: "За родителей",
     arabic: "رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا",
     transcription: "Раббир-хамхума кама раббаяни сагира",
     translation:
@@ -1050,7 +1050,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 63,
     category: "gratitude",
-    situation: "parents",
+    situation: "За родителей",
     arabic:
       "رَبِّ اغْفِرْ لِي وَلِوَالِدَيَّ وَلِمَنْ دَخَلَ بَيْتِيَ مُؤْمِنًا وَلِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ",
     transcription:
@@ -1064,7 +1064,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 64,
     category: "gratitude",
-    situation: "children",
+    situation: "За детей",
     arabic:
       "رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا",
     transcription:
@@ -1076,7 +1076,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 65,
     category: "gratitude",
-    situation: "children",
+    situation: "За детей",
     arabic:
       "رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِنْ ذُرِّيَّتِي رَبَّنَا وَتَقَبَّلْ دُعَاءِ",
     transcription:
@@ -1090,7 +1090,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 66,
     category: "protection",
-    situation: "debt",
+    situation: "От долгов",
     arabic:
       "اللَّهُمَّ اكْفِنِي بِحَلَالِكَ عَنْ حَرَامِكَ وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ",
     transcription:
@@ -1102,7 +1102,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 67,
     category: "protection",
-    situation: "debt",
+    situation: "От долгов",
     arabic: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْمَأْثَمِ وَالْمَغْرَمِ",
     transcription: "Аллахумма инни а'узу бикя миналь-ма'сами валь-маграм",
     translation: "О Аллах, я прибегаю к Тебе от греха и от долга.",
@@ -1113,7 +1113,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 68,
     category: "gratitude",
-    situation: "marriage",
+    situation: "О браке",
     arabic:
       "بَارَكَ اللَّهُ لَكَ وَبَارَكَ عَلَيْكَ وَجَمَعَ بَيْنَكُمَا فِي خَيْرٍ",
     transcription:
@@ -1127,7 +1127,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 69,
     category: "protection",
-    situation: "loneliness",
+    situation: "При одиночестве",
     arabic: "يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ",
     transcription: "Йа Хаййу, йа Каййум, бирахматикя астагис",
     translation: "О Живой, о Вседержитель, к Твоей милости я взываю о помощи.",
@@ -1136,7 +1136,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 70,
     category: "repentance",
-    situation: "loneliness",
+    situation: "При одиночестве",
     arabic:
       "اللَّهُمَّ رَحْمَتَكَ أَرْجُو فَلَا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ وَأَصْلِحْ لِي شَأْنِي كُلَّهُ لَا إِلَهَ إِلَّا أَنْتَ",
     transcription:
@@ -1150,7 +1150,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 71,
     category: "gratitude",
-    situation: "success",
+    situation: "Благодарность за успех",
     arabic: "الْحَمْدُ لِلَّهِ الَّذِي بِنِعْمَتِهِ تَتِمُّ الصَّالِحَاتُ",
     transcription: "Альхамду лиЛляхиль-лязи бини'матихи татиммус-салихат",
     translation:
@@ -1162,7 +1162,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 72,
     category: "protection",
-    situation: "newhome",
+    situation: "При новоселье",
     arabic: "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
     transcription: "А'узу бикялиматиЛляхит-таммати мин шарри ма халяк",
     translation:
@@ -1174,7 +1174,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 73,
     category: "food",
-    situation: "food_gratitude",
+    situation: "Благодарность за еду",
     arabic:
       "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
     transcription: "Аллахумма барик ляна фима разактана ва кына 'азабан-нар",
@@ -1191,7 +1191,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 74,
     category: "daily",
-    situation: "toilet_enter",
+    situation: "Вход в туалет",
     arabic: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ وَالْخَبَائِثِ",
     transcription: "Аллахумма инни а'узу бикя миналь-хубуси валь-хаба'ис",
     translation:
@@ -1203,7 +1203,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 75,
     category: "daily",
-    situation: "toilet_exit",
+    situation: "Выход из туалета",
     arabic: "غُفْرَانَكَ",
     transcription: "Гуфранакя",
     translation: "Прошу Твоего прощения. (Произносится при выходе из туалета.)",
@@ -1214,7 +1214,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 76,
     category: "daily",
-    situation: "home_enter",
+    situation: "Вход в дом",
     arabic:
       "بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى رَبِّنَا تَوَكَّلْنَا",
     transcription:
@@ -1228,7 +1228,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 77,
     category: "daily",
-    situation: "home_exit",
+    situation: "Выход из дома",
     arabic:
       "بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
     transcription:
@@ -1242,7 +1242,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 78,
     category: "daily",
-    situation: "new_clothes",
+    situation: "При новой одежде",
     arabic:
       "اللَّهُمَّ لَكَ الْحَمْدُ أَنْتَ كَسَوْتَنِيهِ، أَسْأَلُكَ مِنْ خَيْرِهِ وَخَيْرِ مَا صُنِعَ لَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّهِ وَشَرِّ مَا صُنِعَ لَهُ",
     transcription:
@@ -1256,7 +1256,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 79,
     category: "daily",
-    situation: "undressing",
+    situation: "При раздевании",
     arabic: "بِسْمِ اللَّهِ",
     transcription: "БисмиЛлях",
     translation:
@@ -1268,7 +1268,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 80,
     category: "daily",
-    situation: "mirror",
+    situation: "Перед зеркалом",
     arabic: "اللَّهُمَّ أَنْتَ حَسَّنْتَ خَلْقِي فَحَسِّنْ خُلُقِي",
     transcription: "Аллахумма Анта хассанта халькы фахассин хулюкы",
     translation:
@@ -1280,7 +1280,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 81,
     category: "daily",
-    situation: "wudu_before",
+    situation: "Перед омовением",
     arabic: "بِسْمِ اللَّهِ",
     transcription: "БисмиЛлях",
     translation:
@@ -1292,7 +1292,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 82,
     category: "daily",
-    situation: "wudu_after",
+    situation: "После омовения",
     arabic:
       "أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ، اللَّهُمَّ اجْعَلْنِي مِنَ التَّوَّابِينَ وَاجْعَلْنِي مِنَ الْمُتَطَهِّرِينَ",
     transcription:
@@ -1306,7 +1306,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 83,
     category: "daily",
-    situation: "deceased",
+    situation: "За умершего",
     arabic:
       "اللَّهُمَّ اغْفِرْ لَهُ وَارْحَمْهُ وَعَافِهِ وَاعْفُ عَنْهُ، وَأَكْرِمْ نُزُلَهُ وَوَسِّعْ مُدْخَلَهُ، وَاغْسِلْهُ بِالْمَاءِ وَالثَّلْجِ وَالْبَرَدِ، وَنَقِّهِ مِنَ الْخَطَايَا كَمَا يُنَقَّى الثَّوْبُ الْأَبْيَضُ مِنَ الدَّنَسِ",
     transcription:
@@ -1318,7 +1318,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 84,
     category: "daily",
-    situation: "deceased",
+    situation: "За умершего",
     arabic:
       "اللَّهُمَّ اغْفِرْ لِحَيِّنَا وَمَيِّتِنَا، وَشَاهِدِنَا وَغَائِبِنَا، وَصَغِيرِنَا وَكَبِيرِنَا، وَذَكَرِنَا وَأُنْثَانَا",
     transcription:
@@ -1332,7 +1332,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 85,
     category: "daily",
-    situation: "new_moon",
+    situation: "При новолунии",
     arabic:
       "اللَّهُمَّ أَهِلَّهُ عَلَيْنَا بِالْأَمْنِ وَالْإِيمَانِ وَالسَّلَامَةِ وَالْإِسْلَامِ، رَبِّي وَرَبُّكَ اللَّهُ",
     transcription:
@@ -1346,7 +1346,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 86,
     category: "daily",
-    situation: "wind",
+    situation: "При ветре",
     arabic:
       "اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَهَا وَخَيْرَ مَا فِيهَا وَخَيْرَ مَا أُرْسِلَتْ بِهِ، وَأَعُوذُ بِكَ مِنْ شَرِّهَا وَشَرِّ مَا فِيهَا وَشَرِّ مَا أُرْسِلَتْ بِهِ",
     transcription:
@@ -1360,7 +1360,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 87,
     category: "daily",
-    situation: "rain",
+    situation: "При дожде",
     arabic: "اللَّهُمَّ صَيِّبًا نَافِعًا",
     transcription: "Аллахумма саййибан нафи'а",
     translation:
@@ -1372,7 +1372,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 88,
     category: "daily",
-    situation: "thunder",
+    situation: "При громе",
     arabic:
       "سُبْحَانَ الَّذِي يُسَبِّحُ الرَّعْدُ بِحَمْدِهِ وَالْمَلَائِكَةُ مِنْ خِيفَتِهِ",
     transcription:
@@ -1386,7 +1386,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 89,
     category: "daily",
-    situation: "mosque_enter",
+    situation: "Вход в мечеть",
     arabic:
       "أَعُوذُ بِاللَّهِ الْعَظِيمِ وَبِوَجْهِهِ الْكَرِيمِ وَسُلْطَانِهِ الْقَدِيمِ مِنَ الشَّيْطَانِ الرَّجِيمِ. بِسْمِ اللَّهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللَّهِ، اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
     transcription:
@@ -1400,7 +1400,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 90,
     category: "daily",
-    situation: "mosque_exit",
+    situation: "Выход из мечети",
     arabic:
       "بِسْمِ اللَّهِ وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللَّهِ، اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ، اللَّهُمَّ اعْصِمْنِي مِنَ الشَّيْطَانِ الرَّجِيمِ",
     transcription:
@@ -1414,7 +1414,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 91,
     category: "daily",
-    situation: "sneeze",
+    situation: "При чихании",
     arabic: "الْحَمْدُ لِلَّهِ",
     transcription: "Альхамду лиЛлях",
     translation:
@@ -1426,7 +1426,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 92,
     category: "daily",
-    situation: "yawn",
+    situation: "При зевоте",
     arabic: "أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ",
     transcription: "А'узу биЛляхи минаш-шайтанир-раджим",
     translation:
@@ -1438,7 +1438,7 @@ export const DUA_DATA: Dua[] = [
   {
     id: 93,
     category: "daily",
-    situation: "visiting_sick",
+    situation: "При посещении больного",
     arabic:
       "أَسْأَلُ اللَّهَ الْعَظِيمَ رَبَّ الْعَرْشِ الْعَظِيمِ أَنْ يَشْفِيَكَ",
     transcription:
