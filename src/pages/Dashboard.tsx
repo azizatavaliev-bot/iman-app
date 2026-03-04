@@ -1331,38 +1331,99 @@ export default function Dashboard() {
       {celebrating && <CelebrationBurst onDone={() => setCelebrating(false)} />}
 
       {/* ================================================================ */}
-      {/* 1. HEADER                                                        */}
+      {/* 1. HEADER — Hero Block                                           */}
       {/* ================================================================ */}
-      <header className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-emerald-400 font-black text-xs tracking-wider">
-              IMAN
-            </span>
-            <span className="text-[9px] text-white/20">APP</span>
-          </div>
-          <p className="text-sm text-white/50">
-            {greeting.sub}
-            {profile.name ? `, ${profile.name}` : ""} ☪️
-          </p>
-          <h1 className="text-base font-bold text-white leading-snug mt-0.5 truncate">
-            {greeting.headline}
-          </h1>
+      <header className="relative -mx-4 -mt-6 px-5 pt-5 pb-5 overflow-hidden">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/60 via-teal-900/30 to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-teal-500/8 rounded-full blur-[60px] pointer-events-none" />
+
+        {/* Decorative islamic pattern (subtle) */}
+        <div
+          className="absolute top-2 right-4 text-emerald-500/[0.07] text-6xl pointer-events-none select-none"
+          style={{ fontFamily: "'Amiri', serif" }}
+        >
+          ﷽
         </div>
-        <button
-          onClick={() => setShowSearch(true)}
-          className="w-9 h-9 rounded-xl glass-card flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shrink-0 ml-2"
-          title="Поиск"
-        >
-          <Search size={16} className="text-white/50" />
-        </button>
-        <button
-          onClick={() => navigate("/profile")}
-          className="flex items-center gap-1.5 glass-card px-3 py-1.5 text-xs font-medium text-amber-400 hover:scale-105 active:scale-95 transition-transform shrink-0 ml-1.5"
-        >
-          <span>{currentLevel.icon}</span>
-          <span>{currentLevel.name}</span>
-        </button>
+
+        <div className="relative z-10">
+          {/* Top row: brand + actions */}
+          <div className="flex items-center justify-between mb-4">
+            {/* Brand */}
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 border border-emerald-400/20">
+                <span className="text-base">☪️</span>
+              </div>
+              <div>
+                <h2 className="text-sm font-black text-white tracking-wide leading-none">
+                  IMAN
+                </h2>
+                <p className="text-[9px] text-emerald-400/50 tracking-widest uppercase">
+                  by Aziz Atavaliev
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSearch(true)}
+                className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform backdrop-blur-sm"
+                title="Поиск"
+              >
+                <Search size={15} className="text-white/50" />
+              </button>
+              <button
+                onClick={() => navigate("/profile")}
+                className="flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm px-3 py-1.5 rounded-xl hover:scale-105 active:scale-95 transition-transform"
+              >
+                <span className="text-sm">{currentLevel.icon}</span>
+                <span className="text-xs font-semibold text-amber-400">
+                  {currentLevel.name}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Greeting */}
+          <div>
+            <p className="text-sm text-white/50">
+              {greeting.sub}
+              {profile.name ? `, ${profile.name}` : ""} ☪️
+            </p>
+            <h1 className="text-lg font-bold text-white leading-snug mt-1">
+              {greeting.headline}
+            </h1>
+          </div>
+
+          {/* Quick stats row */}
+          <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm px-3 py-1.5 rounded-full">
+              <Flame
+                size={13}
+                className={streak > 0 ? "text-amber-400" : "text-white/25"}
+                fill={streak > 0 ? "currentColor" : "none"}
+              />
+              <span
+                className={`text-xs font-bold tabular-nums ${streak > 0 ? "text-amber-400" : "text-white/30"}`}
+              >
+                {streak}
+              </span>
+              <span className="text-[10px] text-white/30">дн.</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm px-3 py-1.5 rounded-full">
+              <SawabCoin size={13} />
+              <span className="text-xs font-bold tabular-nums text-emerald-400">
+                {profile.totalPoints.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] backdrop-blur-sm px-3 py-1.5 rounded-full">
+              <span className="text-xs">{prayersCompleted}/5</span>
+              <span className="text-[10px] text-white/30">намаз</span>
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* ================================================================ */}
