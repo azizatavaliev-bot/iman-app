@@ -1,6 +1,6 @@
 // IMAN App Server — all data persisted in PostgreSQL
 import { createServer } from "http";
-import { readFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, readFile, existsSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, createHmac } from "crypto";
@@ -224,7 +224,7 @@ const WEBHOOK_SECRET =
 // =========================================================================
 const rateLimitMap = new Map(); // IP -> { count, resetTime }
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX = 60; // max requests per window per IP
+const RATE_LIMIT_MAX = 200; // max requests per window per IP (mini app needs many calls on load)
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -854,17 +854,16 @@ async function handleWebhook(body) {
         `Мы каждый день тратим часы на дунью — соцсети, видео, игры... ` +
         `Но сколько минут мы уделяем своей религии?\n\n` +
         `\u{1F4A1} *Наша цель:* уделяй хотя бы *5-10 минут в день* изучению дина. ` +
-        `Читай Коран, учи хадисы, делай зикр, проверяй знания в квизе. ` +
+        `Читай Коран, изучай хадисы, делай зикр, проверяй знания в квизе. ` +
         `Каждая минута, проведённая ради Аллаха — это инвестиция в Ахират.\n\n` +
-        `К сожалению, мы пока не доросли до полноценного приложения, ` +
-        `но мы будем присылать вам напоминания о намазах, хадисы и аяты прямо в Телеграм. ` +
-        `А пока — пользуйтесь нашим мини-приложением в формате игры!\n\n` +
+        `Мы будем присылать вам напоминания о намазах, хадисы и аяты прямо в Телеграм. ` +
+        `А пока — пользуйтесь нашим мини-приложением!\n\n` +
         `\u{1F54C} Намазы (ханафитский масхаб)\n` +
         `\u{1F4D6} Коран с тафсиром (источник: Аль-Мунтахаб)\n` +
         `\u{1F4DC} 40 хадисов Ан-Навави\n` +
-        `\u{1F64F} Дуа и зикр на каждый день\n` +
-        `\u{1F9E0} Квиз — 300+ вопросов\n` +
-        `\u{1F4DA} Сира — жизнь Пророка (мир ему)\n\n` +
+        `\u{1F64F} Дуа на каждый день\n` +
+        `\u{1F4FF} Зикр — счётчик поминаний\n` +
+        `\u{1F9E0} Квиз — 300+ вопросов\n\n` +
         `\u{1F514} Вы подписаны на ежедневные напоминания (утро, день, вечер)\n` +
         `\u{1F4E2} Подписывайтесь на наш канал: ${CHANNEL_LINK}\n\n` +
         `Команды:\n` +
@@ -872,6 +871,7 @@ async function handleWebhook(body) {
         `/hadith — Случайный хадис\n` +
         `/ayat — Случайный аят Корана\n` +
         `/dua — Случайное дуа\n` +
+        `/zikr — Зикр после намаза\n` +
         `/remind — Подписка на напоминания\n` +
         `/stop — Отписка\n` +
         `/help — Помощь\n\n` +
@@ -898,6 +898,23 @@ async function handleWebhook(body) {
     await sendMessage(
       chatId,
       `\u{1F64F} *Дуа:*\n\n${d.text}\n\n_Источник: ${d.source}_`,
+    );
+  } else if (text === "/zikr") {
+    await sendMessage(
+      chatId,
+      `\u{1F4FF} *Зикр — поминание Аллаха*\n\n` +
+        `Читай после каждого намаза или в любое свободное время:\n\n` +
+        `\u{1F539} *Субхана-Ллах* (سُبْحَانَ اللّٰهِ) — 33 раза\n` +
+        `_Пречист Аллах от всех недостатков_\n\n` +
+        `\u{1F539} *Альхамдули-Ллях* (الْحَمْدُ لِلّٰهِ) — 33 раза\n` +
+        `_Хвала Аллаху_\n\n` +
+        `\u{1F539} *Аллаху Акбар* (اللّٰهُ أَكْبَرُ) — 33 раза\n` +
+        `_Аллах Велик_\n\n` +
+        `\u{1F539} *Ля иляха илля-Ллах* (لَا إِلٰهَ إِلَّا اللّٰهُ) — 1 раз\n` +
+        `_Нет божества, кроме Аллаха_\n\n` +
+        `\u{1F4D6} Пророк ﷺ сказал: _«Кто скажет после каждого намаза «Субхана-Ллах» 33 раза, «Альхамдули-Ллях» 33 раза и «Аллаху Акбар» 33 раза — итого 99 раз, а в сотый скажет «Ля иляха илля-Ллах», тому простятся грехи, даже если их будет столько, сколько пены морской»_ (Муслим)\n\n` +
+        `\u{1F449} Открой приложение для счётчика зикра!`,
+      appButton,
     );
   } else if (text === "/remind") {
     await addSubscriber(chatId);
@@ -927,6 +944,7 @@ async function handleWebhook(body) {
         `/hadith — Случайный хадис\n` +
         `/ayat — Случайный аят Корана\n` +
         `/dua — Случайное дуа\n` +
+        `/zikr — Зикр после намаза\n` +
         `/remind — Подписка на напоминания\n` +
         `/stop — Отписка от напоминаний\n` +
         `/app — Открыть приложение\n` +
@@ -952,8 +970,9 @@ const server = createServer(async (req, res) => {
     req.socket.remoteAddress ||
     "unknown";
 
-  // ── Rate limiting ─────────────────────────────────────────────────────
-  if (isRateLimited(clientIP)) {
+  // ── Rate limiting (API only, skip static files) ──────────────────────
+  const isApiOrWebhook = req.url?.startsWith("/api/") || req.url === WEBHOOK_PATH || req.url === "/health";
+  if (isApiOrWebhook && isRateLimited(clientIP)) {
     res.writeHead(429, {
       ...SECURITY_HEADERS,
       "Content-Type": "application/json",
@@ -1849,30 +1868,32 @@ const server = createServer(async (req, res) => {
   const ext = extname(filePath);
   const contentType = MIME[ext] || "application/octet-stream";
 
-  try {
-    const data = readFileSync(filePath);
-    const headers = {
-      ...SECURITY_HEADERS,
-      "Content-Type": contentType,
-    };
+  const headers = {
+    ...SECURITY_HEADERS,
+    "Content-Type": contentType,
+  };
 
-    // Cache static assets aggressively (hashed filenames)
-    if (filePath.includes("/assets/")) {
-      headers["Cache-Control"] = "public, max-age=31536000, immutable";
-    } else if (ext === ".html") {
-      headers["Cache-Control"] = "no-cache";
+  // Cache static assets aggressively (hashed filenames)
+  if (filePath.includes("/assets/")) {
+    headers["Cache-Control"] = "public, max-age=31536000, immutable";
+  } else if (ext === ".html") {
+    headers["Cache-Control"] = "no-cache";
+  }
+
+  // HSTS — only via HTTPS (Railway handles TLS)
+  headers["Strict-Transport-Security"] =
+    "max-age=31536000; includeSubDomains";
+
+  // Async file read — non-blocking event loop
+  readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404, { ...SECURITY_HEADERS, "Content-Type": "text/plain" });
+      res.end("Not found");
+      return;
     }
-
-    // HSTS — only via HTTPS (Railway handles TLS)
-    headers["Strict-Transport-Security"] =
-      "max-age=31536000; includeSubDomains";
-
     res.writeHead(200, headers);
     res.end(data);
-  } catch {
-    res.writeHead(404, { ...SECURITY_HEADERS, "Content-Type": "text/plain" });
-    res.end("Not found");
-  }
+  });
 });
 
 // =========================================================================
