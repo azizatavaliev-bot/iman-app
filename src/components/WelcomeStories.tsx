@@ -233,9 +233,10 @@ export default function WelcomeStories({ onComplete }: WelcomeStoriesProps) {
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); onComplete(); }}
-              className="text-xs text-white/40 underline underline-offset-2 active:text-white/60 transition-colors"
+              className="px-6 py-3 rounded-2xl text-sm font-medium text-white/70 active:scale-[0.97] transition-all"
+              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
             >
-              Пропустить и начать
+              Пропустить и начать →
             </button>
           </div>
         )}
