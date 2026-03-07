@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import InstructionStories from "../components/InstructionStories";
 import {
   Moon,
   BookOpen,
@@ -543,21 +544,21 @@ const FEATURE_SLIDES = [
   },
   {
     emoji: "🤲",
-    title: "Стена дуа",
-    desc: "Анонимные мольбы мусульман со всего мира",
-    path: "/dua-wall",
+    title: "Дуа на все случаи",
+    desc: "Коллекция дуа с транскрипцией и переводом",
+    path: "/dua",
     from: "from-rose-500",
     to: "to-pink-600",
     shadow: "shadow-rose-500/25",
   },
   {
-    emoji: "🍅",
-    title: "Помодоро-таймер ибадата",
-    desc: "Фокусируйся на поклонении без отвлечений",
-    path: "/ibadah-timer",
-    from: "from-red-500",
-    to: "to-orange-600",
-    shadow: "shadow-red-500/25",
+    emoji: "🧠",
+    title: "Викторина по исламу",
+    desc: "Проверь свои знания и заработай саваб",
+    path: "/quiz",
+    from: "from-orange-500",
+    to: "to-amber-600",
+    shadow: "shadow-orange-500/25",
   },
   {
     emoji: "🕌",
@@ -774,75 +775,6 @@ function FeatureBanner() {
 // Welcome Modal (first visit)
 // ---------------------------------------------------------------------------
 
-function WelcomeModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center px-5 bg-gradient-to-b from-slate-900 via-[#0d1117] to-black animate-fade-in overflow-auto">
-      {/* Decorative glow */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none" />
-
-      <div className="w-full max-w-sm space-y-6 relative z-10">
-        {/* Logo + Brand */}
-        <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30 border border-emerald-400/20">
-            <span className="text-4xl">☪️</span>
-          </div>
-          <h1 className="text-3xl font-black text-white tracking-tight">
-            IMAN
-          </h1>
-          <p className="text-white/40 text-xs mt-1">by Aziz Atavaliev</p>
-          <p className="text-emerald-400/80 text-sm mt-3 font-medium">
-            Ас-саляму алейкум! Добро пожаловать
-          </p>
-        </div>
-
-        {/* Features */}
-        <div className="glass-card p-4 space-y-2.5">
-          <p className="text-white/60 text-xs font-medium uppercase tracking-wider mb-2">
-            Что внутри
-          </p>
-          {[
-            { emoji: "🕌", text: "Трекер 5 намазов с напоминаниями" },
-            { emoji: "📖", text: "Коран с переводом и заучиванием" },
-            { emoji: "📿", text: "Зикры, дуа и стена мольб" },
-            { emoji: "🌙", text: "Трекер Рамадана и хадисы дня" },
-            { emoji: "🧠", text: "Викторина и 30 историй Ислама" },
-            { emoji: "🏆", text: "Саваб — зарабатывай награду за ибадат" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                <span className="text-base">{item.emoji}</span>
-              </div>
-              <span className="text-white/70 text-sm">{item.text}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Telegram CTA */}
-        <a
-          href="https://t.me/iman_app_official"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#2AABEE]/15 border border-[#2AABEE]/30 text-[#2AABEE] text-sm font-medium hover:bg-[#2AABEE]/25 transition-all active:scale-[0.97]"
-        >
-          <span className="text-lg">✈️</span>
-          Подпишись на наш Telegram-канал
-        </a>
-
-        {/* Start button */}
-        <button
-          onClick={onClose}
-          className="w-full py-4 rounded-2xl text-base font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all active:scale-[0.97] shadow-xl shadow-emerald-500/25"
-        >
-          Начать путь к Аллаху
-        </button>
-
-        <p className="text-center text-white/20 text-[10px]">
-          Включите уведомления, чтобы не пропускать намазы
-        </p>
-      </div>
-    </div>
-  );
-}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -870,15 +802,6 @@ export default function Dashboard() {
   // Points info modal
   const [showPointsInfo, setShowPointsInfo] = useState(false);
 
-  // Welcome modal state
-  const [showWelcome, setShowWelcome] = useState(() => {
-    return !localStorage.getItem("iman_welcome_shown");
-  });
-
-  const dismissWelcome = () => {
-    localStorage.setItem("iman_welcome_shown", "1");
-    setShowWelcome(false);
-  };
 
   // Sawab info modal
   const [showSawabInfo, setShowSawabInfo] = useState(false);
@@ -1244,9 +1167,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pb-8 px-4 pt-6 max-w-lg mx-auto space-y-5 animate-fade-in">
-      {/* Welcome modal (first visit) */}
-      {showWelcome && <WelcomeModal onClose={dismissWelcome} />}
-
       {/* Sawab info modal */}
       {showSawabInfo && (
         <div
@@ -1280,7 +1200,7 @@ export default function Dashboard() {
                   <span className="text-amber-400 font-semibold">Саваб</span>{" "}
                   (ثواب) — в исламе это награда от Аллаха за благие деяния. В
                   приложении IMAN саваб-коины отражают вашу ежедневную
-                  активность в ибадате.
+                  активность.
                 </p>
                 <div className="glass-card p-3 space-y-2">
                   <p className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">
@@ -1432,39 +1352,14 @@ export default function Dashboard() {
       <FeatureBanner />
 
       {/* ================================================================ */}
-      {/* 1.6 DUA WALL PROMO (с счётчиком пользователей)                   */}
+      {/* 2. INSTRUCTION STORIES (кружки как в Instagram)                  */}
       {/* ================================================================ */}
-      {communityUsers > 0 && (
-        <button
-          onClick={() => navigate("/dua-wall")}
-          className="w-full glass-card p-4 flex items-center gap-3.5 hover:scale-[1.01] active:scale-[0.99] transition-transform relative overflow-hidden"
-        >
-          <div className="absolute -top-8 -right-8 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500/30 to-pink-500/20 border border-rose-500/20 flex items-center justify-center shrink-0">
-            <span className="text-xl">{"\u{1F932}"}</span>
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <h3 className="text-sm font-bold text-white">Стена дуа</h3>
-            <p className="text-xs text-white/50 mt-0.5">
-              Анонимные мольбы мусульман
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 bg-rose-500/15 px-2.5 py-1 rounded-full border border-rose-500/20 shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-            <span className="text-xs font-bold text-rose-400 tabular-nums">
-              {communityUsers}
-            </span>
-            <span className="text-[10px] text-rose-400/60">чел.</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-white/20 shrink-0" />
-        </button>
-      )}
+      <InstructionStories totalUsers={totalUsersCount} />
 
       {/* ================================================================ */}
-      {/* 2. ДВЕ БОЛЬШИЕ КНОПКИ (Инструкция + Новичкам)                   */}
+      {/* 2.5 ДВЕ БОЛЬШИЕ КНОПКИ (Инструкция + Новичкам)                  */}
       {/* ================================================================ */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Большая кнопка "Инструкция" — первый */}
         <Link
           to="/guide"
           className="col-span-1 h-28 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
@@ -1476,7 +1371,6 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        {/* Большая кнопка "Новичкам" — второй */}
         <Link
           to="/beginners"
           className="col-span-1 h-28 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
@@ -1488,6 +1382,19 @@ export default function Dashboard() {
           </div>
         </Link>
       </div>
+
+      {/* Telegram channel mini-button */}
+      <a
+        href="https://t.me/+UcggjLlqNuAyN2Qy"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl active:scale-[0.97] transition-all"
+        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <span className="text-base">📢</span>
+        <span className="text-xs text-white/50 flex-1">Новости и обновления</span>
+        <span className="text-[10px] text-emerald-400/70 font-medium">Telegram →</span>
+      </a>
 
       {/* ================================================================ */}
       {/* 3. DAILY SCORE + LEVEL (компактно в одну строку)                */}
@@ -2057,7 +1964,7 @@ export default function Dashboard() {
             Ворвитесь в топ лидеров!
           </h3>
           <p className="text-xs text-white/40 mt-1">
-            Делайте ибадаты и соревнуйтесь в благом
+            Выполняйте действия и соревнуйтесь в благом
           </p>
         </div>
 

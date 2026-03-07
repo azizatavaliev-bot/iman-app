@@ -59,6 +59,20 @@ export const LEVELS: Level[] = [
   { name: "Имам", minPoints: 150000, icon: "✨" },
 ];
 
+/** Пояснения к уровням (для UI) — это уровни внутри приложения, не религиозные титулы */
+export const LEVEL_DESCRIPTIONS: Record<string, string> = {
+  "Талиб": "начинающий",
+  "Муслим": "практикующий",
+  "Му'мин": "верующий",
+  "Мухсин": "старательный",
+  "Муттакий": "осознанный",
+  "Салих": "праведный",
+  "Хафиз": "знающий Коран",
+  "Муджтахид": "усердный",
+  "Шейх": "наставник",
+  "Имам": "мастер",
+};
+
 export function getCurrentLevel(points: number): Level {
   let current = LEVELS[0];
   for (const level of LEVELS) {

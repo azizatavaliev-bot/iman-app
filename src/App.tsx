@@ -22,6 +22,7 @@ import {
   User,
   ArrowLeft,
   Heart,
+  Headphones,
 } from "lucide-react";
 import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
@@ -31,6 +32,7 @@ import { syncUserData, scheduleSyncPush, initSyncOnClose } from "./lib/sync";
 import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
 import ChannelGate from "./components/ChannelGate";
+import WelcomeStories, { isWelcomeSeen, dismissWelcome } from "./components/WelcomeStories";
 import "./index.css";
 
 // ---- Telegram WebApp: signal ready to remove loading spinner ----
@@ -173,7 +175,7 @@ const NAV_ITEMS = [
   { path: "/", icon: Home, label: "Главная" },
   { path: "/prayers", icon: Moon, label: "Намазы" },
   { path: "/quran", icon: BookOpen, label: "Коран" },
-  { path: "/dua-wall", icon: Heart, label: "Дуа" },
+  { path: "/memorize", icon: Headphones, label: "Заучивание" },
   { path: "/profile", icon: User, label: "Профиль" },
 ];
 
@@ -354,6 +356,7 @@ function isOnboarded(): boolean {
 
 export default function App() {
   const [onboarded, setOnboarded] = useState(isOnboarded);
+  const [welcomeSeen, setWelcomeSeen] = useState(isWelcomeSeen);
 
   // Sync user data with server on startup (Telegram only)
   useEffect(() => {
@@ -368,11 +371,26 @@ export default function App() {
     setOnboarded(true);
   }, []);
 
+  const handleWelcomeComplete = useCallback(() => {
+    dismissWelcome();
+    setWelcomeSeen(true);
+  }, []);
+
   if (!onboarded) {
     return (
       <ErrorBoundary>
         <ThemeProvider>
           <Onboarding onComplete={handleOnboardingComplete} />
+        </ThemeProvider>
+      </ErrorBoundary>
+    );
+  }
+
+  if (!welcomeSeen) {
+    return (
+      <ErrorBoundary>
+        <ThemeProvider>
+          <WelcomeStories onComplete={handleWelcomeComplete} />
         </ThemeProvider>
       </ErrorBoundary>
     );

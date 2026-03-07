@@ -7,7 +7,7 @@ import {
   ChevronRight,
   BookOpen,
 } from "lucide-react";
-import { storage, getCurrentLevel, LEVELS } from "../lib/storage";
+import { storage, getCurrentLevel, LEVELS, LEVEL_DESCRIPTIONS } from "../lib/storage";
 import type { UserProfile } from "../lib/storage";
 import {
   GLOSSARY,
@@ -20,7 +20,7 @@ import {
 // Guide Page — Introduction, Glossary, Features, Levels
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Tab = "glossary" | "features" | "levels";
+type Tab = "glossary" | "features" | "levels" | "sawab";
 
 export default function Guide() {
   const navigate = useNavigate();
@@ -45,6 +45,7 @@ export default function Guide() {
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "features", label: "Функции", icon: "📱" },
+    { key: "sawab", label: "Саваб", icon: "⭐" },
     { key: "glossary", label: "Словарик", icon: "📖" },
     { key: "levels", label: "Уровни", icon: "🏆" },
   ];
@@ -150,6 +151,82 @@ export default function Guide() {
         </div>
       )}
 
+      {/* ── TAB: Sawab ──────────────────────────────────────────────── */}
+      {activeTab === "sawab" && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Sawab coin visual */}
+          <div className="glass-card p-6 text-center">
+            <div
+              className="w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center"
+              style={{
+                background: "linear-gradient(135deg, #f59e0b, #d97706, #b45309)",
+                boxShadow: "0 0 30px rgba(245,158,11,0.3), inset 0 -4px 8px rgba(0,0,0,0.2), inset 0 4px 8px rgba(255,255,255,0.2)",
+                border: "3px solid rgba(253,224,71,0.5)",
+              }}
+            >
+              <span className="text-4xl font-bold text-white" style={{ textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>S</span>
+            </div>
+            <h3 className="text-white font-bold text-xl mb-1">Саваб-коин</h3>
+            <p className="text-emerald-400 text-sm font-medium mb-3">
+              {profile?.totalPoints?.toLocaleString() || 0} саваб накоплено
+            </p>
+            <p className="text-white/50 text-sm leading-relaxed max-w-sm mx-auto">
+              Внутренняя валюта приложения для отслеживания вашей активности.
+              Это <strong className="text-white/70">НЕ</strong> религиозный саваб — а система мотивации, которая помогает не забывать о ежедневных действиях.
+            </p>
+          </div>
+
+          {/* How to earn */}
+          <div className="glass-card p-4">
+            <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", boxShadow: "0 0 12px rgba(245,158,11,0.2)" }}>+</span>
+              Как заработать саваб-коины
+            </h4>
+            <div className="space-y-2">
+              {[
+                { icon: "🕌", action: "Намаз вовремя", pts: 10 },
+                { icon: "🕐", action: "Намаз с опозданием", pts: 3 },
+                { icon: "📖", action: "Чтение Корана", pts: 5 },
+                { icon: "📿", action: "Хадис дня", pts: 2 },
+                { icon: "🤲", action: "Утренние/вечерние азкары", pts: 3 },
+                { icon: "💚", action: "Садака", pts: 8 },
+                { icon: "🌙", action: "Пост", pts: 20 },
+                { icon: "📝", action: "Дуа", pts: 3 },
+                { icon: "⏱️", action: "Минута сессии", pts: 2 },
+                { icon: "🧠", action: "Повтор заучивания", pts: 5 },
+                { icon: "🎯", action: "Ответ на викторину", pts: 2 },
+              ].map(({ icon, action, pts }) => (
+                <div key={action} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
+                  <span className="text-lg shrink-0">{icon}</span>
+                  <span className="text-white/60 text-sm flex-1">{action}</span>
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
+                  >
+                    +{pts}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+              <p className="text-white/30 text-[11px] leading-relaxed">
+                Все 5 намазов вовремя (50) + азкары (6) + Коран (5) + дуа (3) = ~64 очка/день. Уровень "Муслим" за ~3 дня.
+              </p>
+            </div>
+          </div>
+
+          {/* What sawab is NOT */}
+          <div className="glass-card p-4" style={{ borderColor: "rgba(245,158,11,0.2)" }}>
+            <h4 className="text-amber-400/80 text-xs font-semibold uppercase tracking-wider mb-2">
+              Важно понимать
+            </h4>
+            <p className="text-white/50 text-sm leading-relaxed">
+              Саваб-коины в приложении — это <strong className="text-white/70">инструмент мотивации</strong>, а не замена настоящего саваба перед Аллахом. Настоящий саваб зависит от вашего намерения (ният) и искренности. Приложение лишь помогает вам не забывать о ежедневных действиях.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── TAB: Glossary ────────────────────────────────────────────── */}
       {activeTab === "glossary" && (
         <div className="space-y-2 animate-fade-in">
@@ -189,6 +266,21 @@ export default function Guide() {
         </div>
       )}
 
+      {/* ── Creator Info (only on features tab) ────────────────────── */}
+      {activeTab === "features" && <div className="mt-8 glass-card p-5 text-center">
+        <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(20,184,166,0.2))", border: "2px solid rgba(16,185,129,0.3)" }}>
+          👨‍💻
+        </div>
+        <h4 className="text-white font-bold text-sm">Создатель приложения</h4>
+        <p className="text-emerald-400 font-semibold text-sm mt-1">Азиз Атавалиев</p>
+        <p className="text-white/40 text-xs mt-2 leading-relaxed max-w-xs mx-auto">
+          Разработчик из Кыргызстана. Приложение создано с намерением помочь мусульманам укрепить свою веру через ежедневную практику.
+        </p>
+        <p className="text-white/20 text-[10px] mt-3 italic">
+          "Лучший из вас тот, кто изучает Коран и обучает ему других"
+        </p>
+      </div>}
+
       {/* ── TAB: Levels ──────────────────────────────────────────────── */}
       {activeTab === "levels" && (
         <div className="space-y-4 animate-fade-in" id="levels">
@@ -196,10 +288,10 @@ export default function Guide() {
           <div className="glass-card p-5 text-center">
             <div className="text-4xl mb-2">{currentLevel.icon}</div>
             <h3 className="text-white font-bold text-lg">
-              {currentLevel.name}
+              {currentLevel.name} <span className="text-white/40 font-normal text-sm">({LEVEL_DESCRIPTIONS[currentLevel.name]})</span>
             </h3>
             <p className="text-emerald-400 text-sm font-medium mt-1">
-              {profile?.totalPoints?.toLocaleString() || 0} саваб
+              {profile?.totalPoints?.toLocaleString() || 0} очков
             </p>
             {currentLevelIndex < LEVELS.length - 1 && (
               <div className="mt-3">
@@ -222,6 +314,12 @@ export default function Guide() {
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="glass-card p-3" style={{ borderColor: "rgba(245,158,11,0.15)" }}>
+            <p className="text-white/40 text-[11px] leading-relaxed text-center">
+              Уровни — это система внутри приложения для отслеживания вашей активности. Они не являются религиозными титулами.
+            </p>
           </div>
 
           {/* Level ladder */}
@@ -281,6 +379,9 @@ export default function Guide() {
                         >
                           {level.name}
                         </span>
+                        <span className={`text-[10px] ${isCurrent ? "text-emerald-400/50" : "text-white/20"}`}>
+                          ({LEVEL_DESCRIPTIONS[level.name]})
+                        </span>
                         <span className="text-[10px] text-white/20 font-mono">
                           {level.minPoints.toLocaleString()} pts
                         </span>
@@ -315,16 +416,16 @@ export default function Guide() {
             </h4>
             <div className="space-y-1.5">
               {[
-                { action: "Намаз вовремя", pts: 15 },
-                { action: "Намаз с опозданием", pts: 7 },
+                { action: "Намаз вовремя", pts: 10 },
+                { action: "Намаз с опозданием", pts: 3 },
                 { action: "Чтение Корана", pts: 5 },
-                { action: "Хадис", pts: 3 },
+                { action: "Хадис", pts: 2 },
                 { action: "Утренние/вечерние азкары", pts: 3 },
                 { action: "Садака", pts: 8 },
                 { action: "Пост", pts: 20 },
                 { action: "Дуа", pts: 3 },
-                { action: "Минута ибады", pts: 2 },
-                { action: "Повтор хифза", pts: 5 },
+                { action: "Минута сессии", pts: 2 },
+                { action: "Повтор заучивания", pts: 5 },
               ].map(({ action, pts }) => (
                 <div key={action} className="flex items-center justify-between">
                   <span className="text-white/50 text-xs">{action}</span>
@@ -336,8 +437,7 @@ export default function Guide() {
             </div>
             <div className="mt-3 pt-3 border-t t-border">
               <p className="text-white/30 text-[11px] leading-relaxed">
-                Все 5 намазов + привычки = ~79 саваб/день. Уровень "Муслим"
-                можно достичь за 3 дня активного использования.
+                Все 5 намазов вовремя (50) + азкары (6) + Коран (5) + дуа (3) = ~64 очка/день. Уровень "Муслим" за ~3 дня.
               </p>
             </div>
           </div>
