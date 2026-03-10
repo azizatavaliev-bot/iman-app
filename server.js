@@ -10,8 +10,8 @@ const { Pool } = pkg;
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(__dirname, "dist");
 const PORT = parseInt(process.env.PORT || "3000", 10);
-const BOT_TOKEN =
-  process.env.BOT_TOKEN || "8598576939:AAHSAtSNp0a8zULTBUJuFamzp4CbvXG9cqM";
+const BOT_TOKEN = process.env.BOT_TOKEN;
+if (!BOT_TOKEN) { console.error('[FATAL] BOT_TOKEN environment variable is required'); process.exit(1); }
 const APP_URL =
   process.env.APP_URL || "https://iman-app-production.up.railway.app";
 const WEBHOOK_PATH = `/webhook-${BOT_TOKEN.split(":")[0]}`;
