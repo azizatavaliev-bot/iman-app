@@ -157,28 +157,47 @@ export async function syncUserData(): Promise<void> {
         ? JSON.parse(server.data)
         : server.data;
 
-    // ЗАЩИТА ОТ ПОТЕРИ БАЛЛОВ:
-    // Сравниваем totalPoints — берём МАКСИМУМ из local и server
-    const localRaw = localStorage.getItem("iman_profile");
+    // SMART MERGE: сравниваем по updated_at и totalPoints
+    const localData = gatherLocalData();
+    const localUpdatedAt = (localData._updated_at as number) || 0;
+    const serverUpdatedAt = (serverData._updated_at as number) || server.updated_at || 0;
+
+    // Извлекаем totalPoints для защиты от потери баллов
     let localPoints = 0;
-    if (localRaw) {
-      try {
-        const localProfile = JSON.parse(localRaw);
-        localPoints = localProfile.totalPoints || 0;
-      } catch { /* ignore */ }
-    }
+    try {
+      const lp = localData.iman_profile;
+      if (typeof lp === "object" && lp !== null) localPoints = (lp as Record<string, unknown>).totalPoints as number || 0;
+    } catch { /* ignore */ }
 
     const serverProfile = serverData.iman_profile as Record<string, unknown> | undefined;
     const serverPoints = (serverProfile?.totalPoints as number) || 0;
 
-    if (localPoints > serverPoints && localPoints > 0) {
-      // Локальные баллы БОЛЬШЕ серверных — НЕ перезаписываем, пушим на сервер
-      console.log(`[sync] ⚠️ Local points (${localPoints}) > server (${serverPoints}), keeping local`);
-      await pushToServer(telegramId);
-    } else {
-      // Серверные баллы >= локальных — восстанавливаем из сервера
-      console.log(`[sync] ✅ Server points (${serverPoints}) >= local (${localPoints}), restoring`);
+    // Проверяем, пустой ли localStorage (очищен Telegram WebView)
+    const localKeyCount = Object.keys(localData).filter(k => k !== "_updated_at").length;
+    const serverKeyCount = Object.keys(serverData).filter(k => k !== "_updated_at").length;
+    const localIsEmpty = localKeyCount <= 2; // только iman_profile + iman_onboarded (авто-созданные)
+
+    if (localIsEmpty && serverKeyCount > 2) {
+      // localStorage был очищен — восстанавливаем ВСЁ из сервера
+      console.log(`[sync] 🔄 localStorage empty (${localKeyCount} keys), restoring ALL from server (${serverKeyCount} keys)`);
       restoreToLocal(serverData);
+    } else if (localPoints > serverPoints && localPoints > 0) {
+      // Локальные баллы БОЛЬШЕ — пушим на сервер
+      console.log(`[sync] ⚠️ Local points (${localPoints}) > server (${serverPoints}), pushing to server`);
+      await pushToServer(telegramId);
+    } else if (serverPoints > localPoints) {
+      // Серверные баллы больше — восстанавливаем из сервера
+      console.log(`[sync] ✅ Server points (${serverPoints}) > local (${localPoints}), restoring`);
+      restoreToLocal(serverData);
+    } else {
+      // Одинаковые баллы — берём более свежие данные
+      if (serverUpdatedAt > localUpdatedAt) {
+        console.log(`[sync] ✅ Server is newer, restoring`);
+        restoreToLocal(serverData);
+      } else {
+        console.log(`[sync] ✅ Local is newer or equal, pushing to server`);
+        await pushToServer(telegramId);
+      }
     }
 
     console.log("[sync] ✅ Sync complete.");

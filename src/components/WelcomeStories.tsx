@@ -253,12 +253,12 @@ export default function WelcomeStories({ onComplete }: WelcomeStoriesProps) {
   );
 }
 
-// Welcome shows EVERY time — no localStorage persistence
+// Welcome persistence — use localStorage so it survives app restarts
+// Key matches SYNC_KEYS in sync.ts for server backup
 export function isWelcomeSeen(): boolean {
-  // Shown per session only — use sessionStorage
-  return sessionStorage.getItem("iman_welcome_dismissed") === "true";
+  return localStorage.getItem("iman_welcome_shown") === "true";
 }
 
 export function dismissWelcome(): void {
-  sessionStorage.setItem("iman_welcome_dismissed", "true");
+  localStorage.setItem("iman_welcome_shown", "true");
 }

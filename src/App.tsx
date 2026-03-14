@@ -324,16 +324,20 @@ initAudioUnlock();
 // Save data when user closes/hides the app
 initSyncOnClose();
 
-// Auto-skip onboarding for existing users or Telegram users
-function isOnboarded(): boolean {
+// Check onboarding state from localStorage (no side effects)
+function checkOnboarded(): boolean {
   if (localStorage.getItem("iman_onboarded") === "true") return true;
-  // Existing users who already have a profile → auto-skip
   const profile = localStorage.getItem("iman_profile");
   if (profile) {
     localStorage.setItem("iman_onboarded", "true");
     return true;
   }
-  // Telegram WebApp auto-login: create profile from Telegram user data
+  return false;
+}
+
+// Create profile from Telegram data (called AFTER sync attempt)
+function ensureTelegramProfile(): boolean {
+  if (checkOnboarded()) return true;
   const tgUser = getTelegramUser();
   if (tgUser) {
     const autoProfile = {
@@ -355,17 +359,46 @@ function isOnboarded(): boolean {
 }
 
 export default function App() {
-  const [onboarded, setOnboarded] = useState(isOnboarded);
+  // Start with localStorage check only (no profile creation yet)
+  const [syncing, setSyncing] = useState(() => {
+    // Only need to sync if we're in Telegram
+    const tgUser = getTelegramUser();
+    return !!tgUser;
+  });
+  const [onboarded, setOnboarded] = useState(checkOnboarded);
   const [welcomeSeen, setWelcomeSeen] = useState(isWelcomeSeen);
 
-  // Sync user data with server on startup (Telegram only)
+  // Sync user data FIRST, then check onboarding
   useEffect(() => {
-    if (onboarded) {
-      syncUserData().catch(console.error);
-      // Initialize analytics tracking
+    let cancelled = false;
+    async function doSync() {
+      try {
+        // Timeout: don't block UI longer than 5 seconds
+        await Promise.race([
+          syncUserData(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("sync timeout")), 5000)),
+        ]);
+      } catch (e) {
+        console.error("[App] sync failed:", e);
+      }
+      if (cancelled) return;
+      // After sync restored server data to localStorage, re-check state
+      const nowOnboarded = ensureTelegramProfile();
+      setOnboarded(nowOnboarded);
+      setWelcomeSeen(isWelcomeSeen());
+      setSyncing(false);
       initAnalytics();
     }
-  }, [onboarded]);
+    if (syncing) {
+      doSync();
+    } else {
+      // Not in Telegram — just ensure profile and init
+      const nowOnboarded = ensureTelegramProfile();
+      setOnboarded(nowOnboarded);
+      initAnalytics();
+    }
+    return () => { cancelled = true; };
+  }, []);
 
   const handleOnboardingComplete = useCallback(() => {
     setOnboarded(true);
@@ -375,6 +408,36 @@ export default function App() {
     dismissWelcome();
     setWelcomeSeen(true);
   }, []);
+
+  // Show loading while syncing with server
+  if (syncing) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(to bottom, #0f172a, #1e293b)",
+          color: "#e2e8f0",
+        }}
+      >
+        <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🕌</div>
+        <div
+          style={{
+            width: "32px",
+            height: "32px",
+            border: "2px solid #10b981",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    );
+  }
 
   if (!onboarded) {
     return (
