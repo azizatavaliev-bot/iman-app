@@ -1,6 +1,7 @@
 // IMAN App Server — all data persisted in PostgreSQL
 import { createServer } from "http";
-import { readFileSync, readFile, existsSync, mkdirSync } from "fs";
+import https from "https";
+import { readFileSync, readFile, writeFileSync as fsWriteFileSync, existsSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, createHmac } from "crypto";
@@ -83,6 +84,26 @@ const pool = new Pool({
         telegram_id BIGINT
       )
     `);
+
+
+    // Create audit log table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS iman_audit_log (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT,
+        action VARCHAR(100) NOT NULL,
+        entity_type VARCHAR(50),
+        entity_id VARCHAR(100),
+        details JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_iman_audit_log_telegram_id ON iman_audit_log(telegram_id)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_iman_audit_log_action ON iman_audit_log(action)`,
+    );
 
     // Create indexes
     await client.query(
@@ -176,6 +197,22 @@ const stmtInsertAnalytics = {
     );
   },
 };
+
+
+// =========================================================================
+// AUDIT LOG — Track important actions
+// =========================================================================
+async function auditLog(telegramId, action, entityType, entityId, details) {
+  try {
+    await pool.query(
+      `INSERT INTO iman_audit_log (telegram_id, action, entity_type, entity_id, details)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [telegramId || null, action, entityType || null, entityId || null, details ? JSON.stringify(details) : null]
+    );
+  } catch (e) {
+    console.error("Audit log error:", e.message);
+  }
+}
 
 // DATA_DIR kept for any local file needs
 const DATA_DIR = process.env.RAILWAY_ENVIRONMENT
@@ -1238,6 +1275,7 @@ const server = createServer(async (req, res) => {
         console.log(
           `✅ User ${telegramId} data saved (${dataStr.length} bytes)`,
         );
+        await auditLog(telegramId, "user_data_save", "user", String(telegramId), { bytes: dataStr.length });
       } catch (err) {
         console.error("User save error:", err);
         res.writeHead(500, corsHeaders);
@@ -1897,57 +1935,236 @@ const server = createServer(async (req, res) => {
 });
 
 // =========================================================================
-// AUTOMATIC BACKUP SYSTEM — Защита данных от потери
+// AUTOMATIC BACKUP SYSTEM — Full backup of all iman_* tables
 // =========================================================================
+const BACKUP_TABLES = [
+  "iman_users", "iman_analytics", "iman_subscribers", "iman_prayer_logs",
+  "iman_habit_logs", "iman_dhikr_sessions", "iman_quran_progress",
+  "iman_quran_bookmarks", "iman_memorization", "iman_dua_reads",
+  "iman_ramadan_tracker", "iman_quiz_results", "iman_achievements",
+  "iman_streaks", "iman_favorite_hadiths", "iman_audit_log"
+];
+
+const MONITOR_BOT_TOKEN = "8709556501:AAETTS6KAN532pPJ3LFaWPdKZ4Sj0T61NC8";
+const MONITOR_CHAT_ID = "526330944";
+
+/**
+ * Send a file as Telegram document using multipart/form-data over https
+ */
+function sendTelegramDocument(token, chatId, fileName, fileBuffer, caption) {
+  return new Promise((resolve, reject) => {
+    const boundary = "----BackupBoundary" + Date.now().toString(16);
+    const parts = [];
+
+    // chat_id field
+    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chatId}`);
+
+    // caption field
+    if (caption) {
+      parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n${caption}`);
+    }
+
+    // document field (file)
+    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="document"; filename="${fileName}"\r\nContent-Type: application/json\r\n\r\n`);
+
+    const header = Buffer.from(parts.join("\r\n") + "\r\n", "utf-8");
+    const footer = Buffer.from(`\r\n--${boundary}--\r\n`, "utf-8");
+    const body = Buffer.concat([header, fileBuffer, footer]);
+
+    const options = {
+      hostname: "api.telegram.org",
+      path: `/bot${token}/sendDocument`,
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Content-Length": body.length,
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.ok) {
+            resolve(parsed);
+          } else {
+            reject(new Error(`Telegram API error: ${parsed.description}`));
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse Telegram response: ${data.slice(0, 200)}`));
+        }
+      });
+    });
+
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+/**
+ * Create full JSON backup of all iman_* tables and send to Telegram
+ */
 async function createBackup() {
   try {
-    console.log("🔄 Создание резервной копии данных...");
-    const result = await pool.query(
-      "SELECT telegram_id, data, updated_at FROM iman_users",
-    );
+    console.log("🔄 Creating full backup of all iman_* tables...");
     const backup = {
       timestamp: Date.now(),
       date: new Date().toISOString(),
-      total_users: result.rows.length,
-      users: result.rows.map((row) => ({
-        telegram_id: row.telegram_id,
-        data:
-          typeof row.data === "string" ? row.data : JSON.stringify(row.data),
-        updated_at: row.updated_at,
-      })),
+      app: "ImanApp",
+      tables: {},
     };
 
-    // Сохраняем в переменную окружения (можно использовать для восстановления)
+    for (const table of BACKUP_TABLES) {
+      try {
+        const result = await pool.query(`SELECT * FROM ${table}`);
+        backup.tables[table] = {
+          count: result.rows.length,
+          rows: result.rows,
+        };
+      } catch (e) {
+        // Table may not exist yet — skip silently
+        backup.tables[table] = { count: 0, rows: [], error: e.message };
+      }
+    }
+
+    // Stats
+    const userCount = backup.tables.iman_users?.count || 0;
+    const subscriberCount = backup.tables.iman_subscribers?.count || 0;
+    const totalTables = Object.keys(backup.tables).filter(
+      (t) => backup.tables[t].count > 0
+    ).length;
+
+    console.log(`✅ Backup created: ${userCount} users, ${subscriberCount} subscribers, ${totalTables} tables with data`);
+
+    // Store latest backup in memory
     global.LATEST_BACKUP = backup;
 
-    console.log(
-      `✅ Бэкап создан: ${result.rows.length} пользователей сохранено`,
-    );
+    // Send to Telegram as document
+    try {
+      const jsonStr = JSON.stringify(backup, null, 2);
+      const fileBuffer = Buffer.from(jsonStr, "utf-8");
+      const dateStr = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const fileName = `iman-backup-${dateStr}.json`;
+      const caption = `ImanApp Backup\n${new Date().toISOString()}\nUsers: ${userCount} | Subs: ${subscriberCount} | Tables: ${totalTables}`;
 
-    // Статистика
-    let totalPoints = 0;
-    result.rows.forEach((row) => {
-      try {
-        const data =
-          typeof row.data === "string" ? JSON.parse(row.data) : row.data;
-        totalPoints += data.totalPoints || 0;
-      } catch (e) {}
+      await sendTelegramDocument(MONITOR_BOT_TOKEN, MONITOR_CHAT_ID, fileName, fileBuffer, caption);
+      console.log("✅ Backup sent to Telegram monitor bot");
+    } catch (tgErr) {
+      console.error("⚠️ Failed to send backup to Telegram:", tgErr.message);
+    }
+
+    // Audit log
+    await auditLog(null, "backup_created", "system", null, {
+      userCount,
+      subscriberCount,
+      totalTables,
     });
-    console.log(`📊 Всего баллов в системе: ${totalPoints.toLocaleString()}`);
   } catch (error) {
-    console.error("❌ Ошибка при создании бэкапа:", error);
+    console.error("❌ Backup creation error:", error);
   }
 }
 
-// Запуск бэкапа каждые 6 часов
-setInterval(createBackup, 6 * 60 * 60 * 1000);
+/**
+ * Sync data to backup Supabase database (BACKUP_DATABASE_URL)
+ */
+async function syncToBackupDb() {
+  const backupUrl = process.env.BACKUP_DATABASE_URL;
+  if (!backupUrl) {
+    console.log("⏭️ BACKUP_DATABASE_URL not set — skipping backup DB sync");
+    return;
+  }
+
+  let backupPool;
+  try {
+    console.log("🔄 Syncing data to backup database...");
+    backupPool = new Pool({
+      connectionString: backupUrl,
+      ssl: { rejectUnauthorized: false },
+    });
+
+    for (const table of BACKUP_TABLES) {
+      try {
+        // Get source data
+        const source = await pool.query(`SELECT * FROM ${table}`);
+        if (source.rows.length === 0) continue;
+
+        // Ensure table exists in backup (get DDL from source)
+        const ddlResult = await pool.query(
+          `SELECT column_name, data_type, is_nullable
+           FROM information_schema.columns
+           WHERE table_name = $1
+           ORDER BY ordinal_position`,
+          [table]
+        );
+
+        if (ddlResult.rows.length === 0) continue;
+
+        // Create table if not exists with basic column types
+        const cols = ddlResult.rows.map((c) => {
+          let type = c.data_type;
+          if (type === "integer") type = "INTEGER";
+          else if (type === "bigint") type = "BIGINT";
+          else if (type === "jsonb") type = "JSONB";
+          else if (type === "text" || type === "character varying") type = "TEXT";
+          else if (type === "timestamp without time zone" || type === "timestamp with time zone") type = "TIMESTAMPTZ";
+          else type = "TEXT";
+          return `"${c.column_name}" ${type}`;
+        });
+
+        await backupPool.query(`CREATE TABLE IF NOT EXISTS ${table} (${cols.join(", ")})`);
+
+        // Truncate and re-insert (full sync)
+        await backupPool.query(`DELETE FROM ${table}`);
+
+        for (const row of source.rows) {
+          const keys = Object.keys(row);
+          const vals = keys.map((_, i) => `${i + 1}`);
+          await backupPool.query(
+            `INSERT INTO ${table} (${keys.map((k) => `"${k}"`).join(", ")}) VALUES (${vals.join(", ")})`,
+            keys.map((k) => row[k])
+          );
+        }
+
+        console.log(`  ✅ ${table}: ${source.rows.length} rows synced`);
+      } catch (tableErr) {
+        console.error(`  ⚠️ ${table}: sync failed —`, tableErr.message);
+      }
+    }
+
+    console.log("✅ Backup DB sync completed");
+    await auditLog(null, "backup_db_sync", "system", null, { status: "success" });
+  } catch (error) {
+    console.error("❌ Backup DB sync error:", error);
+    await auditLog(null, "backup_db_sync", "system", null, { status: "error", error: error.message });
+  } finally {
+    if (backupPool) {
+      await backupPool.end().catch(() => {});
+    }
+  }
+}
+
+// JSON backup every 4 hours + send to Telegram
+setInterval(createBackup, 4 * 60 * 60 * 1000);
+
+// Sync to backup DB every 6 hours
+setInterval(syncToBackupDb, 6 * 60 * 60 * 1000);
 
 server.listen(PORT, "0.0.0.0", async () => {
   console.log(`IMAN server running on port ${PORT}`);
   console.log(`Security: webhook secret, rate limiting, CSP, HSTS enabled`);
 
-  // Первый бэкап создастся автоматически через интервал (закомментировано чтобы не конфликтовало с инициализацией БД)
-  // await createBackup();
+  // Backup on startup with 30s delay (let DB init finish)
+  setTimeout(async () => {
+    try {
+      await createBackup();
+      await syncToBackupDb();
+    } catch (e) {
+      console.error("Startup backup error:", e);
+    }
+  }, 30000);
 
   if (BOT_TOKEN && APP_URL) {
     const webhookUrl = `${APP_URL}${WEBHOOK_PATH}`;
