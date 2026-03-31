@@ -137,7 +137,8 @@ const NamesGame = lazy(() => import("./pages/NamesGame"));
 const Habits = lazy(() => import("./pages/Habits"));
 const Dhikr = lazy(() => import("./pages/Dhikr"));
 const Qibla = lazy(() => import("./pages/Qibla"));
-const Ramadan = lazy(() => import("./pages/Ramadan"));
+// Ramadan removed — Рамадан 2026 прошёл
+// const Ramadan = lazy(() => import("./pages/Ramadan"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Stats = lazy(() => import("./pages/Stats"));
 const Dua = lazy(() => import("./pages/Dua"));
@@ -231,7 +232,6 @@ const PAGES_WITH_OWN_BACK = new Set([
   "/dua-wall",
   "/leaderboard",
   "/ibadah",
-  "/ramadan",
   "/dua",
   "/zakat",
   "/about-app",
@@ -263,6 +263,49 @@ function GlobalBackButton() {
   );
 }
 
+function scrollAllToTop() {
+  // 1. window.scrollTo — стандартный скролл
+  window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+  // 2. document.documentElement — Telegram WebApp часто скроллит через него
+  document.documentElement.scrollTop = 0;
+  // 3. document.body — fallback для некоторых браузеров
+  document.body.scrollTop = 0;
+  // 4. scrollIntoView на верхний элемент — самый надёжный способ в Telegram WebApp
+  const appTop = document.getElementById("app-top");
+  if (appTop) {
+    appTop.scrollIntoView({ block: "start", behavior: "instant" as ScrollBehavior });
+  }
+  // 5. Все скроллящиеся контейнеры внутри #root
+  const root = document.getElementById("root");
+  if (root) {
+    root.scrollTop = 0;
+    root.querySelectorAll("[class*='overflow']").forEach((el) => {
+      (el as HTMLElement).scrollTop = 0;
+    });
+  }
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    // Немедленный скролл
+    scrollAllToTop();
+    // Повторный скролл после lazy-компонента (Suspense) и после рендера
+    const t1 = setTimeout(scrollAllToTop, 50);
+    const t2 = setTimeout(scrollAllToTop, 150);
+    const t3 = setTimeout(scrollAllToTop, 400);
+    // requestAnimationFrame — гарантия после рендера
+    const raf = requestAnimationFrame(scrollAllToTop);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      cancelAnimationFrame(raf);
+    };
+  }, [pathname]);
+  return null;
+}
+
 function AppContent() {
   const location = useLocation();
 
@@ -273,11 +316,13 @@ function AppContent() {
 
   return (
     <div
+      id="app-top"
       className="min-h-screen"
       style={{
         background: `linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary))`,
       }}
     >
+      <ScrollToTop />
       <GlobalBackButton />
       <div className="max-w-lg mx-auto pb-20">
         <Suspense fallback={<PageLoader />}>
@@ -290,7 +335,7 @@ function AppContent() {
             <Route path="/habits" element={<Habits />} />
             <Route path="/dhikr" element={<Dhikr />} />
             <Route path="/qibla" element={<Qibla />} />
-            <Route path="/ramadan" element={<Ramadan />} />
+            {/* <Route path="/ramadan" element={<Ramadan />} /> — Рамадан 2026 прошёл */}
             <Route path="/profile" element={<Profile />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/dua" element={<Dua />} />
