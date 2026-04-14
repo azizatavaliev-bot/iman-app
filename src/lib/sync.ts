@@ -5,7 +5,7 @@
 
 import { isTelegramWebApp, getTelegramUser } from "./telegram";
 
-const SYNC_DEBOUNCE_MS = 30_000; // 30 seconds
+const SYNC_DEBOUNCE_MS = 5_000; // 5 seconds — reduced from 30s to prevent data loss
 const API_BASE = ""; // same origin
 
 // All localStorage keys that hold user data
@@ -21,7 +21,9 @@ const SYNC_KEYS = [
   "iman_quiz_scores",
   "iman_quiz_history",
   "iman_onboarded",
-  "iman_ramadan_2026",
+  "iman_terms_read",
+  "iman_nasheed_favorites",
+  "iman_dreams_read",
   // Additional keys
   "iman_dhikr_progress",
   "iman_favorite_duas",
@@ -35,6 +37,9 @@ const SYNC_KEYS = [
   "iman_hadiths_nawawi_read",
   "iman_hadiths_ext_read",
   "iman_quran_notes",
+  "iman_stories_read",
+  "iman_zakat_assets",
+  "iman_zakat_history",
 ] as const;
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;

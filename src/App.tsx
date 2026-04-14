@@ -137,8 +137,9 @@ const NamesGame = lazy(() => import("./pages/NamesGame"));
 const Habits = lazy(() => import("./pages/Habits"));
 const Dhikr = lazy(() => import("./pages/Dhikr"));
 const Qibla = lazy(() => import("./pages/Qibla"));
-// Ramadan removed — Рамадан 2026 прошёл
-// const Ramadan = lazy(() => import("./pages/Ramadan"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Nasheeds = lazy(() => import("./pages/Nasheeds"));
+const Dreams = lazy(() => import("./pages/Dreams"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Stats = lazy(() => import("./pages/Stats"));
 const Dua = lazy(() => import("./pages/Dua"));
@@ -335,7 +336,9 @@ function AppContent() {
             <Route path="/habits" element={<Habits />} />
             <Route path="/dhikr" element={<Dhikr />} />
             <Route path="/qibla" element={<Qibla />} />
-            {/* <Route path="/ramadan" element={<Ramadan />} /> — Рамадан 2026 прошёл */}
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/nasheeds" element={<Nasheeds />} />
+            <Route path="/dreams" element={<Dreams />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/dua" element={<Dua />} />

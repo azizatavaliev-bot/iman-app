@@ -34,6 +34,9 @@ import {
   Calculator,
   Lock,
   Search,
+  Music,
+  BookText,
+  MoonStar,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { getTelegramUser } from "../lib/telegram";
@@ -570,15 +573,6 @@ const FEATURE_SLIDES = [
     shadow: "shadow-indigo-500/25",
   },
   {
-    emoji: "🌙",
-    title: "Трекер Рамадана",
-    desc: "Счётчик дней, сухуры и ифтары",
-    path: "/ramadan",
-    from: "from-purple-500",
-    to: "to-indigo-600",
-    shadow: "shadow-purple-500/25",
-  },
-  {
     emoji: "✨",
     title: "99 имён Аллаха",
     desc: "Изучай значения и игра на запоминание",
@@ -640,6 +634,33 @@ const FEATURE_SLIDES = [
     from: "from-emerald-500",
     to: "to-teal-600",
     shadow: "shadow-emerald-500/25",
+  },
+  {
+    emoji: "📚",
+    title: "Словарь терминов",
+    desc: "65 исламских терминов с арабским",
+    path: "/terms",
+    from: "from-violet-500",
+    to: "to-purple-600",
+    shadow: "shadow-violet-500/25",
+  },
+  {
+    emoji: "🎵",
+    title: "Нашиды",
+    desc: "Исламские песнопения без инструментов",
+    path: "/nasheeds",
+    from: "from-rose-500",
+    to: "to-pink-600",
+    shadow: "shadow-rose-500/25",
+  },
+  {
+    emoji: "🌙",
+    title: "Толкование снов",
+    desc: "50 символов по Ибн Сирину",
+    path: "/dreams",
+    from: "from-indigo-500",
+    to: "to-blue-600",
+    shadow: "shadow-indigo-500/25",
   },
 ];
 
@@ -1354,6 +1375,9 @@ export default function Dashboard() {
       {/* ================================================================ */}
       {/* 2. INSTRUCTION STORIES (кружки как в Instagram)                  */}
       {/* ================================================================ */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-sm font-semibold text-white/70">📖 Ознакомьтесь с функциями</span>
+      </div>
       <InstructionStories totalUsers={totalUsersCount} />
 
       {/* ================================================================ */}
@@ -1565,65 +1589,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ================================================================ */}
-      {/* 4.6 RAMADAN BLOCK (countdown or progress)                        */}
-      {/* ================================================================ */}
-      {(() => {
-        const RAMADAN_START = new Date(2026, 1, 19); // Feb 19, 2026
-        const RAMADAN_END = new Date(2026, 2, 20); // Mar 20, 2026
-        const now = new Date();
-        const isBeforeRamadan = now < RAMADAN_START;
-        const isDuringRamadan = now >= RAMADAN_START && now <= RAMADAN_END;
-
-        if (!isBeforeRamadan && !isDuringRamadan) return null;
-
-        const daysUntil = isBeforeRamadan
-          ? Math.ceil(
-              (RAMADAN_START.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-            )
-          : 0;
-        const currentDay = isDuringRamadan
-          ? Math.min(
-              30,
-              Math.ceil(
-                (now.getTime() - RAMADAN_START.getTime()) /
-                  (1000 * 60 * 60 * 24),
-              ),
-            )
-          : 0;
-
-        return (
-          <Link
-            to="/ramadan"
-            className="glass-card glow-green p-4 flex items-center gap-4 hover:scale-[1.01] active:scale-[0.99] transition-transform"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-teal-500/20 border border-emerald-500/25 flex items-center justify-center shrink-0">
-              <CalendarDays className="w-7 h-7 text-emerald-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold text-white">
-                {isBeforeRamadan
-                  ? "Рамадан 2026"
-                  : `Рамадан — день ${currentDay}/30`}
-              </h3>
-              <p className="text-sm text-white/50 mt-0.5">
-                {isBeforeRamadan
-                  ? `Через ${daysUntil} ${daysUntil === 1 ? "день" : daysUntil >= 2 && daysUntil <= 4 ? "дня" : "дней"} — 19 февраля`
-                  : "Откройте трекер поста и целей"}
-              </p>
-              {isDuringRamadan && (
-                <div className="mt-2 w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
-                    style={{ width: `${(currentDay / 30) * 100}%` }}
-                  />
-                </div>
-              )}
-            </div>
-            <ChevronRight className="w-5 h-5 text-white/20 shrink-0" />
-          </Link>
-        );
-      })()}
+      {/* Ramadan block removed — Рамадан 2026 прошёл */}
 
       {/* ================================================================ */}
       {/* 5. QUICK ACTIONS — по категориям                                */}
@@ -1660,13 +1626,6 @@ export default function Dashboard() {
               path: "/dhikr",
               color: "text-teal-300",
               grad: "from-teal-600/40 to-teal-500/20",
-            },
-            {
-              icon: CalendarDays,
-              label: "Рамадан",
-              path: "/ramadan",
-              color: "text-emerald-200",
-              grad: "from-emerald-600/40 to-teal-500/20",
             },
             {
               icon: Calculator,
@@ -1776,6 +1735,33 @@ export default function Dashboard() {
               path: "/stats",
               color: "text-lime-300",
               grad: "from-lime-600/40 to-lime-500/20",
+            },
+          ],
+        },
+        {
+          title: "Ещё",
+          emoji: "✨",
+          items: [
+            {
+              icon: BookText,
+              label: "Словарь",
+              path: "/terms",
+              color: "text-violet-300",
+              grad: "from-violet-600/40 to-violet-500/20",
+            },
+            {
+              icon: Music,
+              label: "Нашиды",
+              path: "/nasheeds",
+              color: "text-rose-300",
+              grad: "from-rose-600/40 to-rose-500/20",
+            },
+            {
+              icon: MoonStar,
+              label: "Сны",
+              path: "/dreams",
+              color: "text-indigo-300",
+              grad: "from-indigo-600/40 to-indigo-500/20",
             },
           ],
         },
