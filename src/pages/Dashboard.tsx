@@ -1646,6 +1646,13 @@ export default function Dashboard() {
               grad: "from-teal-600/40 to-teal-500/20",
             },
             {
+              icon: Repeat,
+              label: "Тасбих",
+              path: "/zikr",
+              color: "text-cyan-300",
+              grad: "from-cyan-600/40 to-cyan-500/20",
+            },
+            {
               icon: Calculator,
               label: "Закят",
               path: "/zakat",
@@ -1692,6 +1699,13 @@ export default function Dashboard() {
               path: "/names",
               color: "text-purple-300",
               grad: "from-purple-600/40 to-purple-500/20",
+            },
+            {
+              icon: GraduationCap,
+              label: "Таджвид",
+              path: "/tajweed",
+              color: "text-amber-300",
+              grad: "from-amber-600/40 to-amber-500/20",
             },
           ],
         },
