@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-    --font-arabic: "Amiri", serif;
+    --font-arabic: "Scheherazade New", "Amiri", serif;
     --font-sans:
         -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
         "Inter", system-ui, sans-serif;
@@ -92,7 +92,7 @@ body {
 .arabic-text {
     font-family: var(--font-arabic);
     direction: rtl;
-    line-height: 2;
+    line-height: 2.2;
 }
 
 .glass {
