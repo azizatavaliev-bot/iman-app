@@ -662,6 +662,24 @@ const FEATURE_SLIDES = [
     to: "to-blue-600",
     shadow: "shadow-indigo-500/25",
   },
+  {
+    emoji: "🔤",
+    title: "Таджвид",
+    desc: "Алфавит, харакаты, правила и практика",
+    path: "/tajweed",
+    from: "from-amber-500",
+    to: "to-orange-600",
+    shadow: "shadow-amber-500/25",
+  },
+  {
+    emoji: "📿",
+    title: "Счётчик зикра",
+    desc: "Тасбих после намаза: 33×3 с вибрацией",
+    path: "/zikr",
+    from: "from-cyan-500",
+    to: "to-teal-600",
+    shadow: "shadow-cyan-500/25",
+  },
 ];
 
 function FeatureBanner() {
