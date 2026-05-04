@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Check,
@@ -819,6 +819,9 @@ export default function Prayers() {
   const [flashKey, setFlashKey] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [motivationalMsg, setMotivationalMsg] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleCelebrationDone = useCallback(() => setCelebrating(false), []);
+  const handleMotivationalDone = useCallback(() => setMotivationalMsg(null), []);
 
   // Date navigation (0 = today, -1 = yesterday, etc.)
   const [dateOffset, setDateOffset] = useState(0);
@@ -1048,9 +1051,10 @@ export default function Prayers() {
         timestamp: new Date().toISOString(),
       };
 
-      // Visual feedback
+      // Visual feedback — clear previous timer to avoid collision
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
       setFlashKey(`${prayerKey}-${status}`);
-      setTimeout(() => setFlashKey(null), 500);
+      flashTimerRef.current = setTimeout(() => setFlashKey(null), 500);
 
       // Celebration
       setCelebrating(true);
@@ -1100,8 +1104,9 @@ export default function Prayers() {
           timestamp: new Date().toISOString(),
         };
 
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
         setFlashKey(`${prayerKey}-${status}`);
-        setTimeout(() => setFlashKey(null), 500);
+        flashTimerRef.current = setTimeout(() => setFlashKey(null), 500);
       }
 
       const saved = storage.setPrayerLog(todayKey, currentLog.prayers);
@@ -1240,13 +1245,13 @@ export default function Prayers() {
   return (
     <div className="min-h-screen pb-24 px-4 pt-4 max-w-lg mx-auto relative">
       {/* Celebration burst overlay */}
-      {celebrating && <CelebrationBurst onDone={() => setCelebrating(false)} />}
+      {celebrating && <CelebrationBurst onDone={handleCelebrationDone} />}
 
       {/* Motivational toast */}
       {motivationalMsg && (
         <MotivationalToast
           message={motivationalMsg}
-          onDone={() => setMotivationalMsg(null)}
+          onDone={handleMotivationalDone}
         />
       )}
 

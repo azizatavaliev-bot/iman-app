@@ -421,7 +421,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("pause", onPause);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [repeatMode, currentSurah]);
+  }, [repeatMode, currentSurah, playSurah]);
 
   // ---- Playback controls ----
 
