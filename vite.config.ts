@@ -40,6 +40,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // Tafsir chunk is ~11 MB (full Tafsir Al-Sa'di for all 6236 ayahs).
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -75,8 +77,9 @@ export default defineConfig({
           vendor: ["react", "react-dom", "react-router-dom"],
           // Данные — загружаются отдельно по мере надобности
           "data-quiz": ["./src/data/quiz.ts"],
+          // Тафсир Саади выделен в отдельный чанк — большой (~11MB), загружается только со страницей Корана
+          "data-tafsir": ["./src/data/tafsir.ts", "./src/data/tafsir-saadi.json"],
           "data-content": [
-            "./src/data/tafsir.ts",
             "./src/data/dua.ts",
             "./src/data/dhikr.ts",
             "./src/data/names.ts",

@@ -29,7 +29,7 @@ import {
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
-import { hasTafsirForAyah, getTafsir } from "../data/tafsir";
+import { hasTafsirForAyah, getTafsir, TAFSIR_SOURCE } from "../data/tafsir";
 import {
   getTransliteration,
   hasTransliteration,
@@ -419,7 +419,7 @@ export default function Quran() {
       // Scroll to current ayah
       const ref = ayahRefs.current.get(startIndex);
       if (ref) {
-        ref.scrollIntoView({ behavior: "smooth", block: "center" });
+        ref.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
       setAudioLoading(true);
@@ -505,7 +505,7 @@ export default function Quran() {
     if (audioState?.isPlaying && audioState.mode === "surah") {
       const ref = ayahRefs.current.get(audioState.currentAyahIndex);
       if (ref) {
-        ref.scrollIntoView({ behavior: "smooth", block: "center" });
+        ref.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
   }, [audioState?.currentAyahIndex, audioState?.isPlaying, audioState?.mode]);
@@ -559,13 +559,8 @@ export default function Quran() {
 
       setAyahs(merged);
 
-      // Auto-expand all tafsirs for this surah
-      const tafsirAyahs = new Set(
-        arabic.ayahs
-          .filter((a) => hasTafsirForAyah(num, a.numberInSurah))
-          .map((a) => a.numberInSurah)
-      );
-      setExpandedTafsirs(tafsirAyahs);
+      // Tafsirs collapsed by default — open on user tap
+      setExpandedTafsirs(new Set());
 
       // Award points for first-time surah reading
       if (markSurahRead(num)) {
@@ -1312,12 +1307,15 @@ export default function Quran() {
                         }`}
                       >
                         <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/15">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center justify-between gap-2 mb-2">
                             <span className="text-[10px] font-semibold uppercase tracking-widest text-purple-400/80">
                               Толкование
                             </span>
+                            <span className="text-[10px] text-purple-400/60 italic">
+                              {TAFSIR_SOURCE}
+                            </span>
                           </div>
-                          <p className="text-sm text-slate-300 leading-relaxed">
+                          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
                             {getTafsir(selectedSurah, ayah.numberInSurah)?.text}
                           </p>
                         </div>
