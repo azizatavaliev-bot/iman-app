@@ -374,7 +374,13 @@ class Storage {
   getProfile(): UserProfile {
     const stored = this.read<UserProfile>(KEYS.PROFILE);
     if (!stored) return defaultProfile();
-    return { ...defaultProfile(), ...stored };
+    const profile = { ...defaultProfile(), ...stored };
+    // Guard against corrupted/null numeric fields from server sync
+    profile.totalPoints = Number(profile.totalPoints) || 0;
+    profile.extraPoints = Number(profile.extraPoints) || 0;
+    profile.streak = Number(profile.streak) || 0;
+    profile.longestStreak = Number(profile.longestStreak) || 0;
+    return profile;
   }
 
   setProfile(profile: Partial<UserProfile>): UserProfile {
@@ -848,7 +854,7 @@ class Storage {
       addedAt: new Date().toISOString(),
       lastReviewedAt: null,
       reviewCount: 0,
-      confidence: 0,
+      confidence: 50,
       pointsEarned: 0,
     };
     list.push(entry);

@@ -41,7 +41,6 @@ import {
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { getTelegramUser } from "../lib/telegram";
 import { isSyncDone } from "../lib/sync";
-import { useAudio } from "../components/AudioPlayer";
 import { trackAction } from "../lib/analytics";
 import SawabCoin from "../components/SawabCoin";
 import GlobalSearch from "../components/GlobalSearch";
@@ -817,7 +816,6 @@ function FeatureBanner() {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const audio = useAudio();
 
   // Favorites count state
   const [favoritesCount, setFavoritesCount] = useState(0);

@@ -95,12 +95,45 @@ class ErrorBoundary extends Component<
           <p
             style={{
               color: "#94a3b8",
-              marginBottom: "1.5rem",
+              marginBottom: "0.75rem",
               maxWidth: "300px",
             }}
           >
             Попробуйте перезапустить приложение
           </p>
+          {this.state.error && (
+            <details
+              style={{
+                marginBottom: "1.25rem",
+                maxWidth: "320px",
+                textAlign: "left",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                cursor: "pointer",
+              }}
+            >
+              <summary style={{ color: "#64748b", fontSize: "0.75rem", userSelect: "none" }}>
+                Детали ошибки
+              </summary>
+              <pre
+                style={{
+                  marginTop: "8px",
+                  fontSize: "0.65rem",
+                  color: "#f87171",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-all",
+                  maxHeight: "150px",
+                  overflowY: "auto",
+                }}
+              >
+                {this.state.error.message}
+                {"\n"}
+                {this.state.error.stack?.slice(0, 400)}
+              </pre>
+            </details>
+          )}
           <button
             onClick={() => {
               this.setState({ hasError: false, error: null });
