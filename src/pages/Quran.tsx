@@ -29,7 +29,7 @@ import {
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import { useAudio } from "../components/AudioPlayer";
-import { hasTafsirForAyah, getTafsir, TAFSIR_SOURCE } from "../data/tafsir";
+import { getTafsir, TAFSIR_SOURCE } from "../data/tafsir";
 import {
   getTransliteration,
   hasTransliteration,
@@ -1274,9 +1274,8 @@ export default function Quran() {
                     {ayah.translation}
                   </p>
 
-                  {/* Tafsir button + content */}
-                  {hasTafsirForAyah(selectedSurah, ayah.numberInSurah) && (
-                    <div className="mt-3">
+                  {/* Tafsir button + content — always shown, all 6236 ayahs covered */}
+                  <div className="mt-3">
                       <button
                         onClick={() =>
                           setExpandedTafsirs((prev) => {
@@ -1321,7 +1320,6 @@ export default function Quran() {
                         </div>
                       </div>
                     </div>
-                  )}
 
                   {/* Notes section */}
                   {(() => {
