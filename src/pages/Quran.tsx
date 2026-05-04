@@ -559,8 +559,8 @@ export default function Quran() {
 
       setAyahs(merged);
 
-      // Tafsirs collapsed by default — open on user tap
-      setExpandedTafsirs(new Set());
+      // Auto-expand tafsirs for all ayahs that have one
+      setExpandedTafsirs(new Set(arabic.ayahs.map((a) => a.numberInSurah)));
 
       // Award points for first-time surah reading
       if (markSurahRead(num)) {

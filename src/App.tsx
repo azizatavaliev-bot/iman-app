@@ -449,6 +449,8 @@ export default function App() {
   }, []);
 
   const handleOnboardingComplete = useCallback(() => {
+    dismissWelcome();
+    setWelcomeSeen(true);
     setOnboarded(true);
   }, []);
 
