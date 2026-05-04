@@ -244,7 +244,7 @@ export default function Quran() {
   const [surahDetail, setSurahDetail] = useState<SurahDetail | null>(null);
   const [loadingAyahs, setLoadingAyahs] = useState(false);
   const [bookmarks, setBookmarks] = useState<QuranBookmark[]>([]);
-  const [expandedTafsir, setExpandedTafsir] = useState<number | null>(null);
+  const [expandedTafsirs, setExpandedTafsirs] = useState<Set<number>>(new Set());
 
   // --- Share state ---
   const [shareAyah, setShareAyah] = useState<{
@@ -493,6 +493,13 @@ export default function Quran() {
     setAudioLoading(false);
   }, []);
 
+  // --- Scroll to top when surah opens ---
+  useEffect(() => {
+    if (selectedSurah !== null) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [selectedSurah]);
+
   // --- Auto-scroll when playing ayah changes ---
   useEffect(() => {
     if (audioState?.isPlaying && audioState.mode === "surah") {
@@ -552,6 +559,14 @@ export default function Quran() {
 
       setAyahs(merged);
 
+      // Auto-expand all tafsirs for this surah
+      const tafsirAyahs = new Set(
+        arabic.ayahs
+          .filter((a) => hasTafsirForAyah(num, a.numberInSurah))
+          .map((a) => a.numberInSurah)
+      );
+      setExpandedTafsirs(tafsirAyahs);
+
       // Award points for first-time surah reading
       if (markSurahRead(num)) {
         storage.addExtraPoints(POINTS.QURAN);
@@ -592,6 +607,7 @@ export default function Quran() {
     setSelectedSurah(null);
     setAyahs([]);
     setSurahDetail(null);
+    setExpandedTafsirs(new Set());
     ayahRefs.current.clear();
   }
 
@@ -1268,14 +1284,18 @@ export default function Quran() {
                     <div className="mt-3">
                       <button
                         onClick={() =>
-                          setExpandedTafsir((prev) =>
-                            prev === ayah.numberInSurah
-                              ? null
-                              : ayah.numberInSurah,
-                          )
+                          setExpandedTafsirs((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(ayah.numberInSurah)) {
+                              next.delete(ayah.numberInSurah);
+                            } else {
+                              next.add(ayah.numberInSurah);
+                            }
+                            return next;
+                          })
                         }
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          expandedTafsir === ayah.numberInSurah
+                          expandedTafsirs.has(ayah.numberInSurah)
                             ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
                             : "t-bg text-slate-400 hover:text-purple-300 hover:bg-purple-500/10"
                         }`}
@@ -1285,9 +1305,9 @@ export default function Quran() {
                       </button>
 
                       <div
-                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                          expandedTafsir === ayah.numberInSurah
-                            ? "max-h-[500px] opacity-100 mt-3"
+                        className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                          expandedTafsirs.has(ayah.numberInSurah)
+                            ? "max-h-[3000px] opacity-100 mt-3"
                             : "max-h-0 opacity-0"
                         }`}
                       >
