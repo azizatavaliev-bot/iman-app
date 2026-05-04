@@ -558,7 +558,7 @@ export default function Quran() {
       }));
 
       setAyahs(merged);
-      setExpandedTafsirs(new Set(arabic.ayahs.map((a) => a.numberInSurah)));
+      setExpandedTafsirs(new Set());
 
       // Scroll to top AFTER all content + tafsirs render (double rAF = after paint)
       requestAnimationFrame(() =>
