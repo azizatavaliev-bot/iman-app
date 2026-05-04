@@ -559,8 +559,7 @@ export default function Quran() {
 
       setAyahs(merged);
 
-      // Auto-expand tafsirs for all ayahs that have one
-      setExpandedTafsirs(new Set(arabic.ayahs.map((a) => a.numberInSurah)));
+      setExpandedTafsirs(new Set());
 
       // Award points for first-time surah reading
       if (markSurahRead(num)) {
@@ -1129,6 +1128,29 @@ export default function Quran() {
                   </span>
                 </button>
               )}
+            </div>
+
+            {/* Expand/collapse all tafsirs */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  if (expandedTafsirs.size === ayahs.length) {
+                    setExpandedTafsirs(new Set());
+                  } else {
+                    setExpandedTafsirs(new Set(ayahs.map((a) => a.numberInSurah)));
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full
+                           bg-purple-500/10 border border-purple-500/20
+                           hover:bg-purple-500/20 active:scale-[0.97]
+                           transition-all duration-150"
+              >
+                <span className="text-purple-300 text-xs font-medium">
+                  {expandedTafsirs.size === ayahs.length
+                    ? "Свернуть все тафсиры"
+                    : "Раскрыть все тафсиры"}
+                </span>
+              </button>
             </div>
 
             {/* Bismillah */}
