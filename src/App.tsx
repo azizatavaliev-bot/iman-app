@@ -32,7 +32,7 @@ import { syncUserData, scheduleSyncPush, initSyncOnClose } from "./lib/sync";
 import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
 import ChannelGate from "./components/ChannelGate";
-import WelcomeStories, { isWelcomeSeen, dismissWelcome } from "./components/WelcomeStories";
+import { dismissWelcome } from "./components/WelcomeStories";
 import "./index.css";
 
 // ---- Telegram WebApp: signal ready to remove loading spinner ----
@@ -418,7 +418,6 @@ export default function App() {
     return !!tgUser;
   });
   const [onboarded, setOnboarded] = useState(checkOnboarded);
-  const [welcomeSeen, setWelcomeSeen] = useState(isWelcomeSeen);
 
   // Sync user data FIRST, then check onboarding
   useEffect(() => {
@@ -437,7 +436,6 @@ export default function App() {
       // After sync restored server data to localStorage, re-check state
       const nowOnboarded = ensureTelegramProfile();
       setOnboarded(nowOnboarded);
-      setWelcomeSeen(isWelcomeSeen());
       setSyncing(false);
       initAnalytics();
     }
@@ -454,13 +452,7 @@ export default function App() {
 
   const handleOnboardingComplete = useCallback(() => {
     dismissWelcome();
-    setWelcomeSeen(true);
     setOnboarded(true);
-  }, []);
-
-  const handleWelcomeComplete = useCallback(() => {
-    dismissWelcome();
-    setWelcomeSeen(true);
   }, []);
 
   // Show loading while syncing with server
@@ -498,16 +490,6 @@ export default function App() {
       <ErrorBoundary>
         <ThemeProvider>
           <Onboarding onComplete={handleOnboardingComplete} />
-        </ThemeProvider>
-      </ErrorBoundary>
-    );
-  }
-
-  if (!welcomeSeen) {
-    return (
-      <ErrorBoundary>
-        <ThemeProvider>
-          <WelcomeStories onComplete={handleWelcomeComplete} />
         </ThemeProvider>
       </ErrorBoundary>
     );

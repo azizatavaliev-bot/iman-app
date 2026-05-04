@@ -558,8 +558,16 @@ export default function Quran() {
       }));
 
       setAyahs(merged);
+      setExpandedTafsirs(new Set(arabic.ayahs.map((a) => a.numberInSurah)));
 
-      setExpandedTafsirs(new Set());
+      // Scroll to top AFTER all content + tafsirs render (double rAF = after paint)
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: "instant" });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }),
+      );
 
       // Award points for first-time surah reading
       if (markSurahRead(num)) {
@@ -984,7 +992,7 @@ export default function Quran() {
     const showBismillah = selectedSurah !== 1 && selectedSurah !== 9;
 
     return (
-      <div className="min-h-screen pb-24">
+      <div className="min-h-screen pb-24" style={{ overflowAnchor: "none" }}>
         {/* Header */}
         <div className="sticky top-0 z-10 glass px-4 py-3">
           <div className="flex items-center gap-3">
