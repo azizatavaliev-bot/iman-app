@@ -340,6 +340,13 @@ function formatTime(seconds: number): string {
 export function AudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playIdRef = useRef(0); // increments on each play to cancel stale retries
+  // Holds latest playSurah so the audio "ended" handler always sees the current
+  // implementation without forcing playSurah into useEffect deps (which would
+  // hit a temporal dead zone — the effect runs before the const is assigned).
+  const playSurahRef = useRef<
+    | ((s: number, ar: string, ru: string, audioUrl?: string) => void)
+    | null
+  >(null);
   const [currentSurah, setCurrentSurah] = useState<SurahInfo | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -398,7 +405,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         const next = currentSurah.number >= 114 ? 1 : currentSurah.number + 1;
         const ruName = SURAH_NAMES_RU[next] || `Сура ${next}`;
         const arName = SURAH_NAMES_AR[next] || "";
-        playSurah(next, arName, ruName);
+        playSurahRef.current?.(next, arName, ruName);
       } else {
         setIsPlaying(false);
       }
@@ -421,7 +428,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("pause", onPause);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [repeatMode, currentSurah, playSurah]);
+  }, [repeatMode, currentSurah]);
 
   // ---- Playback controls ----
 
@@ -514,6 +521,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     },
     [playWithRetry],
   );
+
+  // Keep the ref in sync so the audio "ended" handler always invokes the
+  // latest playSurah implementation (avoids stale closure without TDZ).
+  playSurahRef.current = playSurah;
 
   // Handle "Enable Audio" button click
   const handleEnableAudio = useCallback(async () => {
