@@ -291,6 +291,8 @@ interface AudioContextType {
   stop: () => void;
   toggle: () => void;
   dismissError: () => void;
+  playbackRate: number;
+  setPlaybackRate: (rate: number) => void;
 }
 
 // ============================================================
@@ -355,7 +357,18 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+  const [playbackRate, setPlaybackRateState] = useState<number>(1);
+  // Ref mirrors state so playSurah (which doesn't have rate in deps) reads fresh value
+  const playbackRateRef = useRef<number>(1);
   const [showAudioUnlockOverlay, setShowAudioUnlockOverlay] = useState(false);
+
+  const setPlaybackRate = useCallback((rate: number) => {
+    playbackRateRef.current = rate;
+    setPlaybackRateState(rate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+    }
+  }, []);
 
   // Check if we need to show audio unlock overlay on mount (Telegram + iOS only)
   useEffect(() => {
@@ -481,6 +494,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
           if (playIdRef.current !== myPlayId) return;
           await audio.play();
+          // Re-apply playbackRate — some browsers reset it on src change
+          audio.playbackRate = playbackRateRef.current;
           setIsLoading(false);
           return; // success
         } catch (err) {
@@ -631,6 +646,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     stop,
     toggle,
     dismissError,
+    playbackRate,
+    setPlaybackRate,
   };
 
   // ---- Progress percentage ----
