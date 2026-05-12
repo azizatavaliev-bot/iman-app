@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronUp, Check, Share2 } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import { BEGINNER_SECTIONS } from "../data/beginners";
@@ -290,6 +290,23 @@ export default function Beginners() {
                     >
                       Источники: {section.source}
                     </p>
+
+                    {/* Поделиться */}
+                    <button
+                      onClick={() => {
+                        const shareText = `${section.title}\n\n${section.steps.map((s: { title: string }) => `• ${s.title}`).join("\n")}\n\n— IMAN App`;
+                        if (navigator.share) {
+                          navigator.share({ title: section.title, text: shareText });
+                        } else {
+                          navigator.clipboard.writeText(shareText);
+                        }
+                      }}
+                      className="mt-3 w-full py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
+                      style={{ background: "var(--bg-secondary)", borderColor: "var(--border-secondary)", color: "var(--text-secondary)" }}
+                    >
+                      <Share2 size={14} />
+                      Поделиться
+                    </button>
                   </div>
                 </div>
               </div>

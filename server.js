@@ -202,6 +202,20 @@ const stmtInsertAnalytics = {
 // =========================================================================
 // AUDIT LOG — Track important actions
 // =========================================================================
+// Supabase audit pool (for unified UnityMonitor audit log)
+let _auditPool = null;
+function getAuditPool() {
+  if (!_auditPool && process.env.BACKUP_DATABASE_URL) {
+    _auditPool = new Pool({
+      connectionString: process.env.BACKUP_DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 2, idleTimeoutMillis: 60000,
+    });
+    _auditPool.on("error", () => {});
+  }
+  return _auditPool;
+}
+
 async function auditLog(telegramId, action, entityType, entityId, details) {
   try {
     await pool.query(
@@ -209,6 +223,15 @@ async function auditLog(telegramId, action, entityType, entityId, details) {
        VALUES ($1, $2, $3, $4, $5)`,
       [telegramId || null, action, entityType || null, entityId || null, details ? JSON.stringify(details) : null]
     );
+    // Duplicate to unified audit log for UnityMonitor (Supabase)
+    const ap = getAuditPool();
+    if (ap) {
+      ap.query(
+        `INSERT INTO unity_audit_log (app, user_id, username, action, entity, entity_id, details)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        ["iman_app", null, telegramId ? String(telegramId) : null, action, entityType || null, entityId ? parseInt(entityId) || null : null, details ? JSON.stringify(details) : '{}']
+      ).catch(() => {});
+    }
   } catch (e) {
     console.error("Audit log error:", e.message);
   }

@@ -6,6 +6,7 @@ import {
   BookOpen,
   Check,
   Star,
+  Share2,
 } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
@@ -211,6 +212,22 @@ function ProphetCard({
               {prophet.quranicRef}
             </span>
           </div>
+
+          {/* Поделиться */}
+          <button
+            onClick={() => {
+              const shareText = `${prophet.name}\n\n${prophet.content.slice(0, 300)}...\n\n📖 ${prophet.quranicRef}\n\n— IMAN App`;
+              if (navigator.share) {
+                navigator.share({ title: prophet.name, text: shareText });
+              } else {
+                navigator.clipboard.writeText(shareText);
+              }
+            }}
+            className="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
+          >
+            <Share2 size={14} />
+            Поделиться
+          </button>
         </div>
       )}
     </div>

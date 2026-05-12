@@ -5,6 +5,7 @@ import {
   ChevronUp,
   BookOpen,
   Check,
+  Share2,
 } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
@@ -295,6 +296,23 @@ export default function Seerah() {
                         Источники: {chapter.source}
                       </p>
                     )}
+
+                    {/* Поделиться */}
+                    <button
+                      onClick={() => {
+                        const shareText = `${chapter.title}\n\n${chapter.content.slice(0, 300)}...\n\n— IMAN App`;
+                        if (navigator.share) {
+                          navigator.share({ title: chapter.title, text: shareText });
+                        } else {
+                          navigator.clipboard.writeText(shareText);
+                        }
+                      }}
+                      className="mt-3 w-full py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-all"
+                      style={{ background: "var(--bg-secondary)", borderColor: "var(--border-secondary)", color: "var(--text-secondary)" }}
+                    >
+                      <Share2 size={14} />
+                      Поделиться
+                    </button>
                   </div>
                 </div>
               </div>
