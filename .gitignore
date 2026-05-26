@@ -12,6 +12,24 @@ dist
 dist-ssr
 *.local
 
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Old backups
+*.backup
+*.backup2
+server.js.backup*
+
+# DB dumps with user PII — never publish
+supabase-*.json
+*-dump.json
+*-dump.sql
+
+# Agent OS scratch (auto-generated)
+agent-os/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
