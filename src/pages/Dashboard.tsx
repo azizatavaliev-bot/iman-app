@@ -41,6 +41,11 @@ import {
   Lightbulb,
   Film,
   Calendar,
+  Compass,
+  Crown,
+  Sprout,
+  Info as InfoIcon,
+  BookMarked,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { getTelegramUser } from "../lib/telegram";
@@ -1678,6 +1683,13 @@ export default function Dashboard() {
               grad: "from-emerald-600/40 to-teal-500/20",
             },
             {
+              icon: Compass,
+              label: "Кибла",
+              path: "/qibla",
+              color: "text-sky-300",
+              grad: "from-sky-600/40 to-blue-500/20",
+            },
+            {
               icon: Heart,
               label: "Дуа",
               path: "/dua",
@@ -1760,6 +1772,20 @@ export default function Dashboard() {
               color: "text-indigo-300",
               grad: "from-indigo-600/40 to-violet-500/20",
             },
+            {
+              icon: Sprout,
+              label: "Новичкам",
+              path: "/beginners",
+              color: "text-lime-300",
+              grad: "from-lime-600/40 to-green-500/20",
+            },
+            {
+              icon: BookMarked,
+              label: "Избранное",
+              path: "/favorites",
+              color: "text-amber-300",
+              grad: "from-amber-600/40 to-yellow-500/20",
+            },
             // Таджвид скрыт до доработки контента
             // {
             //   icon: GraduationCap,
@@ -1836,6 +1862,13 @@ export default function Dashboard() {
               color: "text-lime-300",
               grad: "from-lime-600/40 to-lime-500/20",
             },
+            {
+              icon: Crown,
+              label: "Лидерборд",
+              path: "/leaderboard",
+              color: "text-yellow-300",
+              grad: "from-yellow-600/40 to-amber-500/20",
+            },
           ],
         },
         {
@@ -1862,6 +1895,20 @@ export default function Dashboard() {
               path: "/dreams",
               color: "text-indigo-300",
               grad: "from-indigo-600/40 to-indigo-500/20",
+            },
+            {
+              icon: GraduationCap,
+              label: "Гид",
+              path: "/guide",
+              color: "text-teal-300",
+              grad: "from-teal-600/40 to-cyan-500/20",
+            },
+            {
+              icon: InfoIcon,
+              label: "О приложении",
+              path: "/about-app",
+              color: "text-slate-300",
+              grad: "from-slate-600/40 to-slate-500/20",
             },
           ],
         },
