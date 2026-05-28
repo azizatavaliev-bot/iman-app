@@ -21,6 +21,25 @@ import {
 
 const READ_KEY = "iman_qa_read";
 
+// Маппинг цвета категории → статические Tailwind классы
+// (динамические классы Tailwind не purg'ает, поэтому только литералы)
+const CAT_COLOR_MAP: Record<
+  string,
+  { bar: string; bg: string; text: string; ring: string }
+> = {
+  emerald: { bar: "from-emerald-400/60 to-emerald-600/30", bg: "bg-emerald-500/15", text: "text-emerald-300", ring: "ring-emerald-500/30" },
+  sky:     { bar: "from-sky-400/60 to-sky-600/30",         bg: "bg-sky-500/15",     text: "text-sky-300",     ring: "ring-sky-500/30" },
+  cyan:    { bar: "from-cyan-400/60 to-cyan-600/30",       bg: "bg-cyan-500/15",    text: "text-cyan-300",    ring: "ring-cyan-500/30" },
+  amber:   { bar: "from-amber-400/60 to-amber-600/30",     bg: "bg-amber-500/15",   text: "text-amber-300",   ring: "ring-amber-500/30" },
+  violet:  { bar: "from-violet-400/60 to-violet-600/30",   bg: "bg-violet-500/15",  text: "text-violet-300",  ring: "ring-violet-500/30" },
+  rose:    { bar: "from-rose-400/60 to-rose-600/30",       bg: "bg-rose-500/15",    text: "text-rose-300",    ring: "ring-rose-500/30" },
+  pink:    { bar: "from-pink-400/60 to-pink-600/30",       bg: "bg-pink-500/15",    text: "text-pink-300",    ring: "ring-pink-500/30" },
+  teal:    { bar: "from-teal-400/60 to-teal-600/30",       bg: "bg-teal-500/15",    text: "text-teal-300",    ring: "ring-teal-500/30" },
+  indigo:  { bar: "from-indigo-400/60 to-indigo-600/30",   bg: "bg-indigo-500/15",  text: "text-indigo-300",  ring: "ring-indigo-500/30" },
+  orange:  { bar: "from-orange-400/60 to-orange-600/30",   bg: "bg-orange-500/15",  text: "text-orange-300",  ring: "ring-orange-500/30" },
+};
+const DEFAULT_COLOR = CAT_COLOR_MAP.teal;
+
 function loadRead(): Set<number> {
   try {
     const raw = localStorage.getItem(READ_KEY);
@@ -156,34 +175,49 @@ export default function IslamicQA() {
   }, [activeCat, search, mode]);
 
   return (
-    <div className="min-h-screen pb-28 px-4 pt-6 max-w-lg mx-auto animate-fade-in">
-      {/* Header */}
-      <header className="flex items-center gap-3 mb-5">
-        <button
-          onClick={() => window.history.back()}
-          className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        >
-          <ChevronLeft size={18} className="text-slate-300" />
-        </button>
-        <div className="flex items-center gap-2.5 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-xl">
-            <HelpCircle className="w-5 h-5 text-teal-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-white">Вопросы и ответы</h1>
-            <p className="text-xs text-slate-500">
-              {QA_TOTAL} вопросов · {read.size} прочитано
-            </p>
+    <div className="min-h-screen pb-28 max-w-lg mx-auto animate-fade-in">
+      {/* Decorative hero header */}
+      <div className="relative px-4 pt-4 pb-5 overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-2 left-4 w-24 h-24 bg-emerald-500/8 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative flex items-center gap-3 mb-3">
+          <button
+            onClick={() => window.history.back()}
+            className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          >
+            <ChevronLeft size={18} className="text-slate-300" />
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={random}
+            title="Случайный вопрос"
+            className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          >
+            <Shuffle size={16} className="text-amber-400" />
+          </button>
+        </div>
+
+        <div className="relative text-center">
+          <p className="text-amber-400/60 text-base mb-1" style={{ fontFamily: "'Amiri', serif" }}>
+            ﷽
+          </p>
+          <h1 className="text-2xl font-bold text-white mb-1 flex items-center justify-center gap-2">
+            <HelpCircle className="w-6 h-6 text-teal-400" />
+            Вопросы и ответы
+          </h1>
+          <p className="text-teal-400/70 text-xs">
+            {QA_TOTAL} вопросов · {read.size} прочитано
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="h-px w-12 bg-gradient-to-r from-transparent to-teal-500/40" />
+            <span className="text-teal-500/40 text-xs">✦</span>
+            <div className="h-px w-12 bg-gradient-to-l from-transparent to-teal-500/40" />
           </div>
         </div>
-        <button
-          onClick={random}
-          title="Случайный вопрос"
-          className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        >
-          <Shuffle size={16} className="text-amber-400" />
-        </button>
-      </header>
+      </div>
+
+      <div className="px-4">
 
       {/* QA of the day */}
       <button
@@ -447,22 +481,25 @@ export default function IslamicQA() {
         )}
         {filtered.map((item) => {
           const cat = QA_CATEGORIES.find((c) => c.key === item.category);
+          const colors = (cat && CAT_COLOR_MAP[cat.color]) || DEFAULT_COLOR;
           const isOpen = openId === item.id;
           const isRead = read.has(item.id);
           return (
             <div
               key={item.id}
               id={`qa-${item.id}`}
-              className={`glass-card overflow-hidden transition-all scroll-mt-4 ${
-                isOpen ? "ring-1 ring-teal-500/20" : ""
+              className={`glass-card overflow-hidden transition-all scroll-mt-4 relative ${
+                isOpen ? `ring-1 ${colors.ring} shadow-lg` : ""
               }`}
             >
+              {/* Цветная левая полоска по категории */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${colors.bar}`} />
               <button
                 onClick={() => toggleOpen(item.id)}
-                className="w-full flex items-start gap-3 p-3.5 text-left"
+                className="w-full flex items-start gap-3 p-3.5 pl-4 text-left"
               >
-                <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center text-base shrink-0">
-                  {cat?.emoji}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${colors.bg} ring-1 ring-white/[0.04]`}>
+                  <span className={colors.text}>{cat?.emoji}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -512,6 +549,7 @@ export default function IslamicQA() {
         })}
       </div>
       )}
+      </div>
     </div>
   );
 }

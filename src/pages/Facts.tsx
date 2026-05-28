@@ -70,34 +70,49 @@ export default function Facts() {
   };
 
   return (
-    <div className="min-h-screen pb-28 px-4 pt-6 max-w-lg mx-auto animate-fade-in">
-      {/* Header */}
-      <header className="flex items-center gap-3 mb-5">
-        <button
-          onClick={() => window.history.back()}
-          className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        >
-          <ChevronLeft size={18} className="text-slate-300" />
-        </button>
-        <div className="flex items-center gap-2.5 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-xl">
-            💡
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-white">Факты об исламе</h1>
-            <p className="text-xs text-slate-500">
-              {FACTS.length} проверенных фактов · {read.size} прочитано
-            </p>
+    <div className="min-h-screen pb-28 max-w-lg mx-auto animate-fade-in">
+      {/* Decorative hero header */}
+      <div className="relative px-4 pt-4 pb-5 overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-2 left-4 w-24 h-24 bg-violet-500/8 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative flex items-center gap-3 mb-3">
+          <button
+            onClick={() => window.history.back()}
+            className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          >
+            <ChevronLeft size={18} className="text-slate-300" />
+          </button>
+          <div className="flex-1" />
+          <button
+            onClick={random}
+            title="Случайный факт"
+            className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          >
+            <Shuffle size={16} className="text-amber-400" />
+          </button>
+        </div>
+
+        <div className="relative text-center">
+          <p className="text-amber-400/60 text-base mb-1" style={{ fontFamily: "'Amiri', serif" }}>
+            ﷽
+          </p>
+          <h1 className="text-2xl font-bold text-white mb-1 flex items-center justify-center gap-2">
+            <span className="text-2xl">💡</span>
+            Факты об исламе
+          </h1>
+          <p className="text-indigo-400/70 text-xs">
+            {FACTS.length} проверенных фактов · {read.size} прочитано
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="h-px w-12 bg-gradient-to-r from-transparent to-indigo-500/40" />
+            <span className="text-indigo-500/40 text-xs">✦</span>
+            <div className="h-px w-12 bg-gradient-to-l from-transparent to-indigo-500/40" />
           </div>
         </div>
-        <button
-          onClick={random}
-          title="Случайный факт"
-          className="glass-card w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        >
-          <Shuffle size={16} className="text-amber-400" />
-        </button>
-      </header>
+      </div>
+
+      <div className="px-4">
 
       {/* Fact of the day */}
       <button
@@ -231,6 +246,7 @@ export default function Facts() {
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
