@@ -35,6 +35,7 @@ import type { MemorizationSurah } from "../lib/storage";
 import { getTransliteration } from "../data/quran-transliteration";
 import { getTafsir, TAFSIR_SOURCE } from "../data/tafsir";
 import { SURAH_TRANSLIT, getSurahTranslit } from "../data/surah-translit";
+import { PRAYERS, type PrayerKey } from "../data/prayer-surahs";
 
 // ============================================================
 // Complete Surah Names Map (all 114)
@@ -547,6 +548,8 @@ export default function Memorize() {
 
   const [list, setList] = useState<MemorizationSurah[]>([]);
   const [search, setSearch] = useState("");
+  const [activePrayer, setActivePrayer] = useState<PrayerKey>("fajr");
+  const [activeTab, setActiveTab] = useState<"learning" | "mastered">("learning");
   const [expandedCard, setExpandedCard] = useState<number | null>(null);
   const [confidenceSelector, setConfidenceSelector] = useState<number | null>(
     null,
@@ -578,6 +581,10 @@ export default function Memorize() {
   const [showTranslit, setShowTranslit] = useState(true);
   const [showTranslation, setShowTranslation] = useState(true);
   const [showTafsir, setShowTafsir] = useState(false);
+  // Раскрытие "О суре" — по дефолту свёрнуто на мобиле для компактности
+  const [showDescription, setShowDescription] = useState(false);
+  // Раскрытие дополнительных настроек (повторы, скорость)
+  const [showSettings, setShowSettings] = useState(false);
   // Per-ayah collapse state for long tafsirs (key: globalAyahNumber)
   const [expandedTafsirs, setExpandedTafsirs] = useState<Set<number>>(
     () => new Set(),
@@ -614,6 +621,23 @@ export default function Memorize() {
       ? Math.round(list.reduce((sum, s) => sum + s.confidence, 0) / totalSurahs)
       : 0;
   const totalReviews = list.reduce((sum, s) => sum + s.reviewCount, 0);
+
+  // ---- Status breakdown: new / learning / mastered ----
+  const newSurahs = list.filter((s) => s.reviewCount === 0).length;
+  const masteredSurahs = list.filter((s) => s.confidence >= 80).length;
+  const learningSurahs = totalSurahs - newSurahs - masteredSurahs;
+
+  // ---- Due for review (last reviewed > 3 days ago, not mastered) ----
+  const now = Date.now();
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+  const dueSurahs = list.filter((s) => {
+    if (s.confidence >= 90) return false;
+    if (!s.lastReviewedAt) return s.reviewCount > 0;
+    return now - new Date(s.lastReviewedAt).getTime() > THREE_DAYS_MS;
+  }).length;
+
+  const TOTAL_QURAN_SURAHS = 114;
+  const overallPct = Math.round((masteredSurahs / TOTAL_QURAN_SURAHS) * 100);
 
   // ---- Added surah numbers set ----
   const addedSet = new Set(list.map((s) => s.surahNumber));
@@ -724,6 +748,24 @@ export default function Memorize() {
     }
   }, [studySurah, openStudy]);
 
+  // ---- Авто-открытие Study при ?surah=N в URL ----
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const surahParam = params.get("surah");
+    if (!surahParam) return;
+    const num = parseInt(surahParam, 10);
+    if (!Number.isFinite(num) || num < 1 || num > 114) return;
+    storage.addMemorizationSurah(num);
+    reload();
+    openStudy(num);
+    // Уберём query, чтобы при возврате не открывалось повторно
+    const url = new URL(window.location.href);
+    url.searchParams.delete("surah");
+    window.history.replaceState({}, "", url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ============================================================
   // Render — Study View
   // ============================================================
@@ -765,33 +807,30 @@ export default function Memorize() {
           </div>
         </div>
 
-        {/* ---- Hero block: decorative surah name ---- */}
-        <div className="max-w-lg mx-auto px-4 pt-6 pb-2 text-center">
+        {/* ---- Hero block: decorative surah name (compact for mobile) ---- */}
+        <div className="max-w-lg mx-auto px-4 pt-4 pb-2 text-center">
           <p
-            className="font-['Amiri'] text-amber-200 text-5xl sm:text-6xl leading-tight mb-2"
+            className="font-['Amiri'] text-amber-200 text-4xl sm:text-5xl leading-tight mb-1.5"
             dir="rtl"
           >
             {info?.ar || ""}
           </p>
-          <div className="flex items-center justify-center gap-3 mt-3">
-            <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-500/40" />
-            <span className="text-amber-400/60 text-xs">✦</span>
-            <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-500/40" />
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="h-px w-10 bg-gradient-to-r from-transparent to-amber-500/40" />
+            <span className="text-amber-400/60 text-[10px]">✦</span>
+            <div className="h-px w-10 bg-gradient-to-l from-transparent to-amber-500/40" />
           </div>
-          <h1 className="text-white text-2xl font-semibold mt-3">
+          <h1 className="text-white text-xl font-semibold mt-2">
             {getSurahTranslit(studySurah)}
           </h1>
-          <p className="text-amber-300/60 text-sm mt-0.5 italic">
-            {info?.ru}
-          </p>
-          <p className="text-slate-500 text-xs mt-1">
-            Сура {studySurah} • {info?.ayahs ?? "?"}{" "}
+          <p className="text-amber-300/60 text-xs mt-0.5 italic">
+            {info?.ru} · сура {studySurah} · {info?.ayahs ?? "?"}{" "}
             {info ? ayahWord(info.ayahs) : "аятов"}
           </p>
           {/* Bismillah — skip Al-Fatiha (1) where it's already aya 1, and At-Tawbah (9) which has no Bismillah */}
           {studySurah !== 1 && studySurah !== 9 && (
             <p
-              className="font-['Amiri'] text-amber-300/60 text-lg mt-4"
+              className="font-['Amiri'] text-amber-300/60 text-base mt-3"
               dir="rtl"
             >
               بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
@@ -799,18 +838,39 @@ export default function Memorize() {
           )}
         </div>
 
-        <div className="max-w-lg mx-auto px-4 mt-4 space-y-4">
-          {/* ---- Description Card ---- */}
+        <div className="max-w-lg mx-auto px-4 mt-4 space-y-3">
+          {/* ---- Description Card (collapsible) ---- */}
           {description && (
-            <div className="bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent backdrop-blur-sm border border-violet-500/20 rounded-2xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-violet-500/20 ring-1 ring-violet-400/20 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent backdrop-blur-sm border border-violet-500/20 rounded-2xl overflow-hidden">
+              <button
+                onClick={() => setShowDescription((v) => !v)}
+                className="w-full flex items-center gap-3 p-4 text-left"
+              >
+                <div className="w-9 h-9 rounded-xl bg-violet-500/20 ring-1 ring-violet-400/20 flex items-center justify-center shrink-0">
                   <BookOpen className="w-4 h-4 text-violet-300" />
                 </div>
-                <div>
-                  <p className="text-violet-300 text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-violet-300 text-[10px] font-bold uppercase tracking-[0.15em]">
                     О суре
                   </p>
+                  {!showDescription && (
+                    <p className="text-slate-400 text-[11px] truncate mt-0.5">
+                      {description}
+                    </p>
+                  )}
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-violet-300/60 transition-transform ${
+                    showDescription ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showDescription ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="px-4 pb-4 -mt-1">
                   <p className="text-slate-200 text-[13px] leading-relaxed">
                     {description}
                   </p>
@@ -897,176 +957,215 @@ export default function Memorize() {
             );
           })()}
 
-          {/* ---- Audio Controls (Loop ayah + Loop surah + Speed) ---- */}
-          <div className="t-bg backdrop-blur-sm border t-border-s rounded-xl p-3 space-y-2.5">
-            {/* Loop ayah */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Repeat className="w-3 h-3 text-emerald-400" />
-                <span className="text-slate-400 text-[10px] uppercase tracking-wider font-semibold">
-                  Повтор аята
+          {/* ---- Слушать всю суру одним треком ---- */}
+          {studySurah && info && (() => {
+            const isPlayingFull =
+              globalAudio.isPlaying &&
+              globalAudio.currentSurah?.number === studySurah;
+            return (
+              <button
+                onClick={() => {
+                  if (isPlayingFull) {
+                    globalAudio.pause();
+                  } else {
+                    globalAudio.play(studySurah, info.ar, info.ru);
+                    hapticImpact("light");
+                  }
+                }}
+                className={`w-full flex items-center justify-center gap-2.5 py-3 rounded-2xl
+                            text-sm font-semibold transition-all duration-300 active:scale-[0.98] border ${
+                              isPlayingFull
+                                ? "bg-emerald-500/25 text-emerald-100 border-emerald-400/50 ring-1 ring-emerald-400/40"
+                                : "bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/15"
+                            }`}
+              >
+                {isPlayingFull ? (
+                  <>
+                    <Pause className="w-4 h-4" />
+                    Пауза — играет вся сура
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4" />
+                    Слушать всю суру целиком
+                  </>
+                )}
+              </button>
+            );
+          })()}
+
+          {/* ---- Расширенные настройки (свёрнуты) ---- */}
+          <div className="t-bg backdrop-blur-sm border t-border-s rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowSettings((v) => !v)}
+              className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left"
+            >
+              <span className="flex items-center gap-2">
+                <Gauge className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-slate-300 text-xs font-medium">
+                  Параметры
                 </span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { value: 1, label: "1×" },
-                  { value: 3, label: "3×" },
-                  { value: 5, label: "5×" },
-                  { value: 0, label: "∞" },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setLoopCount(opt.value);
-                      hapticImpact("light");
-                    }}
-                    className={`py-1.5 rounded-md text-[11px] font-bold transition-all
-                                ${
-                                  loopCount === opt.value
-                                    ? "bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/50"
-                                    : "bg-white/5 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                                }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-slate-500 transition-transform ${
+                  showSettings ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                showSettings ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div className="px-3 pb-3 space-y-2.5">
+                {/* Loop ayah */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Repeat className="w-3 h-3 text-emerald-400" />
+                    <span className="text-slate-400 text-[10px] uppercase tracking-wider font-semibold">
+                      Повтор аята
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { value: 1, label: "1×" },
+                      { value: 3, label: "3×" },
+                      { value: 5, label: "5×" },
+                      { value: 0, label: "∞" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setLoopCount(opt.value);
+                          hapticImpact("light");
+                        }}
+                        className={`py-1.5 rounded-md text-[11px] font-bold transition-all ${
+                          loopCount === opt.value
+                            ? "bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/50"
+                            : "bg-white/5 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Loop surah */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Repeat className="w-3 h-3 text-orange-400" />
+                    <span className="text-slate-400 text-[10px] uppercase tracking-wider font-semibold">
+                      Повтор всей суры
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { value: 1, label: "1×" },
+                      { value: 3, label: "3×" },
+                      { value: 5, label: "5×" },
+                      { value: 0, label: "∞" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setSurahLoopCount(opt.value);
+                          hapticImpact("light");
+                        }}
+                        className={`py-1.5 rounded-md text-[11px] font-bold transition-all ${
+                          surahLoopCount === opt.value
+                            ? "bg-orange-500/25 text-orange-200 ring-1 ring-orange-400/50"
+                            : "bg-white/5 text-slate-400 hover:text-orange-300 hover:bg-orange-500/10"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Speed */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Gauge className="w-3 h-3 text-violet-400" />
+                    <span className="text-slate-400 text-[10px] uppercase tracking-wider font-semibold">
+                      Скорость
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { value: 0.75, label: "0.75×" },
+                      { value: 1, label: "1×" },
+                      { value: 1.25, label: "1.25×" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setPlaybackSpeed(opt.value);
+                          hapticImpact("light");
+                        }}
+                        className={`py-1.5 rounded-md text-[11px] font-bold transition-all ${
+                          playbackSpeed === opt.value
+                            ? "bg-violet-500/25 text-violet-200 ring-1 ring-violet-400/50"
+                            : "bg-white/5 text-slate-400 hover:text-violet-300 hover:bg-violet-500/10"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Видимость элементов */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Eye className="w-3 h-3 text-slate-400" />
+                    <span className="text-slate-400 text-[10px] uppercase tracking-wider font-semibold">
+                      Что показывать
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <button
+                      onClick={() => setShowArabic((v) => !v)}
+                      className={`py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                        showArabic
+                          ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/30"
+                          : "bg-white/5 text-slate-500"
+                      }`}
+                    >
+                      Араб.
+                    </button>
+                    <button
+                      onClick={() => setShowTranslit((v) => !v)}
+                      className={`py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                        showTranslit
+                          ? "bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/30"
+                          : "bg-white/5 text-slate-500"
+                      }`}
+                    >
+                      Транс.
+                    </button>
+                    <button
+                      onClick={() => setShowTranslation((v) => !v)}
+                      className={`py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                        showTranslation
+                          ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30"
+                          : "bg-white/5 text-slate-500"
+                      }`}
+                    >
+                      Перев.
+                    </button>
+                    <button
+                      onClick={() => setShowTafsir((v) => !v)}
+                      className={`py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                        showTafsir
+                          ? "bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/30"
+                          : "bg-white/5 text-slate-500"
+                      }`}
+                    >
+                      Тафс.
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Loop surah */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Repeat className="w-3 h-3 text-orange-400" />
-                <span className="text-slate-400 text-[10px] uppercase tracking-wider font-semibold">
-                  Повтор всей суры
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { value: 1, label: "1×" },
-                  { value: 3, label: "3×" },
-                  { value: 5, label: "5×" },
-                  { value: 0, label: "∞" },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setSurahLoopCount(opt.value);
-                      hapticImpact("light");
-                    }}
-                    className={`py-1.5 rounded-md text-[11px] font-bold transition-all
-                                ${
-                                  surahLoopCount === opt.value
-                                    ? "bg-orange-500/25 text-orange-200 ring-1 ring-orange-400/50"
-                                    : "bg-white/5 text-slate-400 hover:text-orange-300 hover:bg-orange-500/10"
-                                }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Speed */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Gauge className="w-3 h-3 text-violet-400" />
-                <span className="text-slate-400 text-[10px] uppercase tracking-wider font-semibold">
-                  Скорость
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { value: 0.75, label: "0.75×" },
-                  { value: 1, label: "1×" },
-                  { value: 1.25, label: "1.25×" },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setPlaybackSpeed(opt.value);
-                      hapticImpact("light");
-                    }}
-                    className={`py-1.5 rounded-md text-[11px] font-bold transition-all
-                                ${
-                                  playbackSpeed === opt.value
-                                    ? "bg-violet-500/25 text-violet-200 ring-1 ring-violet-400/50"
-                                    : "bg-white/5 text-slate-400 hover:text-violet-300 hover:bg-violet-500/10"
-                                }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ---- Visibility Toggles (2×2 on mobile, 4×1 on desktop) ---- */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button
-              onClick={() => setShowArabic((v) => !v)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-full
-                          text-xs font-medium transition-all duration-200 border
-                          ${
-                            showArabic
-                              ? "bg-amber-500/15 text-amber-300 border-amber-500/25"
-                              : "t-bg text-slate-500 t-border-s"
-                          }`}
-            >
-              {showArabic ? (
-                <Eye className="w-3.5 h-3.5" />
-              ) : (
-                <EyeOff className="w-3.5 h-3.5" />
-              )}
-              Арабский
-            </button>
-            <button
-              onClick={() => setShowTranslit((v) => !v)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-full
-                          text-xs font-medium transition-all duration-200 border
-                          ${
-                            showTranslit
-                              ? "bg-violet-500/15 text-violet-300 border-violet-500/25"
-                              : "t-bg text-slate-500 t-border-s"
-                          }`}
-            >
-              {showTranslit ? (
-                <Eye className="w-3.5 h-3.5" />
-              ) : (
-                <EyeOff className="w-3.5 h-3.5" />
-              )}
-              Транслит
-            </button>
-            <button
-              onClick={() => setShowTranslation((v) => !v)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-full
-                          text-xs font-medium transition-all duration-200 border
-                          ${
-                            showTranslation
-                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
-                              : "t-bg text-slate-500 t-border-s"
-                          }`}
-            >
-              {showTranslation ? (
-                <Eye className="w-3.5 h-3.5" />
-              ) : (
-                <EyeOff className="w-3.5 h-3.5" />
-              )}
-              Перевод
-            </button>
-            <button
-              onClick={() => setShowTafsir((v) => !v)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-full
-                          text-xs font-medium transition-all duration-200 border
-                          ${
-                            showTafsir
-                              ? "bg-orange-500/15 text-orange-300 border-orange-500/25"
-                              : "t-bg text-slate-500 t-border-s"
-                          }`}
-            >
-              <ScrollText className="w-3.5 h-3.5" />
-              Тафсир
-            </button>
           </div>
 
           {/* ---- Loading State ---- */}
@@ -1124,21 +1223,57 @@ export default function Memorize() {
 
                     {/* Ayah medallion + play button row */}
                     <div className="relative flex items-center justify-between mb-3">
-                      <div
-                        className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all
-                                    ${
-                                      isAyahPlaying
-                                        ? "bg-emerald-500/30 ring-2 ring-emerald-400/60"
-                                        : "bg-emerald-500/15 ring-1 ring-emerald-500/20"
-                                    }`}
-                      >
-                        {/* Decorative ring */}
-                        <div className="absolute inset-0 rounded-full border border-emerald-400/20" />
-                        <span
-                          className={`text-xs font-bold tabular-nums ${isAyahPlaying ? "text-emerald-200" : "text-emerald-400"}`}
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all
+                                      ${
+                                        isAyahPlaying
+                                          ? "bg-emerald-500/30 ring-2 ring-emerald-400/60"
+                                          : "bg-emerald-500/15 ring-1 ring-emerald-500/20"
+                                      }`}
                         >
-                          {ayah.numberInSurah}
-                        </span>
+                          {/* Decorative ring */}
+                          <div className="absolute inset-0 rounded-full border border-emerald-400/20" />
+                          <span
+                            className={`text-xs font-bold tabular-nums ${isAyahPlaying ? "text-emerald-200" : "text-emerald-400"}`}
+                          >
+                            {ayah.numberInSurah}
+                          </span>
+                        </div>
+                        {/* Кнопка "Выучил" — toggle */}
+                        {studySurah && (() => {
+                          const entry = list.find((s) => s.surahNumber === studySurah);
+                          if (!entry) return null;
+                          const isLearned =
+                            entry.learnedAyahs?.includes(ayah.numberInSurah) ?? false;
+                          return (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                hapticImpact("light");
+                                storage.toggleLearnedAyah(
+                                  studySurah,
+                                  ayah.numberInSurah,
+                                );
+                                reload();
+                              }}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold transition-all active:scale-95 ${
+                                isLearned
+                                  ? "bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/50"
+                                  : "bg-white/[0.04] text-slate-400 hover:bg-white/[0.08]"
+                              }`}
+                            >
+                              {isLearned ? (
+                                <>
+                                  <Check className="w-3 h-3" />
+                                  Выучил
+                                </>
+                              ) : (
+                                "Выучить"
+                              )}
+                            </button>
+                          );
+                        })()}
                       </div>
                       <button
                         onClick={() => {
@@ -1385,16 +1520,59 @@ export default function Memorize() {
 
       {/* ---- Stats Bar ---- */}
       {totalSurahs > 0 && (
-        <div className="max-w-2xl mx-auto px-4 mt-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 t-bg backdrop-blur-sm border t-border-s rounded-xl px-3 py-2.5 text-center">
-              <p className="text-emerald-400 text-lg font-bold">
-                {totalSurahs}
-              </p>
-              <p className="text-slate-500 text-[10px] uppercase tracking-wider">
-                Сур
-              </p>
+        <div className="max-w-2xl mx-auto px-4 mt-4 space-y-3">
+          {/* Overall progress: mastered out of 114 */}
+          <div className="glass-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-400">📖</span>
+                <span className="text-white text-sm font-medium">
+                  Прогресс хифза
+                </span>
+              </div>
+              <span className="text-emerald-400 text-sm font-bold tabular-nums">
+                {masteredSurahs}
+                <span className="text-slate-500 font-normal">
+                  {" "}/ {TOTAL_QURAN_SURAHS}
+                </span>
+              </span>
             </div>
+            {/* Segmented bar: mastered (emerald) + learning (amber) over 114 */}
+            <div className="relative h-2.5 bg-white/[0.04] rounded-full overflow-hidden flex">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+                style={{ width: `${(masteredSurahs / TOTAL_QURAN_SURAHS) * 100}%` }}
+              />
+              <div
+                className="h-full bg-gradient-to-r from-amber-500/70 to-amber-400/70 transition-all duration-500"
+                style={{ width: `${(learningSurahs / TOTAL_QURAN_SURAHS) * 100}%` }}
+              />
+              <div
+                className="h-full bg-slate-500/30 transition-all duration-500"
+                style={{ width: `${(newSurahs / TOTAL_QURAN_SURAHS) * 100}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2 text-[11px]">
+              <span className="text-slate-400">{overallPct}% выучено</span>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {masteredSurahs}
+                </span>
+                <span className="flex items-center gap-1 text-amber-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  {learningSurahs}
+                </span>
+                <span className="flex items-center gap-1 text-slate-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                  {newSurahs}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick stats row */}
+          <div className="flex items-center gap-3">
             <div className="flex-1 t-bg backdrop-blur-sm border t-border-s rounded-xl px-3 py-2.5 text-center">
               <p
                 className={`text-lg font-bold ${getConfidenceTextColor(avgConfidence)}`}
@@ -1402,13 +1580,35 @@ export default function Memorize() {
                 {avgConfidence}%
               </p>
               <p className="text-slate-500 text-[10px] uppercase tracking-wider">
-                Уровень знаний
+                Уровень
               </p>
             </div>
             <div className="flex-1 t-bg backdrop-blur-sm border t-border-s rounded-xl px-3 py-2.5 text-center">
               <p className="text-amber-400 text-lg font-bold">{totalReviews}</p>
               <p className="text-slate-500 text-[10px] uppercase tracking-wider">
                 Повторений
+              </p>
+            </div>
+            <div
+              className={`flex-1 rounded-xl px-3 py-2.5 text-center backdrop-blur-sm border ${
+                dueSurahs > 0
+                  ? "bg-rose-500/10 border-rose-500/30"
+                  : "t-bg t-border-s"
+              }`}
+            >
+              <p
+                className={`text-lg font-bold ${
+                  dueSurahs > 0 ? "text-rose-400" : "text-slate-500"
+                }`}
+              >
+                {dueSurahs}
+              </p>
+              <p
+                className={`text-[10px] uppercase tracking-wider ${
+                  dueSurahs > 0 ? "text-rose-300/70" : "text-slate-500"
+                }`}
+              >
+                К повторению
               </p>
             </div>
           </div>
@@ -1420,11 +1620,6 @@ export default function Memorize() {
         <div className="flex items-center gap-2 mb-3">
           <Star className="w-4 h-4 text-amber-400" />
           <h2 className="text-white text-sm font-semibold">Мои суры</h2>
-          {totalSurahs > 0 && (
-            <span className="text-slate-500 text-xs ml-auto">
-              {sortedList.filter(needsReview).length} к повторению
-            </span>
-          )}
         </div>
 
         {/* Empty state — compact, one-line hint pointing down */}
@@ -1439,9 +1634,63 @@ export default function Memorize() {
           </div>
         )}
 
+        {/* Tabs: Учу / Выученные — мобильный паттерн */}
+        {totalSurahs > 0 && (() => {
+          const learningList = sortedList.filter((s) => s.confidence < 80);
+          const masteredList = sortedList.filter((s) => s.confidence >= 80);
+          const activeList = activeTab === "learning" ? learningList : masteredList;
+          return (
+            <>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  onClick={() => setActiveTab("learning")}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+                    activeTab === "learning"
+                      ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/40"
+                      : "bg-white/[0.03] text-slate-400"
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Учу
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    activeTab === "learning" ? "bg-amber-500/30 text-amber-100" : "bg-white/5 text-slate-500"
+                  }`}>{learningList.length}</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("mastered")}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+                    activeTab === "mastered"
+                      ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/40"
+                      : "bg-white/[0.03] text-slate-400"
+                  }`}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Выученные
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    activeTab === "mastered" ? "bg-emerald-500/30 text-emerald-100" : "bg-white/5 text-slate-500"
+                  }`}>{masteredList.length}</span>
+                </button>
+              </div>
+              {activeList.length === 0 && (
+                <div className="t-bg backdrop-blur-sm border t-border-s rounded-xl px-4 py-6 text-center mb-3">
+                  <p className="text-slate-400 text-sm">
+                    {activeTab === "learning"
+                      ? "🎉 Все суры выучены!"
+                      : "📚 Пока нет выученных. Цель — 80%+"}
+                  </p>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
         {/* Surah cards */}
         <div className="space-y-3">
-          {sortedList.map((surah) => {
+          {sortedList
+            .filter((s) =>
+              activeTab === "learning" ? s.confidence < 80 : s.confidence >= 80,
+            )
+            .map((surah) => {
             const info = SURAH_NAMES[surah.surahNumber];
             if (!info) return null;
 
@@ -1451,12 +1700,14 @@ export default function Memorize() {
               globalAudio.isPlaying &&
               globalAudio.currentSurah?.number === surah.surahNumber;
             const needs = needsReview(surah);
+            const isMastered = surah.confidence >= 80;
+            const isNew = surah.reviewCount === 0;
 
             return (
               <div
                 key={surah.surahNumber}
-                className={`t-bg backdrop-blur-sm border rounded-2xl overflow-hidden transition-all duration-200
-                  ${needs ? "border-amber-500/20" : "t-border-s"}
+                className={`t-bg backdrop-blur-sm border rounded-2xl overflow-hidden transition-all duration-300
+                  ${isMastered ? "border-emerald-500/30" : needs ? "border-amber-500/20" : "t-border-s"}
                   ${isExpanded ? "ring-1 ring-emerald-500/20" : ""}`}
               >
                 {/* Main card content */}
@@ -1477,13 +1728,27 @@ export default function Memorize() {
 
                     {/* Names and info — translit as primary, translation secondary */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-white text-sm font-semibold truncate">
                           {getSurahTranslit(surah.surahNumber)}
                         </span>
                         <span className="text-slate-600 text-xs">
                           {info.ayahs} {ayahWord(info.ayahs)}
                         </span>
+                        {/* Status badge */}
+                        {isMastered ? (
+                          <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            ✓ Выучено
+                          </span>
+                        ) : isNew ? (
+                          <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-slate-500/15 text-slate-300 border border-slate-500/20">
+                            Новая
+                          </span>
+                        ) : (
+                          <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                            В работе
+                          </span>
+                        )}
                       </div>
                       <p className="text-slate-400 text-[11px] truncate">
                         {info.ru}
@@ -1508,11 +1773,22 @@ export default function Memorize() {
                       </div>
 
                       {/* Meta row */}
-                      <div className="flex items-center gap-3 mt-1.5">
+                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                         <span className="flex items-center gap-1 text-slate-500 text-[11px]">
                           <RotateCcw className="w-3 h-3" />
                           {surah.reviewCount} повтор.
                         </span>
+                        {/* Прогресс выученных аятов */}
+                        {(() => {
+                          const learnedCount = surah.learnedAyahs?.length ?? 0;
+                          if (learnedCount === 0) return null;
+                          return (
+                            <span className="flex items-center gap-1 text-emerald-400/80 text-[11px] font-medium">
+                              <Check className="w-3 h-3" />
+                              {learnedCount}/{info.ayahs} аят.
+                            </span>
+                          );
+                        })()}
                         <span className="text-slate-600 text-[11px]">
                           {formatRelativeDate(surah.lastReviewedAt)}
                         </span>
@@ -1528,44 +1804,114 @@ export default function Memorize() {
                       </div>
                     </div>
 
-                    {/* Remove button (two-step: tap → confirm, tap again → delete) */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirmDelete === surah.surahNumber) {
-                          handleRemove(surah.surahNumber);
-                          setConfirmDelete(null);
-                        } else {
-                          setConfirmDelete(surah.surahNumber);
-                          // auto-cancel after 3s
-                          setTimeout(() => {
-                            setConfirmDelete((cur) =>
-                              cur === surah.surahNumber ? null : cur,
-                            );
-                          }, 3000);
-                        }
-                      }}
-                      className={`flex items-center justify-center shrink-0 mt-0.5 transition-all
-                                 ${
-                                   confirmDelete === surah.surahNumber
-                                     ? "px-2 h-7 rounded-full bg-red-500/15 ring-1 ring-red-500/30"
-                                     : "w-7 h-7 rounded-full hover:bg-red-500/10"
-                                 }`}
-                    >
-                      {confirmDelete === surah.surahNumber ? (
-                        <span className="text-red-400 text-[10px] font-bold whitespace-nowrap">
-                          Удалить?
-                        </span>
-                      ) : (
-                        <X className="w-3.5 h-3.5 text-slate-600 hover:text-red-400" />
-                      )}
-                    </button>
+                    {/* Right column: Open + Remove */}
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      {/* Direct "Open" button — без раскрытия карточки */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openStudy(surah.surahNumber);
+                        }}
+                        title="Открыть для изучения"
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90
+                                    ${
+                                      isMastered
+                                        ? "bg-emerald-500/20 hover:bg-emerald-500/30 ring-1 ring-emerald-500/30"
+                                        : "bg-violet-500/10 hover:bg-violet-500/20"
+                                    }`}
+                      >
+                        <BookOpen
+                          className={`w-3.5 h-3.5 ${isMastered ? "text-emerald-300" : "text-violet-400"}`}
+                        />
+                      </button>
+
+                      {/* Remove button (two-step: tap → confirm, tap again → delete) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirmDelete === surah.surahNumber) {
+                            handleRemove(surah.surahNumber);
+                            setConfirmDelete(null);
+                          } else {
+                            setConfirmDelete(surah.surahNumber);
+                            // auto-cancel after 3s
+                            setTimeout(() => {
+                              setConfirmDelete((cur) =>
+                                cur === surah.surahNumber ? null : cur,
+                              );
+                            }, 3000);
+                          }
+                        }}
+                        className={`flex items-center justify-center transition-all
+                                   ${
+                                     confirmDelete === surah.surahNumber
+                                       ? "px-2 h-7 rounded-full bg-red-500/15 ring-1 ring-red-500/30"
+                                       : "w-7 h-7 rounded-full hover:bg-red-500/10"
+                                   }`}
+                      >
+                        {confirmDelete === surah.surahNumber ? (
+                          <span className="text-red-400 text-[10px] font-bold whitespace-nowrap">
+                            Удалить?
+                          </span>
+                        ) : (
+                          <X className="w-3.5 h-3.5 text-slate-600 hover:text-red-400" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Expanded actions */}
                 {isExpanded && (
-                  <div className="px-4 pb-3 pt-1 border-t t-border">
+                  <div className="px-4 pb-3 pt-3 border-t t-border animate-slide-down">
+                    {/* Detailed stats grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="t-bg rounded-lg p-2.5">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                          В работе с
+                        </p>
+                        <p className="text-white text-xs font-medium mt-0.5">
+                          {new Date(surah.addedAt).toLocaleDateString("ru-RU", {
+                            day: "numeric",
+                            month: "long",
+                          })}
+                        </p>
+                      </div>
+                      <div className="t-bg rounded-lg p-2.5">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                          Заработано
+                        </p>
+                        <p className="text-amber-400 text-xs font-medium mt-0.5">
+                          +{surah.pointsEarned} саваб
+                        </p>
+                      </div>
+                      <div className="t-bg rounded-lg p-2.5">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                          Последний повтор
+                        </p>
+                        <p className="text-white text-xs font-medium mt-0.5">
+                          {surah.lastReviewedAt
+                            ? formatRelativeDate(surah.lastReviewedAt)
+                            : "Ещё не повторял"}
+                        </p>
+                      </div>
+                      <div className="t-bg rounded-lg p-2.5">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                          Уровень
+                        </p>
+                        <p
+                          className={`text-xs font-medium mt-0.5 ${getConfidenceTextColor(surah.confidence)}`}
+                        >
+                          {surah.confidence}% ·{" "}
+                          {isMastered
+                            ? "Выучено"
+                            : surah.confidence >= 50
+                              ? "В работе"
+                              : "Начало"}
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       {/* Listen button */}
                       <button
@@ -1675,8 +2021,191 @@ export default function Memorize() {
         </div>
       </div>
 
-      {/* ---- Prayer Surahs Section ---- */}
+      {/* ---- Surahs by Prayer Time (Sunnah) ---- */}
       <div className="max-w-2xl mx-auto px-4 mt-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Moon className="w-4 h-4 text-emerald-400" />
+          <h2 className="text-white text-sm font-semibold">По намазам</h2>
+          <span className="text-slate-500 text-xs ml-auto">
+            что читал Пророк ﷺ
+          </span>
+        </div>
+
+        {/* Prayer tabs */}
+        <div className="grid grid-cols-5 gap-1.5 mb-3">
+          {PRAYERS.map((p) => {
+            const active = activePrayer === p.key;
+            return (
+              <button
+                key={p.key}
+                onClick={() => setActivePrayer(p.key)}
+                className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl border transition-all
+                            ${
+                              active
+                                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                                : "bg-white/[0.02] border-white/5 text-slate-400 hover:bg-white/[0.04]"
+                            }`}
+              >
+                <span className="text-base leading-none">{p.emoji}</span>
+                <span className="text-[10px] font-medium leading-none">{p.name}</span>
+                <span className="text-[9px] text-slate-500 leading-none">
+                  {p.rakaats} рак.
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected prayer details */}
+        {(() => {
+          const p = PRAYERS.find((x) => x.key === activePrayer)!;
+          const sunnahNums = p.sunnah.map((s) => s.num);
+          const sunnahNotAdded = sunnahNums.filter((n) => !addedSet.has(n));
+          return (
+            <div className="glass-card p-3 mb-6">
+              <p className="text-xs text-slate-300 mb-2 leading-relaxed">
+                {p.hint}
+              </p>
+              <p className="text-[10px] text-slate-500 mb-3">
+                Мафассаль: <span className="text-emerald-300">{p.mafassal}</span>
+              </p>
+
+              {/* Sunnah surahs */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] uppercase tracking-wider text-emerald-400/80 font-bold">
+                    По сунне ({p.sunnah.length})
+                  </span>
+                  {sunnahNotAdded.length > 0 && (
+                    <button
+                      onClick={() => {
+                        hapticImpact("medium");
+                        sunnahNotAdded.forEach((n) => storage.addMemorizationSurah(n));
+                        reload();
+                      }}
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 active:scale-95 transition flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Добавить все ({sunnahNotAdded.length})
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {p.sunnah.map((ref) => {
+                    const info = SURAH_NAMES[ref.num];
+                    if (!info) return null;
+                    const isAdded = addedSet.has(ref.num);
+                    return (
+                      <button
+                        key={`p-${p.key}-${ref.num}`}
+                        onClick={() => {
+                          if (isAdded) {
+                            // Уже в работе — сразу открываем Study
+                            openStudy(ref.num);
+                          } else {
+                            handleAdd(ref.num);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-all text-left ${
+                          isAdded
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-200 hover:bg-emerald-500/15"
+                            : "bg-white/[0.03] border-white/10 text-white hover:bg-white/[0.06] active:scale-[0.98]"
+                        }`}
+                        title={ref.source}
+                      >
+                        <span className="font-mono text-[10px] text-slate-500 w-6">
+                          {ref.num}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{getSurahTranslit(ref.num)}</span>
+                            <span className="text-slate-500 text-[10px]">
+                              {info.ayahs} аят
+                            </span>
+                          </div>
+                          {ref.source && (
+                            <p className="text-[9px] text-slate-500 truncate">
+                              {ref.source}
+                            </p>
+                          )}
+                        </div>
+                        {isAdded ? (
+                          <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />
+                        ) : (
+                          <Plus className="w-3 h-3 text-amber-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Special occasions */}
+              {p.special && p.special.length > 0 && (
+                <div className="mb-3 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                  {p.special.map((s, i) => (
+                    <div key={i}>
+                      <p className="text-[10px] uppercase tracking-wider text-amber-300 font-bold mb-1">
+                        ⭐ {s.occasion}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mb-1">
+                        {s.surahs.map((num) => (
+                          <span
+                            key={num}
+                            className="text-[11px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-200"
+                          >
+                            {num} · {getSurahTranslit(num)}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-slate-500 leading-snug">
+                        {s.source}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Fallback (short) */}
+              <div>
+                <span className="text-[11px] uppercase tracking-wider text-amber-400/70 font-bold block mb-2">
+                  Если выучил мало
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.fallback.map((num) => {
+                    const info = SURAH_NAMES[num];
+                    if (!info) return null;
+                    const isAdded = addedSet.has(num);
+                    return (
+                      <button
+                        key={`f-${p.key}-${num}`}
+                        onClick={() => !isAdded && handleAdd(num)}
+                        disabled={isAdded}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs transition-all
+                                    ${
+                                      isAdded
+                                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400/80 cursor-default"
+                                        : "bg-amber-500/5 border-amber-500/15 text-amber-200 hover:bg-amber-500/10 active:scale-[0.97]"
+                                    }`}
+                      >
+                        <span className="font-medium">{getSurahTranslit(num)}</span>
+                        {isAdded ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Plus className="w-3 h-3" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* ---- Prayer Surahs Section ---- */}
+      <div className="max-w-2xl mx-auto px-4">
         <div className="flex items-center gap-2 mb-3">
           <Moon className="w-4 h-4 text-amber-400" />
           <h2 className="text-white text-sm font-semibold">Для намаза</h2>

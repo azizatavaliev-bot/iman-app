@@ -28,6 +28,8 @@ declare global {
         };
         ready: () => void;
         expand: () => void;
+        openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
+        openTelegramLink?: (url: string) => void;
         HapticFeedback: {
           impactOccurred: (style: string) => void;
           notificationOccurred: (type: string) => void;
@@ -36,6 +38,24 @@ declare global {
       };
     };
   }
+}
+
+/**
+ * Open external URL safely:
+ * - in Telegram Mini App → use WebApp.openLink (opens in system browser/native app)
+ * - in regular browser → window.open in a new tab
+ */
+export function openExternalLink(url: string): void {
+  try {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.openLink) {
+      tg.openLink(url);
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 /**

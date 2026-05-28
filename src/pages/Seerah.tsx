@@ -1,15 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
   BookOpen,
-  Check,
   Share2,
 } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
-import { SEERAH_CHAPTERS } from "../data/seerah";
+import { SEERAH_CHAPTERS, PROPHET_LIFE_YEARS } from "../data/seerah";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Seerah Page — Life of Prophet Muhammad (peace be upon him)
@@ -36,6 +35,22 @@ function saveReadChapters(ids: number[]): void {
 export default function Seerah() {
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [extendedIds, setExtendedIds] = useState<Set<number>>(new Set());
+
+  /** Render text with **bold** segments */
+  function renderRichText(text: string): ReactNode {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((p, i) => {
+      if (p.startsWith("**") && p.endsWith("**")) {
+        return (
+          <strong key={i} className="text-emerald-300 font-semibold">
+            {p.slice(2, -2)}
+          </strong>
+        );
+      }
+      return p;
+    });
+  }
 
   // Load read chapters from localStorage
   useEffect(() => {
@@ -94,7 +109,7 @@ export default function Seerah() {
       </header>
 
       {/* ── Progress Bar ───────────────────────────────────────────────── */}
-      <div className="glass-card p-4 mb-6">
+      <div className="glass-card p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <span
             className="text-sm font-medium"
@@ -124,6 +139,77 @@ export default function Seerah() {
         </div>
       </div>
 
+      {/* ── Life Timeline (Visualization) ───────────────────────────────── */}
+      <div className="glass-card p-4 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+              Жизнь Пророка ﷺ
+            </p>
+            <p className="text-white text-sm font-semibold">
+              570 — 632 г. ·{" "}
+              <span className="text-emerald-400">{PROPHET_LIFE_YEARS} лет</span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+              Пророчество
+            </p>
+            <p className="text-white text-sm font-semibold">
+              с 40 лет ·{" "}
+              <span className="text-amber-400">23 года</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Life bar with event markers */}
+        <div className="relative h-8 mb-1">
+          {/* base line */}
+          <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 rounded-full bg-white/[0.06]" />
+          {/* prophecy segment (40 → 63) */}
+          <div
+            className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-gradient-to-r from-amber-500/60 to-emerald-500/60"
+            style={{
+              left: `${(40 / PROPHET_LIFE_YEARS) * 100}%`,
+              width: `${(23 / PROPHET_LIFE_YEARS) * 100}%`,
+            }}
+          />
+          {/* chapter markers */}
+          {SEERAH_CHAPTERS.map((c) => {
+            const pct = (c.age / PROPHET_LIFE_YEARS) * 100;
+            const isRead = readIds.has(c.id);
+            return (
+              <button
+                key={`marker-${c.id}`}
+                onClick={() => {
+                  document
+                    .getElementById(`chapter-${c.id}`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  setExpandedId(c.id);
+                }}
+                title={`${c.age} лет — ${c.title}`}
+                className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-lg leading-none transition-transform hover:scale-125 active:scale-95"
+                style={{
+                  left: `${pct}%`,
+                  filter: isRead ? "none" : "grayscale(50%) opacity(0.6)",
+                }}
+              >
+                {c.emoji}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Age scale */}
+        <div className="flex justify-between text-[9px] text-slate-500 mt-1 px-1">
+          <span>0</span>
+          <span>20</span>
+          <span className="text-amber-400/70">40 ·миссия</span>
+          <span>60</span>
+          <span className="text-emerald-400/70">63</span>
+        </div>
+      </div>
+
       {/* ── Timeline ───────────────────────────────────────────────────── */}
       <div className="relative">
         {SEERAH_CHAPTERS.map((chapter, index) => {
@@ -134,41 +220,40 @@ export default function Seerah() {
           return (
             <div
               key={chapter.id}
-              className="flex gap-4 animate-fade-in"
+              id={`chapter-${chapter.id}`}
+              className="flex gap-4 animate-fade-in scroll-mt-4"
               style={{ animationDelay: `${0.05 + index * 0.03}s` }}
             >
               {/* ── Timeline column: dot + line ──────────────────────── */}
-              <div className="flex flex-col items-center flex-shrink-0 w-10">
+              <div className="flex flex-col items-center flex-shrink-0 w-12">
                 {/* Year badge */}
                 <span
-                  className="text-[9px] font-bold mb-1.5 whitespace-nowrap"
+                  className="text-[9px] font-bold whitespace-nowrap"
                   style={{ color: isRead ? "#34d399" : "var(--text-faint)" }}
                 >
                   {chapter.year}
                 </span>
+                {/* Age badge */}
+                <span className="text-[9px] text-slate-500 font-medium mb-1.5">
+                  {chapter.age} лет
+                </span>
 
-                {/* Dot */}
+                {/* Dot with emoji */}
                 <div
-                  className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-                    isRead ? "ring-2 ring-emerald-400/30" : ""
+                  className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 text-lg ${
+                    isRead ? "ring-2 ring-emerald-400/40" : ""
                   }`}
                   style={{
                     background: isRead
-                      ? "linear-gradient(135deg, #10b981, #059669)"
-                      : "rgba(255,255,255,0.08)",
+                      ? "linear-gradient(135deg, rgba(16,185,129,0.25), rgba(5,150,105,0.15))"
+                      : "rgba(255,255,255,0.04)",
                     boxShadow: isRead
-                      ? "0 0 12px rgba(16,185,129,0.4)"
+                      ? "0 0 16px rgba(16,185,129,0.3)"
                       : "none",
+                    filter: isRead ? "none" : "grayscale(20%)",
                   }}
                 >
-                  {isRead ? (
-                    <Check size={10} className="text-white" />
-                  ) : (
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: "rgba(255,255,255,0.2)" }}
-                    />
-                  )}
+                  {chapter.emoji}
                 </div>
 
                 {/* Connecting line */}
@@ -203,6 +288,9 @@ export default function Seerah() {
                       >
                         {chapter.title}
                       </h3>
+                      <p className="text-[10px] text-emerald-400/70 mt-0.5">
+                        📍 {chapter.location}
+                      </p>
                       <p
                         className="text-xs mt-1 leading-relaxed"
                         style={{ color: "var(--text-muted)" }}
@@ -245,17 +333,74 @@ export default function Seerah() {
                       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
                     </div>
 
+                    {/* Quote / Key verse */}
+                    {chapter.quote && (
+                      <blockquote className="mb-4 border-l-2 border-amber-500/40 pl-3 py-1">
+                        <p
+                          className="text-sm italic leading-relaxed"
+                          style={{ color: "rgba(252,211,77,0.9)" }}
+                        >
+                          {chapter.quote}
+                        </p>
+                      </blockquote>
+                    )}
+
+                    {/* Version toggle — Простая ↔ Подробная */}
+                    {chapter.extended && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExtendedIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(chapter.id);
+                              return next;
+                            });
+                          }}
+                          className={`flex-1 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                            !extendedIds.has(chapter.id)
+                              ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
+                              : "bg-white/[0.03] text-slate-400 hover:text-slate-300"
+                          }`}
+                        >
+                          📖 Простая
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExtendedIds((prev) => {
+                              const next = new Set(prev);
+                              next.add(chapter.id);
+                              return next;
+                            });
+                          }}
+                          className={`flex-1 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                            extendedIds.has(chapter.id)
+                              ? "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30"
+                              : "bg-white/[0.03] text-slate-400 hover:text-slate-300"
+                          }`}
+                        >
+                          📚 Подробная
+                        </button>
+                      </div>
+                    )}
+
                     {/* Content paragraphs */}
                     <div className="space-y-3 mb-4">
-                      {chapter.content.split("\n\n").map((paragraph, pIdx) => (
-                        <p
-                          key={pIdx}
-                          className="text-sm leading-relaxed"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          {paragraph}
-                        </p>
-                      ))}
+                      {(extendedIds.has(chapter.id) && chapter.extended
+                        ? chapter.extended
+                        : chapter.content
+                      )
+                        .split("\n\n")
+                        .map((paragraph, pIdx) => (
+                          <p
+                            key={pIdx}
+                            className="text-sm leading-relaxed whitespace-pre-line"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {renderRichText(paragraph)}
+                          </p>
+                        ))}
                     </div>
 
                     {/* Key Events */}

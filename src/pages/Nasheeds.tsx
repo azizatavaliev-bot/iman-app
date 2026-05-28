@@ -1,18 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronLeft,
-  ChevronRight,
   ChevronDown,
   ChevronUp,
   Search,
   Music,
   Heart,
   Play,
-  Pause,
   Clock,
   Mic2,
   ExternalLink,
-  X,
 } from "lucide-react";
 import { trackAction } from "../lib/analytics";
 import { scheduleSyncPush } from "../lib/sync";
@@ -51,39 +48,15 @@ export default function Nasheeds() {
   const [activeCategory, setActiveCategory] = useState<
     NasheedCategory | "all" | "favorites"
   >("all");
-  const [playingId, setPlayingId] = useState<number | null>(null);
-  const [showPlayer, setShowPlayer] = useState(false);
 
   useEffect(() => {
     setFavorites(new Set(getFavorites()));
     trackAction("nasheeds_opened");
   }, []);
 
-  const playNasheed = (nasheed: Nasheed) => {
-    setPlayingId(nasheed.id);
-    setShowPlayer(true);
-    trackAction("nasheed_play", { title: nasheed.title });
-  };
-
-  const stopPlaying = () => {
-    setPlayingId(null);
-    setShowPlayer(false);
-  };
-
-  const currentNasheed = playingId
-    ? NASHEEDS.find((n) => n.id === playingId)
-    : null;
-
-  const playNext = () => {
-    if (!currentNasheed) return;
-    const idx = filtered.findIndex((n) => n.id === currentNasheed.id);
-    if (idx < filtered.length - 1) playNasheed(filtered[idx + 1]);
-  };
-
-  const playPrev = () => {
-    if (!currentNasheed) return;
-    const idx = filtered.findIndex((n) => n.id === currentNasheed.id);
-    if (idx > 0) playNasheed(filtered[idx - 1]);
+  const nasheedSearchUrl = (nasheed: Nasheed): string => {
+    const query = encodeURIComponent(`${nasheed.title} ${nasheed.artist} نشيد`);
+    return `https://www.youtube.com/results?search_query=${query}`;
   };
 
   const toggleFavorite = (id: number) => {
@@ -257,24 +230,22 @@ export default function Nasheeds() {
               style={{ animationDelay: `${0.02 * idx}s` }}
             >
               <div className="flex items-center gap-3 p-4">
-                {/* Play button */}
-                <button
+                {/* Play button — native <a> for reliable mobile/Telegram opening */}
+                <a
+                  href={nasheedSearchUrl(nasheed)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={(e) => {
                     e.stopPropagation();
-                    playNasheed(nasheed);
+                    trackAction("nasheed_play", { title: nasheed.title });
                   }}
-                  className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                    playingId === nasheed.id
-                      ? "bg-rose-500 shadow-lg shadow-rose-500/30"
-                      : "bg-gradient-to-br from-rose-500/20 to-pink-500/10"
-                  }`}
+                  title="Найти на YouTube"
+                  className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center
+                             transition-all active:scale-90
+                             bg-gradient-to-br from-rose-500/25 to-pink-500/15 hover:from-rose-500/35"
                 >
-                  {playingId === nasheed.id ? (
-                    <Pause size={16} className="text-white" />
-                  ) : (
-                    <Play size={16} className="text-rose-400 ml-0.5" />
-                  )}
-                </button>
+                  <Play size={16} className="text-rose-300 ml-0.5" />
+                </a>
 
                 <button
                   onClick={() => handleToggle(nasheed.id)}
@@ -374,7 +345,7 @@ export default function Nasheeds() {
                   {/* Lyrics */}
                   {nasheed.lyrics && (
                     <div
-                      className="p-3 rounded-xl"
+                      className="p-3 rounded-xl mb-3"
                       style={{ background: "var(--bg-input)" }}
                     >
                       <p
@@ -391,73 +362,30 @@ export default function Nasheeds() {
                       </p>
                     </div>
                   )}
+
+                  {/* CTA — открыть YouTube (нативная ссылка, чтобы работало на iPhone) */}
+                  <a
+                    href={nasheedSearchUrl(nasheed)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      trackAction("nasheed_play", { title: nasheed.title });
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+                               bg-rose-500/15 hover:bg-rose-500/25 active:scale-[0.98]
+                               border border-rose-500/20 text-rose-300 text-sm font-medium transition-all"
+                  >
+                    <Play size={14} className="ml-0.5" />
+                    Найти на YouTube
+                    <ExternalLink size={12} />
+                  </a>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
-
-      {/* ── Floating YouTube Player ─────────────────────────────────────── */}
-      {showPlayer && currentNasheed && (
-        <div
-          className="fixed bottom-20 left-0 right-0 z-50 px-3 animate-slide-down"
-        >
-          <div className="max-w-lg mx-auto glass-card overflow-hidden shadow-2xl shadow-black/40">
-            {/* YouTube iframe */}
-            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src={`https://www.youtube.com/embed/${currentNasheed.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
-                title={currentNasheed.title}
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-              />
-            </div>
-
-            {/* Player controls bar */}
-            <div className="flex items-center gap-3 p-3">
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-sm font-semibold truncate"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {currentNasheed.title}
-                </p>
-                <p
-                  className="text-xs truncate"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  {currentNasheed.artist}
-                </p>
-              </div>
-
-              {/* Prev / Next / Close */}
-              <button
-                onClick={playPrev}
-                className="p-2 rounded-lg hover:bg-white/5 active:scale-90 transition-all"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                onClick={playNext}
-                className="p-2 rounded-lg hover:bg-white/5 active:scale-90 transition-all"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <ChevronRight size={18} />
-              </button>
-              <button
-                onClick={stopPlaying}
-                className="p-2 rounded-lg hover:bg-white/5 active:scale-90 transition-all"
-                style={{ color: "var(--text-muted)" }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

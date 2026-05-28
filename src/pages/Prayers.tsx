@@ -14,9 +14,19 @@ import {
   Target,
   Lock,
   BookOpen,
+  Settings,
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import { getPrayerTimes } from "../lib/api";
+import {
+  PRAYER_METHODS,
+  MADHHABS,
+  getSavedMethod,
+  saveMethod,
+  getSavedMadhhab,
+  saveMadhhab,
+  type MadhhabKey,
+} from "../data/prayer-methods";
 import type { PrayerStatus } from "../lib/storage";
 
 // ---------------------------------------------------------------------------
@@ -858,6 +868,11 @@ export default function Prayers() {
     lng: DEFAULT_LNG,
   });
 
+  // Метод расчёта и мазхаб
+  const [calcMethod, setCalcMethod] = useState<number>(() => getSavedMethod());
+  const [madhhab, setMadhhab] = useState<MadhhabKey>(() => getSavedMadhhab());
+  const [showSettings, setShowSettings] = useState(false);
+
   // Is today Friday?
   const isFriday = new Date().getDay() === 5;
 
@@ -880,7 +895,7 @@ export default function Prayers() {
       setLoading(true);
       try {
         const [times, hijri] = await Promise.all([
-          getPrayerTimes(coords.lat, coords.lng),
+          getPrayerTimes(coords.lat, coords.lng, undefined, calcMethod, madhhab),
           fetchHijriDate(coords.lat, coords.lng),
         ]);
 
@@ -918,7 +933,7 @@ export default function Prayers() {
     return () => {
       cancelled = true;
     };
-  }, [coords]);
+  }, [coords, calcMethod, madhhab]);
 
   // Build weekly calendar data
   useEffect(() => {
@@ -1268,6 +1283,13 @@ export default function Prayers() {
           <h1 className="text-xl font-bold text-white">Намаз</h1>
           <p className="text-xs text-white/40">Отслеживание молитв</p>
         </div>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="w-9 h-9 rounded-full glass flex items-center justify-center text-white/70 hover:text-white active:scale-95 transition"
+          title="Настройки расчёта"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
         {/* Today's score badge */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30">
           <Zap className="w-3.5 h-3.5 text-emerald-400" />
@@ -1276,6 +1298,89 @@ export default function Prayers() {
           </span>
         </div>
       </div>
+
+      {/* Settings panel — метод расчёта и мазхаб */}
+      {showSettings && (
+        <div className="glass-card p-4 mb-4 animate-slide-down">
+          <div className="flex items-center gap-2 mb-3">
+            <Settings className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-white text-sm font-semibold">
+              Настройки расчёта
+            </h3>
+          </div>
+
+          {/* Метод */}
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2">
+              Метод расчёта (для Фаджра и Иши)
+            </p>
+            <div className="space-y-1.5">
+              {PRAYER_METHODS.map((m) => {
+                const active = calcMethod === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setCalcMethod(m.id);
+                      saveMethod(m.id);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg border transition ${
+                      active
+                        ? "bg-emerald-500/15 border-emerald-500/40 text-white"
+                        : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium">{m.name}</span>
+                      {active && (
+                        <span className="text-emerald-400 text-xs">✓</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      {m.region}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Мазхаб */}
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2">
+              Мазхаб (для Аср)
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {MADHHABS.map((m) => {
+                const active = madhhab === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setMadhhab(m.id);
+                      saveMadhhab(m.id);
+                    }}
+                    className={`px-3 py-2 rounded-lg border transition text-left ${
+                      active
+                        ? "bg-amber-500/15 border-amber-500/40 text-white"
+                        : "bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <p className="text-xs font-medium">{m.name}</p>
+                    <p className="text-[9px] text-slate-500 mt-0.5 leading-snug">
+                      {m.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className="text-[10px] text-slate-500 mt-3 leading-snug">
+            💡 Если время намаза у тебя не совпадает с реальностью — попробуй другой метод. Для Бишкека/Алматы рекомендуем ДУМ России (САДУМ).
+          </p>
+        </div>
+      )}
 
       {/* Juma (Friday) Reminder */}
       {isFriday && (

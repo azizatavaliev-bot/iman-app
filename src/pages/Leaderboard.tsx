@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ChevronLeft,
   Trophy,
@@ -6,6 +6,7 @@ import {
   Award,
   Users,
   RefreshCw,
+  Flame,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getTelegramUser } from "../lib/telegram";
@@ -20,8 +21,11 @@ interface LeaderboardUser {
   rank: number;
 }
 
+type LeaderboardPeriod = "all" | "streak";
+
 export default function Leaderboard() {
   const navigate = useNavigate();
+  const [period, setPeriod] = useState<LeaderboardPeriod>("all");
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,7 +84,19 @@ export default function Leaderboard() {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
 
-  const currentUserInList = users.find((u) => u.telegram_id === currentUserId);
+  /** Sorted users + recalculated ranks based on current period */
+  const rankedUsers = useMemo(() => {
+    const sorted = [...users].sort((a, b) =>
+      period === "streak"
+        ? b.streak - a.streak || b.totalPoints - a.totalPoints
+        : b.totalPoints - a.totalPoints,
+    );
+    return sorted.map((u, i) => ({ ...u, rank: i + 1 }));
+  }, [users, period]);
+
+  const currentUserInList = rankedUsers.find(
+    (u) => u.telegram_id === currentUserId,
+  );
 
   function getRankIcon(rank: number) {
     if (rank === 1) return <Trophy className="w-6 h-6 text-yellow-400" />;
@@ -230,6 +246,32 @@ export default function Leaderboard() {
           </div>
         </div>
 
+        {/* Period tabs */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button
+            onClick={() => setPeriod("all")}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+              period === "all"
+                ? "bg-yellow-500/15 text-yellow-300 ring-1 ring-yellow-500/30"
+                : "bg-white/[0.03] text-slate-400 hover:text-slate-300"
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            За всё время
+          </button>
+          <button
+            onClick={() => setPeriod("streak")}
+            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+              period === "streak"
+                ? "bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30"
+                : "bg-white/[0.03] text-slate-400 hover:text-slate-300"
+            }`}
+          >
+            <Flame className="w-4 h-4" />
+            Стрики
+          </button>
+        </div>
+
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-12">
@@ -238,9 +280,9 @@ export default function Leaderboard() {
         )}
 
         {/* Leaderboard List */}
-        {!loading && users.length > 0 && (
+        {!loading && rankedUsers.length > 0 && (
           <div className="space-y-2">
-            {users.map((user) => {
+            {rankedUsers.map((user) => {
               const isCurrentUser = user.telegram_id === currentUserId;
               return renderUserCard(user, isCurrentUser);
             })}
@@ -274,7 +316,7 @@ export default function Leaderboard() {
         )}
 
         {/* Empty State */}
-        {!loading && users.length === 0 && (
+        {!loading && rankedUsers.length === 0 && (
           <div className="text-center py-12">
             <Trophy className="w-16 h-16 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">Пока нет данных</p>

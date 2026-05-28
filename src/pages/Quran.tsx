@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   BookmarkPlus,
@@ -16,6 +17,7 @@ import {
   PenLine,
   Trash2,
   Share2,
+  Headphones,
 } from "lucide-react";
 import {
   getSurahList,
@@ -35,6 +37,11 @@ import {
   hasTransliteration,
 } from "../data/quran-transliteration";
 import ShareCard from "../components/ShareCard";
+import {
+  TOTAL_AYAHS,
+  TOTAL_SURAHS,
+  sumAyahsForSurahs,
+} from "../data/surah-ayah-counts";
 import type { Surah, SurahDetail, Reciter } from "../lib/api";
 import type { QuranBookmark } from "../lib/storage";
 
@@ -235,6 +242,7 @@ function saveReciter(reciter: SavedReciter): void {
 // ---- Component ----
 
 export default function Quran() {
+  const navigate = useNavigate();
   // --- State ---
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [loading, setLoading] = useState(true);
@@ -244,6 +252,7 @@ export default function Quran() {
   const [surahDetail, setSurahDetail] = useState<SurahDetail | null>(null);
   const [loadingAyahs, setLoadingAyahs] = useState(false);
   const [bookmarks, setBookmarks] = useState<QuranBookmark[]>([]);
+  const [readSurahs, setReadSurahs] = useState<number[]>([]);
   const [expandedTafsirs, setExpandedTafsirs] = useState<Set<number>>(new Set());
 
   // --- Share state ---
@@ -327,6 +336,12 @@ export default function Quran() {
     }
     load();
     setBookmarks(storage.getQuranBookmarks());
+    try {
+      const raw = localStorage.getItem("iman_quran_read_surahs");
+      setReadSurahs(raw ? (JSON.parse(raw) as number[]) : []);
+    } catch {
+      setReadSurahs([]);
+    }
   }, []);
 
   // --- Create audio element once (no crossOrigin — breaks iOS WKWebView/Telegram) ---
@@ -527,6 +542,7 @@ export default function Quran() {
     if (read.includes(num)) return false;
     read.push(num);
     localStorage.setItem(QURAN_READ_KEY, JSON.stringify(read));
+    setReadSurahs(read);
     scheduleSyncPush();
     return true;
   }
@@ -558,7 +574,8 @@ export default function Quran() {
       }));
 
       setAyahs(merged);
-      setExpandedTafsirs(new Set(merged.map((a) => a.numberInSurah)));
+      // По дефолту все тафсиры свёрнуты — раскрываются по тапу
+      setExpandedTafsirs(new Set());
 
       // Scroll to top AFTER all content + tafsirs render (double rAF = after paint)
       requestAnimationFrame(() =>
@@ -1062,6 +1079,26 @@ export default function Quran() {
               </button>
             </div>
 
+            {/* «Учить» — переход в режим заучивания */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  if (selectedSurah) {
+                    navigate(`/memorize?surah=${selectedSurah}`);
+                  }
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full
+                           bg-violet-500/15 border border-violet-500/30
+                           hover:bg-violet-500/25 active:scale-[0.97]
+                           transition-all duration-150"
+              >
+                <Headphones className="w-4 h-4 text-violet-300" />
+                <span className="text-violet-200 text-sm font-medium">
+                  Учить эту суру
+                </span>
+              </button>
+            </div>
+
             {/* Stop button (if surah is playing) */}
             {audioState && audioState.mode === "surah" && (
               <div className="flex justify-center">
@@ -1519,6 +1556,71 @@ export default function Quran() {
         </div>
       </div>
 
+      {/* Прогресс чтения */}
+      {(() => {
+        const doneSurahs = readSurahs.length;
+        const doneAyahs = sumAyahsForSurahs(readSurahs);
+        const ayahPct = Math.round((doneAyahs / TOTAL_AYAHS) * 100);
+        const surahPct = Math.round((doneSurahs / TOTAL_SURAHS) * 100);
+        const lastBookmark =
+          bookmarks.length > 0 ? bookmarks[bookmarks.length - 1] : null;
+        const lastBookmarkName = lastBookmark
+          ? SURAH_NAMES_RU[lastBookmark.surahNumber] ||
+            `Сура ${lastBookmark.surahNumber}`
+          : null;
+        return (
+          <div className="px-4 mb-4">
+            <div className="glass-card p-4">
+              {/* Заголовок + Аяты */}
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-400">📖</span>
+                  <span className="text-white text-sm font-medium">
+                    Прогресс чтения
+                  </span>
+                </div>
+                <span className="text-emerald-400 text-sm font-bold tabular-nums">
+                  {doneAyahs.toLocaleString("ru")}
+                  <span className="text-slate-500 font-normal">
+                    {" "}/ {TOTAL_AYAHS.toLocaleString("ru")} аятов
+                  </span>
+                </span>
+              </div>
+              {/* Главный прогресс-бар по аятам */}
+              <div className="relative h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                  style={{ width: `${ayahPct}%` }}
+                />
+              </div>
+              {/* Под-строка: % + суры */}
+              <div className="flex items-center justify-between mt-2 text-[11px]">
+                <span className="text-emerald-400 font-medium">
+                  {ayahPct}% Корана
+                </span>
+                <span className="text-slate-400">
+                  Сур: <span className="text-slate-200 font-medium">{doneSurahs}</span>
+                  <span className="text-slate-500"> / {TOTAL_SURAHS}</span>
+                  <span className="text-slate-500"> · {surahPct}%</span>
+                </span>
+              </div>
+              {/* Continue button */}
+              {lastBookmark && (
+                <button
+                  onClick={() => openSurah(lastBookmark.surahNumber)}
+                  className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg
+                             bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-[0.98]
+                             text-emerald-300 text-xs transition"
+                >
+                  <Bookmark className="w-3 h-3" />
+                  Продолжить: {lastBookmarkName} · аят {lastBookmark.ayahNumber}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Search */}
       <div className="px-4 mb-4">
         <div className="glass-card flex items-center gap-3 px-4 py-3">
@@ -1562,15 +1664,18 @@ export default function Quran() {
           {filtered.map((surah) => {
             const ruName = SURAH_NAMES_RU[surah.number] || "";
             const bookmarked = isSurahBookmarked(surah.number);
+            const isRead = readSurahs.includes(surah.number);
             const isMeccan = surah.revelationType === "Meccan";
 
             return (
               <button
                 key={surah.number}
                 onClick={() => openSurah(surah.number)}
-                className="glass-card w-full flex items-center gap-4 p-4
+                className={`glass-card w-full flex items-center gap-4 p-4
                            hover:bg-white/[0.04] active:scale-[0.99]
-                           transition-all duration-150 text-left"
+                           transition-all duration-150 text-left ${
+                             isRead ? "border-emerald-500/20" : ""
+                           }`}
               >
                 {/* Surah number — восточный ромб */}
                 <div className="relative flex items-center justify-center w-11 h-11 shrink-0">
@@ -1586,6 +1691,11 @@ export default function Quran() {
                       >
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
+                    </div>
+                  )}
+                  {isRead && !bookmarked && (
+                    <div className="absolute -bottom-1 -right-1 z-10 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center ring-1 ring-emerald-300/50">
+                      <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                     </div>
                   )}
                 </div>

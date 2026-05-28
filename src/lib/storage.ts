@@ -189,6 +189,8 @@ export interface MemorizationSurah {
   reviewCount: number;
   confidence: number; // 0-100
   pointsEarned: number;
+  /** Номера аятов, отмеченных как выученные внутри суры (1-based) */
+  learnedAyahs?: number[];
 }
 
 // ---- Zakat Types ----
@@ -887,6 +889,23 @@ class Storage {
     // Recalculate — memorization points are included in recalculateTotalPoints
     this.recalculateTotalPoints();
 
+    return entry;
+  }
+
+  /** Toggle ayah as learned/not learned inside a surah */
+  toggleLearnedAyah(surahNumber: number, ayahNumber: number): MemorizationSurah | null {
+    const list = this.getMemorizationList();
+    const entry = list.find((s) => s.surahNumber === surahNumber);
+    if (!entry) return null;
+
+    const learned = new Set(entry.learnedAyahs || []);
+    if (learned.has(ayahNumber)) {
+      learned.delete(ayahNumber);
+    } else {
+      learned.add(ayahNumber);
+    }
+    entry.learnedAyahs = Array.from(learned).sort((a, b) => a - b);
+    this.write(KEYS.MEMORIZATION, list);
     return entry;
   }
 

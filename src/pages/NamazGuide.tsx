@@ -1,8 +1,40 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronDown, ChevronUp, Check } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Headphones,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import { NAMAZ_GUIDE_SECTIONS, USEFUL_MATERIALS } from "../data/namazGuide";
+
+/** Parse a line and inject "Учить" button if it references a surah (NNN) */
+function renderGuideLine(line: string, navigate: (path: string) => void) {
+  const match = line.match(/\((\d{1,3})\)/);
+  if (!match) return <span>{line}</span>;
+  const num = parseInt(match[1], 10);
+  if (num < 1 || num > 114) return <span>{line}</span>;
+  return (
+    <span className="flex items-center justify-between gap-2 flex-wrap">
+      <span className="flex-1">{line}</span>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/memorize?surah=${num}`);
+        }}
+        className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full
+                   bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/25
+                   text-violet-200 text-[10px] font-medium transition active:scale-95"
+      >
+        <Headphones className="w-2.5 h-2.5" />
+        Учить
+      </button>
+    </span>
+  );
+}
 import type { UsefulMaterial } from "../data/namazGuide";
 
 const STORAGE_KEY = "iman_namaz_guide_read";
@@ -23,6 +55,7 @@ function saveReadSections(ids: number[]): void {
 }
 
 export default function NamazGuide() {
+  const navigate = useNavigate();
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [expandedMaterial, setExpandedMaterial] = useState<string | null>(null);
@@ -110,6 +143,28 @@ export default function NamazGuide() {
           />
         </div>
       </div>
+
+      {/* Quick CTA to visual flow */}
+      <button
+        onClick={() => navigate("/prayer-flow")}
+        className="w-full flex items-center gap-3 p-4 mb-6 rounded-2xl
+                   bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-transparent
+                   border border-emerald-500/30 hover:from-emerald-500/25
+                   active:scale-[0.98] transition-all text-left"
+      >
+        <div className="w-11 h-11 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl shrink-0">
+          🎬
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-semibold text-sm">
+            Визуальная структура намаза
+          </p>
+          <p className="text-emerald-200/70 text-[11px] mt-0.5">
+            14 шагов · положения тела · арабский, транслит, перевод
+          </p>
+        </div>
+        <ChevronDown className="w-4 h-4 text-emerald-300 -rotate-90 shrink-0" />
+      </button>
 
       {/* Sections */}
       <div className="space-y-3">
@@ -216,13 +271,13 @@ export default function NamazGuide() {
 
                           <div className="space-y-1.5">
                             {step.description.split("\n").map((line, lIdx) => (
-                              <p
+                              <div
                                 key={lIdx}
                                 className="text-xs leading-relaxed"
                                 style={{ color: "var(--text-secondary)" }}
                               >
-                                {line}
-                              </p>
+                                {renderGuideLine(line, navigate)}
+                              </div>
                             ))}
                           </div>
 

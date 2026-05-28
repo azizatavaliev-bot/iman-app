@@ -32,6 +32,7 @@ import { syncUserData, scheduleSyncPush, initSyncOnClose } from "./lib/sync";
 import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
 import ChannelGate from "./components/ChannelGate";
+import Splash from "./components/Splash";
 import { dismissWelcome } from "./components/WelcomeStories";
 import "./index.css";
 
@@ -194,6 +195,10 @@ const DuaWall = lazy(() => import("./pages/DuaWall"));
 const Zakat = lazy(() => import("./pages/Zakat"));
 const Tajweed = lazy(() => import("./pages/Tajweed"));
 const ZikrCounter = lazy(() => import("./pages/ZikrCounter"));
+const Holidays = lazy(() => import("./pages/Holidays"));
+const Facts = lazy(() => import("./pages/Facts"));
+const IslamicQA = lazy(() => import("./pages/IslamicQA"));
+const PrayerFlow = lazy(() => import("./pages/PrayerFlow"));
 
 function PageLoader() {
   return (
@@ -395,6 +400,10 @@ function AppContent() {
             <Route path="/zakat" element={<Zakat />} />
             <Route path="/tajweed" element={<Tajweed />} />
             <Route path="/zikr" element={<ZikrCounter />} />
+            <Route path="/holidays" element={<Holidays />} />
+            <Route path="/facts" element={<Facts />} />
+            <Route path="/qa" element={<IslamicQA />} />
+            <Route path="/prayer-flow" element={<PrayerFlow />} />
           </Routes>
         </Suspense>
       </div>
@@ -444,6 +453,9 @@ function ensureTelegramProfile(): boolean {
 }
 
 export default function App() {
+  // Splash на старте — показывается всегда при загрузке приложения
+  const [showSplash, setShowSplash] = useState(true);
+
   // Start with localStorage check only (no profile creation yet)
   const [syncing, setSyncing] = useState(() => {
     // Only need to sync if we're in Telegram
@@ -488,34 +500,9 @@ export default function App() {
     setOnboarded(true);
   }, []);
 
-  // Show loading while syncing with server
-  if (syncing) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(to bottom, #0f172a, #1e293b)",
-          color: "#e2e8f0",
-        }}
-      >
-        <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🕌</div>
-        <div
-          style={{
-            width: "32px",
-            height: "32px",
-            border: "2px solid #10b981",
-            borderTopColor: "transparent",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      </div>
-    );
+  // Splash на старте — закрывает sync-индикатор и показывает брендированную заставку
+  if (showSplash || syncing) {
+    return <Splash onDone={() => setShowSplash(false)} />;
   }
 
   if (!onboarded) {

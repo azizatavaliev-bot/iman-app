@@ -160,6 +160,8 @@ export async function getPrayerTimes(
   lat: number,
   lng: number,
   date?: Date,
+  method: number = 3,
+  school: 0 | 1 = 1,
 ): Promise<PrayerTimes> {
   const d = date || new Date();
   const dd = String(d.getDate()).padStart(2, "0");
@@ -167,11 +169,11 @@ export async function getPrayerTimes(
   const yyyy = d.getFullYear();
   const dateStr = `${dd}-${mm}-${yyyy}`;
 
-  const cacheKey = `prayer_m3h_${lat}_${lng}_${dateStr}`;
+  const cacheKey = `prayer_m${method}s${school}_${lat}_${lng}_${dateStr}`;
   const cached = getCached<PrayerTimes>(cacheKey, CACHE_TTL_LONG);
   if (cached) return cached;
 
-  const url = `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=3&school=1`;
+  const url = `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=${method}&school=${school}`;
   const response = await fetchJSON<AladhanTimingsResponse>(url);
 
   const timings = response.data.timings;

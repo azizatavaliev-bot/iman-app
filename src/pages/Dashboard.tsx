@@ -572,6 +572,15 @@ const FEATURE_SLIDES = [
     shadow: "shadow-indigo-500/25",
   },
   {
+    emoji: "🎬",
+    title: "Структура намаза",
+    desc: "Визуальный пошаговый гид: 14 шагов с арабским и переводом",
+    path: "/prayer-flow",
+    from: "from-emerald-500",
+    to: "to-teal-600",
+    shadow: "shadow-emerald-500/25",
+  },
+  {
     emoji: "✨",
     title: "99 имён Аллаха",
     desc: "Изучай значения и игра на запоминание",
@@ -661,15 +670,16 @@ const FEATURE_SLIDES = [
     to: "to-blue-600",
     shadow: "shadow-indigo-500/25",
   },
-  {
-    emoji: "🔤",
-    title: "Таджвид",
-    desc: "Алфавит, харакаты, правила и практика",
-    path: "/tajweed",
-    from: "from-amber-500",
-    to: "to-orange-600",
-    shadow: "shadow-amber-500/25",
-  },
+  // Таджвид скрыт до доработки контента — маршрут /tajweed остаётся доступным напрямую
+  // {
+  //   emoji: "🔤",
+  //   title: "Таджвид",
+  //   desc: "Алфавит, харакаты, правила и практика",
+  //   path: "/tajweed",
+  //   from: "from-amber-500",
+  //   to: "to-orange-600",
+  //   shadow: "shadow-amber-500/25",
+  // },
   {
     emoji: "📿",
     title: "Счётчик зикра",
@@ -678,6 +688,33 @@ const FEATURE_SLIDES = [
     from: "from-cyan-500",
     to: "to-teal-600",
     shadow: "shadow-cyan-500/25",
+  },
+  {
+    emoji: "📅",
+    title: "Праздники ислама",
+    desc: "Курбан, Ураза, Арафа, Ляйлятуль-Кадр",
+    path: "/holidays",
+    from: "from-emerald-500",
+    to: "to-green-600",
+    shadow: "shadow-emerald-500/25",
+  },
+  {
+    emoji: "💡",
+    title: "Факты об исламе",
+    desc: "130 интересных фактов в 8 категориях",
+    path: "/facts",
+    from: "from-indigo-500",
+    to: "to-violet-600",
+    shadow: "shadow-indigo-500/25",
+  },
+  {
+    emoji: "❓",
+    title: "Вопросы и ответы",
+    desc: "150 актуальных вопросов с ответами и источниками",
+    path: "/qa",
+    from: "from-teal-500",
+    to: "to-emerald-600",
+    shadow: "shadow-teal-500/25",
   },
 ];
 
@@ -1698,13 +1735,14 @@ export default function Dashboard() {
               color: "text-purple-300",
               grad: "from-purple-600/40 to-purple-500/20",
             },
-            {
-              icon: GraduationCap,
-              label: "Таджвид",
-              path: "/tajweed",
-              color: "text-amber-300",
-              grad: "from-amber-600/40 to-amber-500/20",
-            },
+            // Таджвид скрыт до доработки контента
+            // {
+            //   icon: GraduationCap,
+            //   label: "Таджвид",
+            //   path: "/tajweed",
+            //   color: "text-amber-300",
+            //   grad: "from-amber-600/40 to-amber-500/20",
+            // },
           ],
         },
         {
