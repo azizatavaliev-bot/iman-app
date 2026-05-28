@@ -42,13 +42,15 @@ export default function Leaderboard() {
         }
 
         const response = await fetch(`/api/leaderboard`);
+        const contentType = response.headers.get("content-type") || "";
 
-        if (response.ok) {
+        if (response.ok && contentType.includes("application/json")) {
           const data = await response.json();
           setUsers(data.users || []);
           setTotalUsers(data.totalUsers || 0);
           setTotalSubscribers(data.totalSubscribers || 0);
         } else {
+          // dev сервер или API недоступен — показываем локальный профиль
           const profile = storage.getProfile();
           const mockUser: LeaderboardUser = {
             telegram_id: currentUserId || 0,
@@ -61,7 +63,7 @@ export default function Leaderboard() {
           setUsers([mockUser]);
         }
       } catch (error) {
-        console.error("Leaderboard fetch error:", error);
+        console.warn("Leaderboard fetch fallback:", error instanceof Error ? error.message : error);
         const profile = storage.getProfile();
         const mockUser: LeaderboardUser = {
           telegram_id: currentUserId || 0,

@@ -186,7 +186,7 @@ export default function Ramadan() {
         setFajrTime(times.Fajr.replace(/\s*\(.*\)/, "").trim());
         setMaghribTime(times.Maghrib.replace(/\s*\(.*\)/, "").trim());
       } catch (err) {
-        console.error("Failed to load prayer times:", err);
+        console.warn("Prayer times offline:", err instanceof Error ? err.message : err);
       } finally {
         if (!cancelled) setLoading(false);
       }

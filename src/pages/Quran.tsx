@@ -329,7 +329,7 @@ export default function Quran() {
         const list = await getSurahList();
         setSurahs(list);
       } catch (err) {
-        console.error("Failed to load surah list:", err);
+        console.warn("Surah list offline:", err instanceof Error ? err.message : err);
       } finally {
         setLoading(false);
       }

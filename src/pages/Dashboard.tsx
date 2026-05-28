@@ -988,7 +988,7 @@ export default function Dashboard() {
         setPrayerTimes(times);
         setNextPrayer(findNextPrayer(times));
       } catch (err) {
-        console.error("Failed to load prayer times:", err);
+        console.warn("Prayer times offline:", err instanceof Error ? err.message : err);
       } finally {
         if (!cancelled) setLoading(false);
       }

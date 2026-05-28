@@ -382,7 +382,7 @@ export default function Qibla() {
         if (cancelled) return
         setQiblaDeg(data.direction)
       } catch (err) {
-        console.error('Failed to load Qibla direction:', err)
+        console.warn('Qibla offline:', err instanceof Error ? err.message : err)
         if (!cancelled) setError('Не удалось загрузить направление Киблы')
       } finally {
         if (!cancelled) setLoading(false)

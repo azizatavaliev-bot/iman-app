@@ -98,12 +98,17 @@ export default function DuaWall() {
   const fetchRequests = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/dua-wall`);
-      if (res.ok) {
+      const ct = res.headers.get("content-type") || "";
+      if (res.ok && ct.includes("application/json")) {
         const data = await res.json();
         setRequests(data);
+      } else {
+        // API недоступен (dev / offline) — оставляем пустой список без шума
+        setRequests([]);
       }
     } catch (err) {
-      console.error("Failed to fetch dua wall:", err);
+      console.warn("Dua wall offline:", err instanceof Error ? err.message : err);
+      setRequests([]);
     } finally {
       setLoading(false);
     }

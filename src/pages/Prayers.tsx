@@ -923,7 +923,8 @@ export default function Prayers() {
 
         if (hijri) setHijriDate(hijri);
       } catch (err) {
-        console.error("Failed to load prayer times:", err);
+        // Сеть недоступна — оставляем «--:--» вместо шума в консоли
+        console.warn("Prayer times offline:", err instanceof Error ? err.message : err);
       } finally {
         if (!cancelled) setLoading(false);
       }
