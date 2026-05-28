@@ -143,8 +143,8 @@ export default function IslamicQA() {
         />
       </div>
 
-      {/* Categories */}
-      <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1">
+      {/* Categories — wrap so all are visible without horizontal scroll */}
+      <div className="flex flex-wrap gap-1.5 pb-3">
         <button
           onClick={() => setActiveCat("all")}
           className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
