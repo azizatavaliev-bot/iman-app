@@ -1,10 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   ChevronLeft,
+  ChevronRight,
   Search,
   Shuffle,
   Sparkles,
   HelpCircle,
+  List,
+  Layers,
+  Check as CheckIcon,
 } from "lucide-react";
 import { trackAction } from "../lib/analytics";
 import {
@@ -39,6 +43,19 @@ export default function IslamicQA() {
   const [activeCat, setActiveCat] = useState<QACategory | "all">("all");
   const [openId, setOpenId] = useState<number | null>(null);
   const [read, setRead] = useState<Set<number>>(new Set());
+  const [mode, setMode] = useState<"list" | "cards">(() => {
+    try { return (localStorage.getItem("iman_qa_mode") as "list" | "cards") || "list"; } catch { return "list"; }
+  });
+  const [cardIdx, setCardIdx] = useState(0);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const touchStartX = useRef(0);
+
+  function setModeP(m: "list" | "cards") {
+    setMode(m);
+    try { localStorage.setItem("iman_qa_mode", m); } catch { /* ignore */ }
+  }
 
   const qaOfTheDay = useMemo(() => getQAOfTheDay(), []);
 
@@ -69,6 +86,13 @@ export default function IslamicQA() {
   };
 
   const random = () => {
+    if (mode === "cards") {
+      // в режиме карточек — прыжок на случайную карту
+      const idx = Math.floor(Math.random() * filtered.length);
+      setCardIdx(idx);
+      setCardOpen(false);
+      return;
+    }
     const idx = Math.floor(Math.random() * QA_LIST.length);
     const target = QA_LIST[idx];
     setActiveCat("all");
@@ -80,6 +104,56 @@ export default function IslamicQA() {
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   };
+
+  // ── Карточный режим: навигация и swipe ─────────────────────────────────
+  const currentCard = filtered[cardIdx];
+
+  function goNextCard() {
+    if (cardIdx < filtered.length - 1) {
+      setCardIdx(cardIdx + 1);
+      setCardOpen(false);
+      // помечаем предыдущую как прочитанную
+      const prev = filtered[cardIdx];
+      if (prev && !read.has(prev.id)) {
+        const next = new Set(read);
+        next.add(prev.id);
+        setRead(next);
+        saveRead(next);
+      }
+    }
+  }
+  function goPrevCard() {
+    if (cardIdx > 0) {
+      setCardIdx(cardIdx - 1);
+      setCardOpen(false);
+    }
+  }
+
+  function onTouchStart(e: React.TouchEvent | React.MouseEvent) {
+    setSwiping(true);
+    touchStartX.current =
+      "touches" in e ? e.touches[0].clientX : e.clientX;
+  }
+  function onTouchMove(e: React.TouchEvent | React.MouseEvent) {
+    if (!swiping) return;
+    const x = "touches" in e ? e.touches[0].clientX : e.clientX;
+    setSwipeX(x - touchStartX.current);
+  }
+  function onTouchEnd() {
+    if (!swiping) return;
+    const dx = swipeX;
+    setSwiping(false);
+    setSwipeX(0);
+    const threshold = 80;
+    if (dx < -threshold) goNextCard();
+    else if (dx > threshold) goPrevCard();
+  }
+
+  // Сброс индекса при смене фильтра/категории
+  useEffect(() => {
+    setCardIdx(0);
+    setCardOpen(false);
+  }, [activeCat, search, mode]);
 
   return (
     <div className="min-h-screen pb-28 px-4 pt-6 max-w-lg mx-auto animate-fade-in">
@@ -175,7 +249,195 @@ export default function IslamicQA() {
         })}
       </div>
 
-      {/* List */}
+      {/* Mode switcher: Список / Карточки */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <button
+          onClick={() => setModeP("list")}
+          className={`flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+            mode === "list"
+              ? "bg-teal-500/20 text-teal-200 ring-1 ring-teal-500/40"
+              : "bg-white/[0.03] text-slate-400"
+          }`}
+        >
+          <List className="w-4 h-4" />
+          Список
+        </button>
+        <button
+          onClick={() => setModeP("cards")}
+          className={`flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+            mode === "cards"
+              ? "bg-violet-500/20 text-violet-200 ring-1 ring-violet-500/40"
+              : "bg-white/[0.03] text-slate-400"
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          Карточки
+        </button>
+      </div>
+
+      {/* CARDS MODE */}
+      {mode === "cards" && (
+        <>
+          {filtered.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-3xl mb-2">🤔</p>
+              <p className="text-sm text-slate-500">Ничего не найдено</p>
+            </div>
+          ) : currentCard ? (
+            <>
+              {/* Card stack */}
+              <div className="relative h-[440px] mb-4 select-none">
+                {/* Next card (peek behind) */}
+                {filtered[cardIdx + 1] && (
+                  <div className="absolute inset-x-4 top-3 bottom-0 rounded-2xl bg-white/[0.04] border border-white/5 -z-10 scale-[0.97]" />
+                )}
+                {/* Current card */}
+                <div
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                  onMouseDown={onTouchStart}
+                  onMouseMove={swiping ? onTouchMove : undefined}
+                  onMouseUp={onTouchEnd}
+                  onMouseLeave={swiping ? onTouchEnd : undefined}
+                  onClick={() => !swiping && Math.abs(swipeX) < 5 && setCardOpen((v) => !v)}
+                  className="absolute inset-0 glass-card p-5 cursor-grab active:cursor-grabbing overflow-y-auto"
+                  style={{
+                    transform: `translateX(${swipeX}px) rotate(${swipeX * 0.04}deg)`,
+                    transition: swiping ? "none" : "transform 0.3s cubic-bezier(0.16,1,0.3,1)",
+                    opacity: 1 - Math.min(Math.abs(swipeX) / 400, 0.5),
+                  }}
+                >
+                  {/* Hint indicators */}
+                  {swipeX < -30 && (
+                    <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-teal-500/30 border border-teal-400 text-[10px] font-bold uppercase text-teal-200">
+                      Далее →
+                    </div>
+                  )}
+                  {swipeX > 30 && (
+                    <div className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-amber-500/30 border border-amber-400 text-[10px] font-bold uppercase text-amber-200">
+                      ← Назад
+                    </div>
+                  )}
+
+                  {/* Header */}
+                  <div className="flex items-center gap-2 mb-4">
+                    {(() => {
+                      const cat = QA_CATEGORIES.find((c) => c.key === currentCard.category);
+                      return (
+                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                          {cat?.emoji} {cat?.name}
+                        </span>
+                      );
+                    })()}
+                    {read.has(currentCard.id) && (
+                      <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-emerald-400">
+                        <CheckIcon className="w-3 h-3" />
+                        Прочитано
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Question */}
+                  <p className="text-white text-xl font-bold leading-snug mb-5">
+                    {currentCard.q}
+                  </p>
+
+                  {/* Answer (toggled) */}
+                  {cardOpen ? (
+                    <>
+                      <div className="h-px bg-gradient-to-r from-transparent via-teal-500/30 to-transparent mb-4" />
+                      <p className="text-slate-200 text-[15px] leading-relaxed mb-4">
+                        {currentCard.a}
+                      </p>
+                      {currentCard.source && (
+                        <div className="text-[11px] text-slate-500 bg-white/[0.02] rounded-lg p-2.5">
+                          <span className="font-bold text-teal-400/80">Источник:</span>{" "}
+                          {currentCard.source}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCardOpen(true);
+                        if (!read.has(currentCard.id)) {
+                          const next = new Set(read);
+                          next.add(currentCard.id);
+                          setRead(next);
+                          saveRead(next);
+                        }
+                      }}
+                      className="w-full py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-200 text-sm font-semibold active:scale-[0.98] transition"
+                    >
+                      Показать ответ
+                    </button>
+                  )}
+
+                  {/* Hint */}
+                  {!cardOpen && (
+                    <p className="text-[11px] text-slate-500 text-center mt-6">
+                      👆 тап чтобы открыть · 👈👉 свайп для переключения
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Card navigation */}
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={goPrevCard}
+                  disabled={cardIdx === 0}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.97] transition disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 text-sm font-medium"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Назад
+                </button>
+                <div className="px-3 py-2.5 rounded-xl bg-white/[0.04] text-slate-300 text-xs font-bold tabular-nums">
+                  {cardIdx + 1} / {filtered.length}
+                </div>
+                <button
+                  onClick={goNextCard}
+                  disabled={cardIdx === filtered.length - 1}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 active:scale-[0.97] transition disabled:opacity-30 disabled:cursor-not-allowed text-teal-200 text-sm font-medium ring-1 ring-teal-500/30"
+                >
+                  Далее
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Progress dots */}
+              <div className="flex flex-wrap justify-center gap-1">
+                {filtered.slice(0, Math.min(filtered.length, 30)).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setCardIdx(i);
+                      setCardOpen(false);
+                    }}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === cardIdx
+                        ? "w-6 bg-teal-400"
+                        : i < cardIdx
+                          ? "w-1.5 bg-teal-500/40"
+                          : "w-1.5 bg-white/10"
+                    }`}
+                  />
+                ))}
+                {filtered.length > 30 && (
+                  <span className="text-[9px] text-slate-500 ml-1">
+                    +{filtered.length - 30}
+                  </span>
+                )}
+              </div>
+            </>
+          ) : null}
+        </>
+      )}
+
+      {/* LIST MODE */}
+      {mode === "list" && (
       <div className="space-y-2">
         {filtered.length === 0 && (
           <div className="text-center py-12">
@@ -249,6 +511,7 @@ export default function IslamicQA() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
