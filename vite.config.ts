@@ -42,6 +42,14 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         // Tafsir chunk is ~11 MB (full Tafsir Al-Sa'di for all 6236 ayahs).
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
+        // Сразу активируем новый SW и удаляем старый кэш — пользователь
+        // получает актуальную версию без ручного жёсткого рефреша
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        // index.html всегда из сети — чтобы новые JS-чанки находились
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

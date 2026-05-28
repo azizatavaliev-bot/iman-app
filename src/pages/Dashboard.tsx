@@ -37,6 +37,10 @@ import {
   Music,
   BookText,
   MoonStar,
+  HelpCircle,
+  Lightbulb,
+  Film,
+  Calendar,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { getTelegramUser } from "../lib/telegram";
@@ -1667,6 +1671,13 @@ export default function Dashboard() {
               grad: "from-indigo-600/40 to-indigo-500/20",
             },
             {
+              icon: Film,
+              label: "Структура",
+              path: "/prayer-flow",
+              color: "text-emerald-300",
+              grad: "from-emerald-600/40 to-teal-500/20",
+            },
+            {
               icon: Heart,
               label: "Дуа",
               path: "/dua",
@@ -1735,6 +1746,20 @@ export default function Dashboard() {
               color: "text-purple-300",
               grad: "from-purple-600/40 to-purple-500/20",
             },
+            {
+              icon: HelpCircle,
+              label: "Вопросы",
+              path: "/qa",
+              color: "text-teal-300",
+              grad: "from-teal-600/40 to-emerald-500/20",
+            },
+            {
+              icon: Lightbulb,
+              label: "Факты",
+              path: "/facts",
+              color: "text-indigo-300",
+              grad: "from-indigo-600/40 to-violet-500/20",
+            },
             // Таджвид скрыт до доработки контента
             // {
             //   icon: GraduationCap,
@@ -1769,6 +1794,13 @@ export default function Dashboard() {
               path: "/stories",
               color: "text-cyan-300",
               grad: "from-cyan-600/40 to-cyan-500/20",
+            },
+            {
+              icon: Calendar,
+              label: "Праздники",
+              path: "/holidays",
+              color: "text-amber-300",
+              grad: "from-amber-600/40 to-orange-500/20",
             },
           ],
         },
