@@ -319,13 +319,16 @@ export default function IslamicQA() {
             </div>
           ) : currentCard ? (
             <>
-              {/* Card stack */}
-              <div className="relative h-[440px] mb-4 select-none">
-                {/* Next card (peek behind) */}
+              {/* Card stack — adaptive height, flex column */}
+              {(() => {
+                const cardCat = QA_CATEGORIES.find((c) => c.key === currentCard.category);
+                const cardColors = (cardCat && CAT_COLOR_MAP[cardCat.color]) || DEFAULT_COLOR;
+                return (
+              <div className="relative mb-4 select-none" style={{ minHeight: cardOpen ? 'auto' : '360px' }}>
+                {/* Next card peek-behind */}
                 {filtered[cardIdx + 1] && (
-                  <div className="absolute inset-x-4 top-3 bottom-0 rounded-2xl bg-white/[0.04] border border-white/5 -z-10 scale-[0.97]" />
+                  <div className="absolute inset-x-4 -top-2 h-8 rounded-t-2xl bg-white/[0.04] border border-white/5 border-b-0 -z-10" />
                 )}
-                {/* Current card */}
                 <div
                   onTouchStart={onTouchStart}
                   onTouchMove={onTouchMove}
@@ -335,88 +338,91 @@ export default function IslamicQA() {
                   onMouseUp={onTouchEnd}
                   onMouseLeave={swiping ? onTouchEnd : undefined}
                   onClick={() => !swiping && Math.abs(swipeX) < 5 && setCardOpen((v) => !v)}
-                  className="absolute inset-0 glass-card p-5 cursor-grab active:cursor-grabbing overflow-y-auto"
+                  className="relative glass-card overflow-hidden cursor-grab active:cursor-grabbing"
                   style={{
                     transform: `translateX(${swipeX}px) rotate(${swipeX * 0.04}deg)`,
                     transition: swiping ? "none" : "transform 0.3s cubic-bezier(0.16,1,0.3,1)",
                     opacity: 1 - Math.min(Math.abs(swipeX) / 400, 0.5),
                   }}
                 >
-                  {/* Hint indicators */}
-                  {swipeX < -30 && (
-                    <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-teal-500/30 border border-teal-400 text-[10px] font-bold uppercase text-teal-200">
-                      Далее →
-                    </div>
-                  )}
-                  {swipeX > 30 && (
-                    <div className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-amber-500/30 border border-amber-400 text-[10px] font-bold uppercase text-amber-200">
-                      ← Назад
-                    </div>
-                  )}
+                  {/* Цветная полоска сверху */}
+                  <div className={`h-1 w-full bg-gradient-to-r ${cardColors.bar}`} />
 
-                  {/* Header */}
-                  <div className="flex items-center gap-2 mb-4">
-                    {(() => {
-                      const cat = QA_CATEGORIES.find((c) => c.key === currentCard.category);
-                      return (
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                          {cat?.emoji} {cat?.name}
-                        </span>
-                      );
-                    })()}
-                    {read.has(currentCard.id) && (
-                      <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-emerald-400">
-                        <CheckIcon className="w-3 h-3" />
-                        Прочитано
+                  <div className="p-5 flex flex-col" style={{ minHeight: cardOpen ? 'auto' : '340px' }}>
+                    {/* Swipe hint chips */}
+                    {swipeX < -30 && (
+                      <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-teal-500/30 border border-teal-400 text-[10px] font-bold uppercase text-teal-200 z-10">
+                        Далее →
+                      </div>
+                    )}
+                    {swipeX > 30 && (
+                      <div className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-amber-500/30 border border-amber-400 text-[10px] font-bold uppercase text-amber-200 z-10">
+                        ← Назад
+                      </div>
+                    )}
+
+                    {/* Header — категория + статус */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold ${cardColors.bg} ${cardColors.text}`}>
+                        <span>{cardCat?.emoji}</span>
+                        {cardCat?.name}
                       </span>
+                      {read.has(currentCard.id) && (
+                        <span className="ml-auto inline-flex items-center gap-1 text-[10px] text-emerald-400">
+                          <CheckIcon className="w-3 h-3" />
+                          Прочитано
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Question — центральная часть, растягивается */}
+                    <div className="flex-1 flex items-center py-2">
+                      <p className="text-white text-xl font-bold leading-snug">
+                        {currentCard.q}
+                      </p>
+                    </div>
+
+                    {/* Answer (toggled) или кнопка снизу */}
+                    {cardOpen ? (
+                      <div className="mt-4">
+                        <div className={`h-px bg-gradient-to-r from-transparent ${cardColors.text.replace('text-', 'via-').replace('-300', '-500/40')} to-transparent mb-3`} />
+                        <p className="text-slate-200 text-[15px] leading-relaxed mb-3">
+                          {currentCard.a}
+                        </p>
+                        {currentCard.source && (
+                          <div className="text-[11px] text-slate-500 bg-white/[0.02] rounded-lg p-2.5 mb-2">
+                            <span className={`font-bold ${cardColors.text}/80`}>Источник:</span>{" "}
+                            {currentCard.source}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-4 space-y-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCardOpen(true);
+                            if (!read.has(currentCard.id)) {
+                              const next = new Set(read);
+                              next.add(currentCard.id);
+                              setRead(next);
+                              saveRead(next);
+                            }
+                          }}
+                          className={`w-full py-3 rounded-xl ${cardColors.bg} border ${cardColors.ring.replace('ring-', 'border-')} ${cardColors.text} text-sm font-semibold active:scale-[0.98] transition`}
+                        >
+                          Показать ответ
+                        </button>
+                        <p className="text-[10px] text-slate-500 text-center">
+                          👆 тап карты · 👈👉 свайп
+                        </p>
+                      </div>
                     )}
                   </div>
-
-                  {/* Question */}
-                  <p className="text-white text-xl font-bold leading-snug mb-5">
-                    {currentCard.q}
-                  </p>
-
-                  {/* Answer (toggled) */}
-                  {cardOpen ? (
-                    <>
-                      <div className="h-px bg-gradient-to-r from-transparent via-teal-500/30 to-transparent mb-4" />
-                      <p className="text-slate-200 text-[15px] leading-relaxed mb-4">
-                        {currentCard.a}
-                      </p>
-                      {currentCard.source && (
-                        <div className="text-[11px] text-slate-500 bg-white/[0.02] rounded-lg p-2.5">
-                          <span className="font-bold text-teal-400/80">Источник:</span>{" "}
-                          {currentCard.source}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCardOpen(true);
-                        if (!read.has(currentCard.id)) {
-                          const next = new Set(read);
-                          next.add(currentCard.id);
-                          setRead(next);
-                          saveRead(next);
-                        }
-                      }}
-                      className="w-full py-3 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-200 text-sm font-semibold active:scale-[0.98] transition"
-                    >
-                      Показать ответ
-                    </button>
-                  )}
-
-                  {/* Hint */}
-                  {!cardOpen && (
-                    <p className="text-[11px] text-slate-500 text-center mt-6">
-                      👆 тап чтобы открыть · 👈👉 свайп для переключения
-                    </p>
-                  )}
                 </div>
               </div>
+                );
+              })()}
 
               {/* Card navigation */}
               <div className="flex items-center gap-2 mb-3">
@@ -441,29 +447,12 @@ export default function IslamicQA() {
                 </button>
               </div>
 
-              {/* Progress dots */}
-              <div className="flex flex-wrap justify-center gap-1">
-                {filtered.slice(0, Math.min(filtered.length, 30)).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setCardIdx(i);
-                      setCardOpen(false);
-                    }}
-                    className={`h-1.5 rounded-full transition-all ${
-                      i === cardIdx
-                        ? "w-6 bg-teal-400"
-                        : i < cardIdx
-                          ? "w-1.5 bg-teal-500/40"
-                          : "w-1.5 bg-white/10"
-                    }`}
-                  />
-                ))}
-                {filtered.length > 30 && (
-                  <span className="text-[9px] text-slate-500 ml-1">
-                    +{filtered.length - 30}
-                  </span>
-                )}
+              {/* Progress bar */}
+              <div className="relative h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-300"
+                  style={{ width: `${((cardIdx + 1) / filtered.length) * 100}%` }}
+                />
               </div>
             </>
           ) : null}
