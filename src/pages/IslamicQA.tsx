@@ -325,10 +325,6 @@ export default function IslamicQA() {
                 const cardColors = (cardCat && CAT_COLOR_MAP[cardCat.color]) || DEFAULT_COLOR;
                 return (
               <div className="relative mb-4 select-none" style={{ minHeight: cardOpen ? 'auto' : '360px' }}>
-                {/* Next card peek-behind */}
-                {filtered[cardIdx + 1] && (
-                  <div className="absolute inset-x-4 -top-2 h-8 rounded-t-2xl bg-white/[0.04] border border-white/5 border-b-0 -z-10" />
-                )}
                 <div
                   onTouchStart={onTouchStart}
                   onTouchMove={onTouchMove}
@@ -424,35 +420,36 @@ export default function IslamicQA() {
                 );
               })()}
 
-              {/* Card navigation */}
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={goPrevCard}
-                  disabled={cardIdx === 0}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.97] transition disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 text-sm font-medium"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  Назад
-                </button>
-                <div className="px-3 py-2.5 rounded-xl bg-white/[0.04] text-slate-300 text-xs font-bold tabular-nums">
-                  {cardIdx + 1} / {filtered.length}
+              {/* Unified nav + progress */}
+              <div className="glass-card overflow-hidden">
+                {/* Progress thin bar — inside nav top edge */}
+                <div className="relative h-1 bg-white/[0.03]">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-300"
+                    style={{ width: `${((cardIdx + 1) / filtered.length) * 100}%` }}
+                  />
                 </div>
-                <button
-                  onClick={goNextCard}
-                  disabled={cardIdx === filtered.length - 1}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 active:scale-[0.97] transition disabled:opacity-30 disabled:cursor-not-allowed text-teal-200 text-sm font-medium ring-1 ring-teal-500/30"
-                >
-                  Далее
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Progress bar */}
-              <div className="relative h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-300"
-                  style={{ width: `${((cardIdx + 1) / filtered.length) * 100}%` }}
-                />
+                <div className="flex items-center gap-2 p-2">
+                  <button
+                    onClick={goPrevCard}
+                    disabled={cardIdx === 0}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg hover:bg-white/[0.04] active:scale-[0.97] transition disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 text-sm font-medium"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Назад
+                  </button>
+                  <div className="px-3 py-2 text-slate-400 text-xs font-bold tabular-nums whitespace-nowrap">
+                    {cardIdx + 1} / {filtered.length}
+                  </div>
+                  <button
+                    onClick={goNextCard}
+                    disabled={cardIdx === filtered.length - 1}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 active:scale-[0.97] transition disabled:opacity-30 disabled:cursor-not-allowed text-teal-200 text-sm font-medium"
+                  >
+                    Далее
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </>
           ) : null}
