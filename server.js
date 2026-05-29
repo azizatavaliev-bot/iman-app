@@ -2223,10 +2223,88 @@ server.listen(PORT, "0.0.0.0", async () => {
             { command: "app", description: "Открыть приложение" },
             { command: "help", description: "Помощь" },
           ],
+          language_code: "ru",
+        }),
+      });
+
+      // Сбрасываем команды по умолчанию (без языкового кода) — на случай если был англ.
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          commands: [
+            { command: "start", description: "Начать / Приветствие" },
+            { command: "namaz", description: "Время намаза на сегодня" },
+            { command: "hadith", description: "Случайный хадис" },
+            { command: "ayat", description: "Случайный аят Корана" },
+            { command: "dua", description: "Случайное дуа" },
+            { command: "remind", description: "Подписка на напоминания" },
+            { command: "stop", description: "Отписка от напоминаний" },
+            { command: "app", description: "Открыть приложение" },
+            { command: "help", description: "Помощь" },
+          ],
+        }),
+      });
+
+      // Полное описание бота (показывается ДО /start на пустом чате)
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyDescription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description:
+            "IMAN — ваш помощник на пути к Аллаху.\n\n" +
+            "🕌 Время намаза (ханафитский масхаб)\n" +
+            "📖 Коран с тафсиром Ас-Саади\n" +
+            "📜 40 хадисов Ан-Навави + 200+ других\n" +
+            "🙏 Дуа на каждый день\n" +
+            "📿 Счётчик зикра\n" +
+            "🧠 Викторина с 300+ вопросами\n\n" +
+            "Нажми /start чтобы начать.",
+          language_code: "ru",
+        }),
+      });
+      // Дефолт (без языкового кода) — на случай если у пользователя нерусская локаль
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyDescription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description:
+            "IMAN — ваш помощник на пути к Аллаху.\n\n" +
+            "🕌 Время намаза · 📖 Коран · 📜 Хадисы · 🙏 Дуа · 📿 Зикр · 🧠 Квиз\n\n" +
+            "Нажми /start чтобы начать.",
+        }),
+      });
+
+      // Короткое описание (карточка профиля бота — до 120 символов)
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyShortDescription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          short_description:
+            "Время намаза, Коран, хадисы, дуа, зикр и викторина. Уделяй 5–10 минут в день своей религии.",
+          language_code: "ru",
+        }),
+      });
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyShortDescription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          short_description:
+            "Намаз, Коран, хадисы, дуа, зикр. 5–10 минут в день своей религии.",
+        }),
+      });
+
+      // Имя бота — на русском
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyName`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "IMAN — Путь мусульманина",
+          language_code: "ru",
         }),
       });
     } catch (e) {
-      console.error("Failed to set webhook:", e);
+      console.error("Failed to set webhook/bot meta:", e);
     }
   }
 });
