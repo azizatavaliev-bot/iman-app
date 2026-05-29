@@ -801,6 +801,11 @@ async function sendScheduledBroadcasts() {
     (Date.now() - new Date("2026-01-01").getTime()) / 86400000,
   );
 
+  // ── Хелпер: кнопка для открытия конкретного экрана Mini App ─────────
+  const wa = (text, route = "") => ({
+    text,
+    web_app: { url: APP_URL + route },
+  });
   const channelButton = {
     inline_keyboard: [
       [{ text: "\u{1F4E2} Наш канал", url: CHANNEL_LINK }],
@@ -821,10 +826,16 @@ async function sendScheduledBroadcasts() {
       `\n\u{1F4D6} *Хадис дня:*\n${hadith.text}\n_${hadith.source}_\n\n` +
       `\u{1F4D6} *Аят дня:*\n${ayat.text}\n_${ayat.surah}_\n\n` +
       `\u{1F64F} *Дуа дня:*\n${dua.text}\n_${dua.source}_\n\n` +
-      `Да благословит вас Аллах! \u{1F54C}\n\n` +
-      `\u{1F4E2} _Подписывайтесь на наш канал для ежедневных напоминаний!_`;
+      `Да благословит вас Аллах! \u{1F54C}`;
 
-    const sent = await broadcastToAll(message, channelButton);
+    const morningButtons = {
+      inline_keyboard: [
+        [wa("\u{1F4D6} Читать Коран", "/quran"), wa("\u{1F4FF} Зикры", "/dhikr")],
+        [wa("\u{1F64F} Дуа на день", "/dua"), wa("\u{1F4DC} Хадис", "/hadiths")],
+        [wa("\u{1F54C} Открыть IMAN", "")],
+      ],
+    };
+    const sent = await broadcastToAll(message, morningButtons);
     console.log(`Morning broadcast sent to ${sent} subscribers`);
   }
 
@@ -839,7 +850,14 @@ async function sendScheduledBroadcasts() {
       `\u{1F4D6} ${hadith.text}\n\n_${hadith.source}_\n\n` +
       `_Не забудь прочитать послеобеденные азкары!_`;
 
-    const sent = await broadcastToAll(message, channelButton);
+    const afternoonButtons = {
+      inline_keyboard: [
+        [wa("\u{1F4FF} Тасбих 33×3", "/zikr"), wa("\u{1F54C} Время намаза", "/prayers")],
+        [wa("\u{2753} Q&A по исламу", "/qa")],
+        [wa("\u{1F54C} Открыть IMAN", "")],
+      ],
+    };
+    const sent = await broadcastToAll(message, afternoonButtons);
     console.log(`Afternoon broadcast sent to ${sent} subscribers`);
   }
 
@@ -863,7 +881,13 @@ async function sendScheduledBroadcasts() {
       `\u{1F4A1} _${azkar}_\n\n` +
       `_Спокойной ночи! Да простит Аллах наши грехи_ \u{1F54C}`;
 
-    const sent = await broadcastToAll(message, channelButton);
+    const eveningButtons = {
+      inline_keyboard: [
+        [wa("\u{1F4FF} Вечерние азкары", "/dhikr"), wa("\u{1F64F} Дуа перед сном", "/dua")],
+        [wa("\u{1F4D6} Аят аль-Курси (2:255)", "/quran"), wa("\u{1F54C} IMAN", "")],
+      ],
+    };
+    const sent = await broadcastToAll(message, eveningButtons);
     console.log(`Evening broadcast sent to ${sent} subscribers`);
   }
 
@@ -898,7 +922,15 @@ async function sendScheduledBroadcasts() {
         `_«О те, которые уверовали! Когда призывают на джума-намаз — спешите к поминанию Аллаха» (Коран 62:9)_`,
     ];
     const msg = jumuaMessages[dayIndex % jumuaMessages.length];
-    const sent = await broadcastToAll(msg, channelButton);
+    const jumuaButtons = {
+      inline_keyboard: [
+        [wa("\u{1F4D6} Сура Аль-Кахф (18)", "/memorize?surah=18")],
+        [wa("\u{1F3AC} Структура намаза", "/prayer-flow"), wa("\u{1F54C} Гид по намазу", "/namaz-guide")],
+        [wa("\u{1F4C5} Праздники ислама", "/holidays")],
+        [wa("\u{1F54C} Открыть IMAN", "")],
+      ],
+    };
+    const sent = await broadcastToAll(msg, jumuaButtons);
     console.log(`Jumua broadcast sent to ${sent} subscribers`);
   }
 
@@ -926,7 +958,17 @@ async function sendScheduledBroadcasts() {
         `_«О Аллах, я предал душу мою Тебе...» (полная дуа в приложении)_`,
     ];
     const msg = nightTips[dayIndex % nightTips.length];
-    const sent = await broadcastToAll(msg, channelButton);
+    const nightButtons = {
+      inline_keyboard: [
+        [
+          wa("\u{1F6E1} Ихлас", "/memorize?surah=112"),
+          wa("\u{1F6E1} Фалак", "/memorize?surah=113"),
+          wa("\u{1F6E1} Нас", "/memorize?surah=114"),
+        ],
+        [wa("\u{1F4FF} Истигфар ×100", "/zikr"), wa("\u{1F319} Дуа сна", "/dua")],
+      ],
+    };
+    const sent = await broadcastToAll(msg, nightButtons);
     console.log(`Night broadcast sent to ${sent} subscribers`);
   }
 
@@ -964,7 +1006,14 @@ async function sendScheduledBroadcasts() {
         `Открой IMAN — там всё есть для этих 8 часов \u{1F54C}`,
     ];
     const msg = motivations[dayIndex % motivations.length];
-    const sent = await broadcastToAll(msg, channelButton);
+    const motivationButtons = {
+      inline_keyboard: [
+        [wa("\u{1F4CA} Моя статистика", "/stats"), wa("\u{1F3C6} Топ", "/leaderboard")],
+        [wa("\u{1F4D6} Читать Коран", "/quran"), wa("\u{1F3AF} Цели/привычки", "/habits")],
+        [wa("\u{1F4DA} Заучивание", "/memorize"), wa("\u{1F54C} IMAN", "")],
+      ],
+    };
+    const sent = await broadcastToAll(msg, motivationButtons);
     console.log(`Motivation broadcast sent to ${sent} subscribers`);
   }
 }
