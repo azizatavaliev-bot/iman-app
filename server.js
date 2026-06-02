@@ -52,6 +52,25 @@ const pool = new Pool({
       )
     `);
 
+    // Add created_at (real registration date) — needed for honest "new users" stats
+    await client.query(
+      `ALTER TABLE iman_users ADD COLUMN IF NOT EXISTS created_at BIGINT`,
+    );
+    // Backfill created_at from earliest analytics event per user (best estimate of join time)
+    await client.query(`
+      UPDATE iman_users u
+      SET created_at = sub.min_ts
+      FROM (
+        SELECT telegram_id, MIN(timestamp) AS min_ts
+        FROM iman_analytics GROUP BY telegram_id
+      ) sub
+      WHERE u.telegram_id = sub.telegram_id AND u.created_at IS NULL
+    `);
+    // Remaining users without any analytics: fall back to updated_at
+    await client.query(
+      `UPDATE iman_users SET created_at = updated_at WHERE created_at IS NULL`,
+    );
+
     // Create analytics table
     await client.query(`
       CREATE TABLE IF NOT EXISTS iman_analytics (
@@ -172,8 +191,8 @@ const stmtGetUser = {
 const stmtUpsertUser = {
   run: async (telegramId, dataStr, updatedAt) => {
     await pool.query(
-      `INSERT INTO iman_users (telegram_id, data, updated_at)
-       VALUES ($1, $2, $3)
+      `INSERT INTO iman_users (telegram_id, data, updated_at, created_at)
+       VALUES ($1, $2, $3, $3)
        ON CONFLICT (telegram_id)
        DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
       [telegramId, dataStr, updatedAt],
@@ -1810,34 +1829,45 @@ const server = createServer(async (req, res) => {
         const now = Date.now();
         const FIVE_MIN = 5 * 60 * 1000;
         const ONE_DAY = 24 * 60 * 60 * 1000;
+        const TZ = "Asia/Bishkek"; // UTC+6, без перехода на летнее время
+
+        // ── Границы периодов по бишкекскому времени ──
+        // Начало сегодняшнего дня (00:00 в Бишкеке) в формате epoch-ms (UTC)
+        const BISHKEK_OFFSET = 6 * 60 * 60 * 1000;
+        const daysSinceEpoch = Math.floor((now + BISHKEK_OFFSET) / ONE_DAY);
+        const startOfToday = daysSinceEpoch * ONE_DAY - BISHKEK_OFFSET;
+        const startOfWeek = startOfToday - 6 * ONE_DAY; // сегодня + 6 предыдущих = 7 дней
+        const startOfMonth = startOfToday - 29 * ONE_DAY; // 30 дней
+        const chartFrom = startOfToday - 13 * ONE_DAY; // график за 14 дней
+
+        // Хелпер: уникальные посетители с заданного момента
+        const countVisitorsSince = async (since) => {
+          const r = await pool.query(
+            `SELECT COUNT(DISTINCT telegram_id) as count
+             FROM iman_analytics WHERE timestamp >= $1`,
+            [since],
+          );
+          return parseInt(r.rows[0].count);
+        };
 
         // Online users (active in last 5 min)
-        const onlineResult = await pool.query(
-          `SELECT COUNT(DISTINCT telegram_id) as count
-           FROM iman_analytics
-           WHERE timestamp > $1`,
-          [now - FIVE_MIN],
-        );
-        const online = parseInt(onlineResult.rows[0].count);
+        const online = await countVisitorsSince(now - FIVE_MIN);
 
-        // Active today (active in last 24h)
-        const activeTodayResult = await pool.query(
-          `SELECT COUNT(DISTINCT telegram_id) as count
-           FROM iman_analytics
-           WHERE timestamp > $1`,
-          [now - ONE_DAY],
-        );
-        const activeToday = parseInt(activeTodayResult.rows[0].count);
+        // ── Уникальные посетители: сегодня / неделя / месяц (Бишкек) ──
+        const visitorsToday = await countVisitorsSince(startOfToday);
+        const visitorsWeek = await countVisitorsSince(startOfWeek);
+        const visitorsMonth = await countVisitorsSince(startOfMonth);
+        const activeToday = visitorsToday; // совместимость со старым полем
 
-        // Top pages (last 7 days)
+        // Top pages (last 7 days) — заходы + уникальные пользователи
         const topPagesResult = await pool.query(
-          `SELECT page, COUNT(*) as count
+          `SELECT page, COUNT(*) as count, COUNT(DISTINCT telegram_id) as users
            FROM iman_analytics
-           WHERE type = 'page_view' AND page IS NOT NULL AND timestamp > $1
+           WHERE type = 'page_view' AND page IS NOT NULL AND timestamp >= $1
            GROUP BY page
            ORDER BY count DESC
            LIMIT 10`,
-          [now - 7 * ONE_DAY],
+          [startOfWeek],
         );
         const topPages = topPagesResult.rows;
 
@@ -1845,11 +1875,11 @@ const server = createServer(async (req, res) => {
         const topActionsResult = await pool.query(
           `SELECT action, COUNT(*) as count
            FROM iman_analytics
-           WHERE type = 'action' AND action IS NOT NULL AND timestamp > $1
+           WHERE type = 'action' AND action IS NOT NULL AND timestamp >= $1
            GROUP BY action
            ORDER BY count DESC
            LIMIT 10`,
-          [now - 7 * ONE_DAY],
+          [startOfWeek],
         );
         const topActions = topActionsResult.rows;
 
@@ -1857,23 +1887,40 @@ const server = createServer(async (req, res) => {
         const avgSessionResult = await pool.query(
           `SELECT AVG((metadata->>'duration')::INTEGER) as avg_duration
            FROM iman_analytics
-           WHERE type = 'session_end' AND timestamp > $1 AND metadata IS NOT NULL`,
-          [now - 7 * ONE_DAY],
+           WHERE type = 'session_end' AND timestamp >= $1 AND metadata IS NOT NULL`,
+          [startOfWeek],
         );
         const avgDuration = avgSessionResult.rows[0].avg_duration
           ? Math.round(avgSessionResult.rows[0].avg_duration / 1000)
           : 0; // convert to seconds
 
-        // User activity timeline (last 24h, grouped by hour)
+        // ── График: уникальные посетители по дням (14 дней, Бишкек) ──
+        const dailyResult = await pool.query(
+          `SELECT
+            (to_timestamp(timestamp / 1000) AT TIME ZONE $2)::date AS day,
+            COUNT(DISTINCT telegram_id) as users,
+            COUNT(*) FILTER (WHERE type = 'page_view') as views
+           FROM iman_analytics
+           WHERE timestamp >= $1
+           GROUP BY day ORDER BY day`,
+          [chartFrom, TZ],
+        );
+        const dailyVisitors = dailyResult.rows.map((r) => ({
+          date: r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day).slice(0, 10),
+          users: parseInt(r.users),
+          views: parseInt(r.views),
+        }));
+
+        // ── Сегодня по часам (Бишкек) ──
         const timelineResult = await pool.query(
           `SELECT
-            EXTRACT(HOUR FROM to_timestamp(timestamp / 1000)) as hour,
+            EXTRACT(HOUR FROM (to_timestamp(timestamp / 1000) AT TIME ZONE $2)) as hour,
             COUNT(DISTINCT telegram_id) as users
            FROM iman_analytics
-           WHERE timestamp > $1
+           WHERE timestamp >= $1
            GROUP BY hour
            ORDER BY hour`,
-          [now - ONE_DAY],
+          [startOfToday, TZ],
         );
         const timeline = timelineResult.rows;
 
@@ -1899,46 +1946,82 @@ const server = createServer(async (req, res) => {
           level: row.level || "Новичок",
         }));
 
-        // ✨ NEW: Prayer statistics (today & this week)
-        const prayersTodayResult = await pool.query(
-          `SELECT COUNT(*) as count
+        // ── Молитвы отмечены: сегодня / неделя / месяц (Бишкек) ──
+        const countActionSince = async (action, since) => {
+          const r = await pool.query(
+            `SELECT COUNT(*) as count FROM iman_analytics
+             WHERE action = $1 AND timestamp >= $2`,
+            [action, since],
+          );
+          return parseInt(r.rows[0].count);
+        };
+        const prayersToday = await countActionSince("prayer_marked", startOfToday);
+        const prayersWeek = await countActionSince("prayer_marked", startOfWeek);
+        const prayersMonth = await countActionSince("prayer_marked", startOfMonth);
+
+        // ── Вовлечённость: заходы (сессии) и просмотры по периодам ──
+        const engResult = await pool.query(
+          `SELECT
+            COUNT(*) FILTER (WHERE type = 'session_start' AND timestamp >= $1) AS s_today,
+            COUNT(*) FILTER (WHERE type = 'session_start' AND timestamp >= $2) AS s_week,
+            COUNT(*) FILTER (WHERE type = 'session_start' AND timestamp >= $3) AS s_month,
+            COUNT(*) FILTER (WHERE type = 'page_view'    AND timestamp >= $1) AS v_today,
+            COUNT(*) FILTER (WHERE type = 'page_view'    AND timestamp >= $2) AS v_week,
+            COUNT(*) FILTER (WHERE type = 'page_view'    AND timestamp >= $3) AS v_month
+           FROM iman_analytics WHERE timestamp >= $3`,
+          [startOfToday, startOfWeek, startOfMonth],
+        );
+        const eng = engResult.rows[0];
+        const sessionsToday = parseInt(eng.s_today);
+        const sessionsWeek = parseInt(eng.s_week);
+        const sessionsMonth = parseInt(eng.s_month);
+        const pageViewsToday = parseInt(eng.v_today);
+        const pageViewsWeek = parseInt(eng.v_week);
+        const pageViewsMonth = parseInt(eng.v_month);
+        // Сколько раз в среднем человек заходит (сессий на 1 посетителя)
+        const avgVisitsPerUserToday = visitorsToday > 0
+          ? Math.round((sessionsToday / visitorsToday) * 10) / 10 : 0;
+        const avgVisitsPerUserWeek = visitorsWeek > 0
+          ? Math.round((sessionsWeek / visitorsWeek) * 10) / 10 : 0;
+
+        // ── Детально по функциям (7 дней): заходов, людей, среднее время ──
+        const featureResult = await pool.query(
+          `SELECT page,
+            COUNT(*) FILTER (WHERE type = 'page_view') AS views,
+            COUNT(DISTINCT telegram_id) FILTER (WHERE type = 'page_view') AS users,
+            AVG((metadata->>'duration')::BIGINT) FILTER (WHERE type = 'page_time') AS avg_ms
            FROM iman_analytics
-           WHERE action = 'prayer_marked' AND timestamp > $1`,
-          [now - ONE_DAY],
+           WHERE timestamp >= $1 AND page IS NOT NULL
+           GROUP BY page
+           ORDER BY views DESC
+           LIMIT 20`,
+          [startOfWeek],
         );
-        const prayersToday = parseInt(prayersTodayResult.rows[0].count);
+        const featureStats = featureResult.rows.map((r) => ({
+          page: r.page,
+          views: parseInt(r.views),
+          users: parseInt(r.users),
+          avgSeconds: r.avg_ms ? Math.round(r.avg_ms / 1000) : 0,
+        }));
 
-        const prayersWeekResult = await pool.query(
-          `SELECT COUNT(*) as count
-           FROM iman_analytics
-           WHERE action = 'prayer_marked' AND timestamp > $1`,
-          [now - 7 * ONE_DAY],
-        );
-        const prayersWeek = parseInt(prayersWeekResult.rows[0].count);
+        // ── Новые пользователи по реальной дате регистрации (created_at) ──
+        const countNewUsersSince = async (since) => {
+          const r = await pool.query(
+            `SELECT COUNT(*) as count FROM iman_users WHERE created_at >= $1`,
+            [since],
+          );
+          return parseInt(r.rows[0].count);
+        };
+        const newUsersToday = await countNewUsersSince(startOfToday);
+        const newUsersWeek = await countNewUsersSince(startOfWeek);
+        const newUsersMonth = await countNewUsersSince(startOfMonth);
 
-        // ✨ NEW: New users (today & this week)
-        const newUsersTodayResult = await pool.query(
-          `SELECT COUNT(*) as count
-           FROM iman_users
-           WHERE updated_at > $1`,
-          [now - ONE_DAY],
-        );
-        const newUsersToday = parseInt(newUsersTodayResult.rows[0].count);
-
-        const newUsersWeekResult = await pool.query(
-          `SELECT COUNT(*) as count
-           FROM iman_users
-           WHERE updated_at > $1`,
-          [now - 7 * ONE_DAY],
-        );
-        const newUsersWeek = parseInt(newUsersWeekResult.rows[0].count);
-
-        // ✨ NEW: Quran reading stats (page views on /quran)
+        // Quran reading stats (page views on /quran, последние 7 дней)
         const quranViewsResult = await pool.query(
           `SELECT COUNT(*) as count
            FROM iman_analytics
-           WHERE page = '/quran' AND timestamp > $1`,
-          [now - 7 * ONE_DAY],
+           WHERE page = '/quran' AND timestamp >= $1`,
+          [startOfWeek],
         );
         const quranViews = parseInt(quranViewsResult.rows[0].count);
 
@@ -1949,21 +2032,37 @@ const server = createServer(async (req, res) => {
         res.end(
           JSON.stringify({
             totalUsers,
+            timezone: "Бишкек (UTC+6)",
             onlineNow: online,
             online,
             activeToday,
+            // Уникальные посетители по бишкекскому времени
+            visitors: {
+              today: visitorsToday,
+              week: visitorsWeek,
+              month: visitorsMonth,
+            },
             topPages,
             topActions,
             avgSessionDuration: avgDuration,
             timeline,
+            dailyVisitors,
+            featureStats,
+            engagement: {
+              sessions: { today: sessionsToday, week: sessionsWeek, month: sessionsMonth },
+              pageViews: { today: pageViewsToday, week: pageViewsWeek, month: pageViewsMonth },
+              avgVisitsPerUser: { today: avgVisitsPerUserToday, week: avgVisitsPerUserWeek },
+            },
             topUsers,
             prayers: {
               today: prayersToday,
               week: prayersWeek,
+              month: prayersMonth,
             },
             newUsers: {
               today: newUsersToday,
               week: newUsersWeek,
+              month: newUsersMonth,
             },
             quranViews,
           }),

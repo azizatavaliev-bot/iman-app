@@ -15,6 +15,9 @@ import {
   ChevronUp,
   Wifi,
   BarChart3,
+  Calendar,
+  CalendarDays,
+  UserPlus,
 } from "lucide-react";
 import { isAdmin } from "../lib/adminConfig";
 import {
@@ -33,10 +36,28 @@ const API_BASE = import.meta.env.VITE_API_BASE || "";
 interface AnalyticsData {
   online: number;
   activeToday: number;
-  topPages: Array<{ page: string; count: number }>;
+  timezone?: string;
+  visitors: {
+    today: number;
+    week: number;
+    month: number;
+  };
+  topPages: Array<{ page: string; count: number; users?: number }>;
   topActions: Array<{ action: string; count: number }>;
   avgSessionDuration: number;
   timeline: Array<{ hour: string; users: number }>;
+  dailyVisitors: Array<{ date: string; users: number; views: number }>;
+  featureStats: Array<{
+    page: string;
+    views: number;
+    users: number;
+    avgSeconds: number;
+  }>;
+  engagement: {
+    sessions: { today: number; week: number; month: number };
+    pageViews: { today: number; week: number; month: number };
+    avgVisitsPerUser: { today: number; week: number };
+  };
   topUsers: Array<{
     telegram_id: number;
     name: string;
@@ -47,10 +68,12 @@ interface AnalyticsData {
   prayers: {
     today: number;
     week: number;
+    month: number;
   };
   newUsers: {
     today: number;
     week: number;
+    month: number;
   };
   quranViews: number;
 }
@@ -109,6 +132,109 @@ function StatCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------
+// PeriodCard — крупная карточка с тремя периодами (сегодня/неделя/месяц)
+// ----------------------------------------------------------------
+
+function PeriodCard({
+  icon: Icon,
+  label,
+  today,
+  week,
+  month,
+  color,
+  bgColor,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  today: number;
+  week: number;
+  month: number;
+  color: string;
+  bgColor: string;
+}) {
+  return (
+    <div className="glass-card p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <div
+          className={`${bgColor} w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0`}
+        >
+          <Icon size={18} className={color} />
+        </div>
+        <p
+          className="text-sm font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {label}
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {[
+          { t: "Сегодня", v: today },
+          { t: "Неделя", v: week },
+          { t: "Месяц", v: month },
+        ].map((p) => (
+          <div key={p.t} className="rounded-xl bg-white/5 py-2">
+            <p className={`text-xl font-bold leading-none ${color}`}>{p.v}</p>
+            <p className="text-[10px] mt-1" style={{ color: "var(--text-faint)" }}>
+              {p.t}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------
+// DailyChart — столбчатый график уникальных посетителей по дням
+// ----------------------------------------------------------------
+
+function DailyChart({
+  data,
+}: {
+  data: Array<{ date: string; users: number; views: number }>;
+}) {
+  if (!data || data.length === 0) {
+    return (
+      <p className="text-sm text-center py-6" style={{ color: "var(--text-faint)" }}>
+        Пока нет данных за период
+      </p>
+    );
+  }
+  const max = Math.max(...data.map((d) => d.users), 1);
+  return (
+    <div className="flex items-end justify-between gap-1 h-32">
+      {data.map((d) => {
+        const h = Math.max(4, Math.round((d.users / max) * 100));
+        const dd = d.date.slice(8, 10);
+        const mm = d.date.slice(5, 7);
+        return (
+          <div
+            key={d.date}
+            className="flex-1 flex flex-col items-center gap-1 group relative"
+            title={`${dd}.${mm}: ${d.users} польз. / ${d.views} заходов`}
+          >
+            <span
+              className="text-[9px] font-medium"
+              style={{ color: "var(--text-muted)" }}
+            >
+              {d.users}
+            </span>
+            <div
+              className="w-full rounded-t-md bg-gradient-to-t from-purple-500/40 to-purple-400 transition-all"
+              style={{ height: `${h}%` }}
+            ></div>
+            <span className="text-[8px]" style={{ color: "var(--text-faint)" }}>
+              {dd}.{mm}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -360,12 +486,20 @@ export default function AdminNew() {
         {/* LIVE STATS                                                   */}
         {/* ============================================================ */}
         <div>
-          <h2
-            className="text-sm uppercase tracking-wider mb-3"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Live Статистика
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2
+              className="text-sm uppercase tracking-wider"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Live Статистика
+            </h2>
+            <span
+              className="text-[10px] px-2 py-0.5 rounded-full bg-white/5"
+              style={{ color: "var(--text-faint)" }}
+            >
+              🕒 {analytics?.timezone || "Бишкек (UTC+6)"}
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               icon={Wifi}
@@ -375,14 +509,6 @@ export default function AdminNew() {
               color="text-green-400"
               bgColor="bg-green-400/10"
               pulse={true}
-            />
-            <StatCard
-              icon={Activity}
-              label="Активны сегодня"
-              value={analytics?.activeToday || 0}
-              subtitle="За последние 24 часа"
-              color="text-blue-400"
-              bgColor="bg-blue-400/10"
             />
             <StatCard
               icon={Users}
@@ -400,36 +526,6 @@ export default function AdminNew() {
               color="text-amber-400"
               bgColor="bg-amber-400/10"
             />
-          </div>
-        </div>
-
-        {/* ============================================================ */}
-        {/* GROWTH & ACTIVITY STATS                                      */}
-        {/* ============================================================ */}
-        <div>
-          <h2
-            className="text-sm uppercase tracking-wider mb-3"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Рост и активность
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard
-              icon={Users}
-              label="Новых сегодня"
-              value={analytics?.newUsers?.today || 0}
-              subtitle={`${analytics?.newUsers?.week || 0} за неделю`}
-              color="text-cyan-400"
-              bgColor="bg-cyan-400/10"
-            />
-            <StatCard
-              icon={Activity}
-              label="Намазов сегодня"
-              value={analytics?.prayers?.today || 0}
-              subtitle={`${analytics?.prayers?.week || 0} за неделю`}
-              color="text-emerald-400"
-              bgColor="bg-emerald-400/10"
-            />
             <StatCard
               icon={Eye}
               label="Просмотров Корана"
@@ -440,6 +536,172 @@ export default function AdminNew() {
             />
           </div>
         </div>
+
+        {/* ============================================================ */}
+        {/* VISITORS BY PERIOD (Bishkek)                                 */}
+        {/* ============================================================ */}
+        <div>
+          <h2
+            className="text-sm uppercase tracking-wider mb-3"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Уникальные посетители · по времени Бишкека
+          </h2>
+          <div className="grid grid-cols-1 gap-3">
+            <PeriodCard
+              icon={CalendarDays}
+              label="Заходили в приложение"
+              today={analytics?.visitors?.today || 0}
+              week={analytics?.visitors?.week || 0}
+              month={analytics?.visitors?.month || 0}
+              color="text-blue-400"
+              bgColor="bg-blue-400/10"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <PeriodCard
+                icon={UserPlus}
+                label="Новые"
+                today={analytics?.newUsers?.today || 0}
+                week={analytics?.newUsers?.week || 0}
+                month={analytics?.newUsers?.month || 0}
+                color="text-cyan-400"
+                bgColor="bg-cyan-400/10"
+              />
+              <PeriodCard
+                icon={Activity}
+                label="Намазов отмечено"
+                today={analytics?.prayers?.today || 0}
+                week={analytics?.prayers?.week || 0}
+                month={analytics?.prayers?.month || 0}
+                color="text-emerald-400"
+                bgColor="bg-emerald-400/10"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* DAILY VISITORS CHART                                         */}
+        {/* ============================================================ */}
+        <div className="glass-card p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={18} className="text-purple-400" />
+            <h3
+              className="font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Заходы по дням (14 дней)
+            </h3>
+          </div>
+          <DailyChart data={analytics?.dailyVisitors || []} />
+        </div>
+
+        {/* ============================================================ */}
+        {/* ENGAGEMENT (заходы / просмотры / частота)                    */}
+        {/* ============================================================ */}
+        <div>
+          <h2
+            className="text-sm uppercase tracking-wider mb-3"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Вовлечённость
+          </h2>
+          <div className="grid grid-cols-1 gap-3">
+            <PeriodCard
+              icon={Activity}
+              label="Всего заходов (сессий)"
+              today={analytics?.engagement?.sessions?.today || 0}
+              week={analytics?.engagement?.sessions?.week || 0}
+              month={analytics?.engagement?.sessions?.month || 0}
+              color="text-pink-400"
+              bgColor="bg-pink-400/10"
+            />
+            <PeriodCard
+              icon={Eye}
+              label="Просмотров страниц"
+              today={analytics?.engagement?.pageViews?.today || 0}
+              week={analytics?.engagement?.pageViews?.week || 0}
+              month={analytics?.engagement?.pageViews?.month || 0}
+              color="text-sky-400"
+              bgColor="bg-sky-400/10"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard
+                icon={TrendingUp}
+                label="Заходов на человека"
+                value={analytics?.engagement?.avgVisitsPerUser?.today || 0}
+                subtitle="в среднем сегодня"
+                color="text-orange-400"
+                bgColor="bg-orange-400/10"
+              />
+              <StatCard
+                icon={TrendingUp}
+                label="Заходов на человека"
+                value={analytics?.engagement?.avgVisitsPerUser?.week || 0}
+                subtitle="в среднем за неделю"
+                color="text-rose-400"
+                bgColor="bg-rose-400/10"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* FEATURE DETAIL TABLE (детально по функциям)                  */}
+        {/* ============================================================ */}
+        {analytics?.featureStats && analytics.featureStats.length > 0 && (
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 size={18} className="text-emerald-400" />
+              <h3
+                className="font-semibold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Детально по функциям (7 дней)
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr
+                    className="text-xs uppercase tracking-wider"
+                    style={{ color: "var(--text-faint)" }}
+                  >
+                    <th className="text-left font-medium pb-2">Функция</th>
+                    <th className="text-right font-medium pb-2">Заходов</th>
+                    <th className="text-right font-medium pb-2">Людей</th>
+                    <th className="text-right font-medium pb-2">Ср. время</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics.featureStats.map((f) => (
+                    <tr
+                      key={f.page}
+                      className="border-t border-white/5"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <td className="py-2 pr-2 truncate max-w-[140px]">
+                        {PAGE_NAMES[f.page] || f.page}
+                      </td>
+                      <td className="py-2 text-right font-semibold text-sky-400">
+                        {f.views}
+                      </td>
+                      <td className="py-2 text-right font-semibold text-purple-400">
+                        {f.users}
+                      </td>
+                      <td
+                        className="py-2 text-right"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        {f.avgSeconds > 0 ? formatDuration(f.avgSeconds) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* ============================================================ */}
         {/* TOP 5 USERS BY POINTS                                        */}
