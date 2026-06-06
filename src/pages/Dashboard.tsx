@@ -46,6 +46,12 @@ import {
   Sprout,
   Info as InfoIcon,
   BookMarked,
+  ListOrdered,
+  RotateCw,
+  Sunrise,
+  Sun,
+  Sunset,
+  CloudSun,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS, POINTS } from "../lib/storage";
 import { getTelegramUser } from "../lib/telegram";
@@ -521,6 +527,33 @@ function ActivityRow({
 // ---------------------------------------------------------------------------
 
 // Popular surahs for quick play
+// Иконки намазов (вместо смайликов) для полоски статуса
+const PRAYER_LUCIDE: Record<string, typeof Moon> = {
+  fajr: Sunrise,
+  dhuhr: Sun,
+  asr: CloudSun,
+  maghrib: Sunset,
+  isha: Moon,
+};
+
+// Арабские названия намазов для главной карточки
+const PRAYER_AR: Record<string, string> = {
+  fajr: "الفجر",
+  sunrise: "الشروق",
+  dhuhr: "الظهر",
+  asr: "العصر",
+  maghrib: "المغرب",
+  isha: "العشاء",
+};
+
+// Иконки для заголовков категорий меню (вместо смайликов)
+const SECTION_ICONS: Record<string, typeof Moon> = {
+  "Намаз и поклонение": Landmark,
+  "Коран и знания": BookOpen,
+  Ещё: Sparkles,
+  Сообщество: Users,
+};
+
 const POPULAR_SURAHS = [
   { number: 1, name: "Аль-Фатиха", ar: "الفاتحة" },
   { number: 36, name: "Йа Син", ar: "يس" },
@@ -579,6 +612,15 @@ const FEATURE_SLIDES = [
     from: "from-indigo-500",
     to: "to-violet-600",
     shadow: "shadow-indigo-500/25",
+  },
+  {
+    emoji: "📿",
+    title: "Намаз: порядок и зикры",
+    desc: "Что читать в намазе и зикры после · ханафи · с заучиванием сур",
+    path: "/prayer-structure",
+    from: "from-emerald-500",
+    to: "to-green-600",
+    shadow: "shadow-emerald-500/25",
   },
   {
     emoji: "🎬",
@@ -1437,8 +1479,11 @@ export default function Dashboard() {
       {/* ================================================================ */}
       {/* 2. INSTRUCTION STORIES (кружки как в Instagram)                  */}
       {/* ================================================================ */}
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-sm font-semibold text-white/70">📖 Ознакомьтесь с функциями</span>
+      <div className="flex items-center gap-2 mb-2 px-1">
+        <div className="w-6 h-6 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center">
+          <Sparkles size={13} className="text-emerald-300" />
+        </div>
+        <span className="text-[13px] font-semibold text-white/70">Ознакомьтесь с функциями</span>
       </div>
       <InstructionStories totalUsers={totalUsersCount} />
 
@@ -1448,10 +1493,13 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-3">
         <Link
           to="/guide"
-          className="col-span-1 h-28 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
+          className="group relative overflow-hidden col-span-1 h-28 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-4 flex flex-col justify-between shadow-lg shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-transform"
         >
-          <Info className="w-8 h-8 text-white" strokeWidth={2} />
-          <div>
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
+          <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/20">
+            <Info className="w-6 h-6 text-white" strokeWidth={2.2} />
+          </div>
+          <div className="relative">
             <h3 className="text-base font-bold text-white">Инструкция</h3>
             <p className="text-xs text-white/80 mt-0.5">Как пользоваться</p>
           </div>
@@ -1459,10 +1507,13 @@ export default function Dashboard() {
 
         <Link
           to="/beginners"
-          className="col-span-1 h-28 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
+          className="group relative overflow-hidden col-span-1 h-28 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-4 flex flex-col justify-between shadow-lg shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98] transition-transform"
         >
-          <GraduationCap className="w-8 h-8 text-white" strokeWidth={2} />
-          <div>
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform" />
+          <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/20">
+            <GraduationCap className="w-6 h-6 text-white" strokeWidth={2.2} />
+          </div>
+          <div className="relative">
             <h3 className="text-base font-bold text-white">Новичкам</h3>
             <p className="text-xs text-white/80 mt-0.5">Начните здесь</p>
           </div>
@@ -1485,11 +1536,20 @@ export default function Dashboard() {
       {/* ================================================================ */}
       {/* 3. DAILY SCORE + LEVEL (компактно в одну строку)                */}
       {/* ================================================================ */}
-      <div className="glass-card p-4 flex items-center gap-4">
+      <div
+        className="relative overflow-hidden rounded-3xl p-4 flex items-center gap-4"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
+          border: "1px solid rgba(255,255,255,0.07)",
+        }}
+      >
+        <div className="absolute -bottom-12 -right-8 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
         {/* Daily Score Ring — нажми для объяснения */}
         <button
           onClick={() => setShowSawabInfo(true)}
-          className="active:scale-95 transition-transform"
+          className="active:scale-95 transition-transform flex-shrink-0"
         >
           <DailyProgressRing
             earned={pointsEarned}
@@ -1499,29 +1559,40 @@ export default function Dashboard() {
         </button>
 
         {/* Stats + Level */}
-        <div className="flex-1 min-w-0 space-y-2">
-          <div>
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">
-              Сегодня
-            </p>
-            <p className="text-base font-semibold text-white">
-              {pointsEarned}
-              <span className="t-text-f font-normal text-sm">
-                /{MAX_DAILY_POINTS}
-              </span>
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+        <div className="flex-1 min-w-0 space-y-2.5 relative">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest mb-0.5">
+                Саваб сегодня
+              </p>
+              <p className="text-xl font-black text-white leading-none">
+                {pointsEarned}
+                <span className="text-white/35 font-medium text-sm">
+                  {" "}
+                  / {MAX_DAILY_POINTS}
+                </span>
+              </p>
+            </div>
+            <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">
               <span className="text-sm">{currentLevel.icon}</span>
-              <span className="text-xs font-semibold text-emerald-400">
+              <span className="text-[11px] font-bold text-amber-300">
                 {currentLevel.name}
               </span>
             </div>
-            <div className="flex-1 h-1.5 t-bg rounded-full overflow-hidden">
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[9px] text-white/35 uppercase tracking-wider">
+                До следующего уровня
+              </span>
+              <span className="text-[9px] font-bold text-emerald-400 tabular-nums">
+                {levelProgressPct}%
+              </span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden bg-white/[0.07]">
               <div
-                className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-500 to-emerald-400"
+                className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400"
                 style={{ width: `${levelProgressPct}%` }}
               />
             </div>
@@ -1532,30 +1603,63 @@ export default function Dashboard() {
       {/* ================================================================ */}
       {/* 4. NEXT PRAYER TIMER                                             */}
       {/* ================================================================ */}
-      <div className="glass-card glow-green p-5 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div
+        className="relative overflow-hidden rounded-3xl p-5"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(13,148,136,0.10) 45%, rgba(255,255,255,0.02) 100%)",
+          border: "1px solid rgba(16,185,129,0.22)",
+          boxShadow: "0 8px 32px rgba(16,185,129,0.12)",
+        }}
+      >
+        {/* Декоративные сияния */}
+        <div className="absolute -top-16 -right-12 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Арабский водяной знак */}
+        <div
+          dir="rtl"
+          className="absolute top-3 right-4 text-5xl font-arabic text-white/[0.05] pointer-events-none select-none leading-none"
+        >
+          {PRAYER_AR[nextPrayer?.key as string] || "الصلاة"}
+        </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-6">
+          <div className="flex items-center justify-center py-8 relative">
             <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : nextPrayer ? (
-          <>
-            <div className="flex items-center gap-2 text-emerald-400/70 text-xs font-medium uppercase tracking-widest mb-3">
-              <Clock size={14} />
-              <span>Следующий намаз</span>
+          <div className="relative">
+            {/* Бейдж */}
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 mb-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                Следующий намаз
+              </span>
             </div>
 
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <h2 className="text-3xl font-bold text-white">
-                  {nextPrayer.russianName}
-                </h2>
-                <p className="text-lg t-text-s mt-1">{nextPrayer.time}</p>
+            {/* Имя намаза + обратный отсчёт */}
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-3xl font-black text-white leading-none">
+                    {nextPrayer.russianName}
+                  </h2>
+                  <span dir="rtl" className="text-lg font-arabic text-emerald-300/80">
+                    {PRAYER_AR[nextPrayer.key as string] || ""}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-2 text-white/55">
+                  <Clock size={13} />
+                  <span className="text-sm font-medium tabular-nums">{nextPrayer.time}</span>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-white/40 mb-1">через</p>
-                <p className="text-2xl font-mono font-bold text-emerald-400 tabular-nums tracking-tight">
+
+              <div className="flex-shrink-0 text-center px-4 py-2.5 rounded-2xl bg-black/25 border border-white/10 backdrop-blur-sm">
+                <p className="text-[9px] text-white/40 uppercase tracking-wider mb-1">через</p>
+                <p className="text-2xl font-mono font-bold text-emerald-400 tabular-nums tracking-tight leading-none">
                   {countdown}
                 </p>
               </div>
@@ -1563,22 +1667,22 @@ export default function Dashboard() {
 
             {/* "Прочитал" button */}
             {nextPrayerAlreadyDone ? (
-              <div className="w-full py-3 rounded-2xl text-sm font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center gap-2 cursor-default">
+              <div className="w-full py-3.5 rounded-2xl text-sm font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center justify-center gap-2 cursor-default">
                 <Check size={18} strokeWidth={2.5} />
                 Прочитано
               </div>
             ) : (
               <button
                 onClick={() => markPrayerDone(nextPrayer.key)}
-                className="w-full py-3 rounded-2xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-white transition-all duration-200 active:scale-[0.97] shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all duration-200 active:scale-[0.97] shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2"
               >
                 <Check size={18} strokeWidth={2.5} />
-                Прочитал
+                Я прочитал намаз
               </button>
             )}
-          </>
+          </div>
         ) : (
-          <p className="t-text-m text-sm text-center py-4">
+          <p className="t-text-m text-sm text-center py-4 relative">
             Не удалось загрузить время намазов
           </p>
         )}
@@ -1602,50 +1706,73 @@ export default function Dashboard() {
               const diff = getMinutesSincePrayer(prayerTimes[apiKey] || "");
               const notYet = diff !== null && diff < 0;
 
-              return (
+              return (() => {
+                  const PIcon = PRAYER_LUCIDE[pk] || Moon;
+                  const accent = isDone
+                    ? "text-emerald-400"
+                    : isMissed
+                      ? "text-red-400"
+                      : notYet
+                        ? "text-white/25"
+                        : isNext
+                          ? "text-amber-400"
+                          : "text-white/55";
+                  return (
                 <button
                   key={pk}
                   onClick={() => {
                     if (!isDone && !isMissed && !notYet) markPrayerDone(pk);
                   }}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl transition-all duration-200 ${
+                  className={`relative flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl transition-all duration-200 active:scale-95 ${
                     isDone
-                      ? "bg-emerald-500/15 border border-emerald-500/25"
+                      ? "bg-emerald-500/15 border border-emerald-500/30"
                       : isMissed
                         ? "bg-red-500/10 border border-red-500/20"
                         : notYet
-                          ? "opacity-30 t-bg border t-border-s"
+                          ? "opacity-40 t-bg border t-border-s"
                           : isNext
-                            ? "bg-amber-500/10 border border-amber-500/25 ring-1 ring-amber-500/20"
+                            ? "bg-amber-500/10 border border-amber-500/30 ring-1 ring-amber-500/25 shadow-lg shadow-amber-500/10"
                             : "t-bg border t-border-s"
                   }`}
                 >
-                  <span className="text-xs">{PRAYER_ICONS[pk]}</span>
-                  <span
-                    className={`text-[10px] font-semibold ${
+                  {/* статус-метка */}
+                  {(isDone || isMissed) && (
+                    <span
+                      className={`absolute top-1 right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center ${
+                        isDone ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    >
+                      {isDone ? (
+                        <Check size={8} strokeWidth={3} className="text-white" />
+                      ) : (
+                        <X size={8} strokeWidth={3} className="text-white" />
+                      )}
+                    </span>
+                  )}
+                  {notYet && !isDone && !isMissed && (
+                    <Lock size={8} className="absolute top-1.5 right-1.5 text-white/25" />
+                  )}
+
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                       isDone
-                        ? "text-emerald-400"
-                        : isMissed
-                          ? "text-red-400"
-                          : notYet
-                            ? "text-white/20"
-                            : isNext
-                              ? "text-amber-400"
-                              : "text-white/50"
+                        ? "bg-emerald-500/20"
+                        : isNext
+                          ? "bg-amber-500/20"
+                          : "bg-white/[0.05]"
                     }`}
                   >
+                    <PIcon size={16} className={accent} strokeWidth={2} />
+                  </div>
+                  <span className={`text-[10px] font-bold ${accent}`}>
                     {PRAYER_NAMES_MAP[apiKey]?.slice(0, 3)}
                   </span>
-                  <span className="text-[9px] text-white/30 tabular-nums">
+                  <span className="text-[9px] text-white/35 tabular-nums">
                     {timeStr}
                   </span>
-                  {isDone && <Check size={10} className="text-emerald-400" />}
-                  {isMissed && <X size={10} className="text-red-400" />}
-                  {notYet && !isDone && !isMissed && (
-                    <Lock size={9} className="text-white/20" />
-                  )}
                 </button>
-              );
+                  );
+                })();
             })}
           </div>
         </div>
@@ -1669,15 +1796,22 @@ export default function Dashboard() {
               grad: "from-emerald-600/40 to-emerald-500/20",
             },
             {
-              icon: Landmark,
-              label: "Гид по намазу",
+              icon: BookMarked,
+              label: "Правила намаза",
               path: "/namaz-guide",
               color: "text-indigo-300",
               grad: "from-indigo-600/40 to-indigo-500/20",
             },
             {
+              icon: ListOrdered,
+              label: "Структура намаза",
+              path: "/prayer-structure",
+              color: "text-green-300",
+              grad: "from-green-600/40 to-emerald-500/20",
+            },
+            {
               icon: Film,
-              label: "Структура",
+              label: "Намаз наглядно",
               path: "/prayer-flow",
               color: "text-emerald-300",
               grad: "from-emerald-600/40 to-teal-500/20",
@@ -1697,8 +1831,8 @@ export default function Dashboard() {
               grad: "from-pink-600/40 to-pink-500/20",
             },
             {
-              icon: Repeat,
-              label: "Зикры",
+              icon: RotateCw,
+              label: "Чётки (зикр)",
               path: "/dhikr",
               color: "text-teal-300",
               grad: "from-teal-600/40 to-teal-500/20",
@@ -1925,10 +2059,15 @@ export default function Dashboard() {
             },
           ],
         },
-      ].map((section) => (
+      ].map((section) => {
+        const SectionIcon =
+          SECTION_ICONS[section.title] || Sparkles;
+        return (
         <div key={section.title}>
-          <div className="flex items-center gap-2 mb-2.5 px-1">
-            <span className="text-sm">{section.emoji}</span>
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center">
+              <SectionIcon size={15} className="text-emerald-300" />
+            </div>
             <h3 className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
               {section.title}
             </h3>
@@ -1938,12 +2077,17 @@ export default function Dashboard() {
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className="glass-card p-3 flex flex-col items-center gap-2 hover:scale-105 active:scale-95 transition-transform border border-white/[0.06]"
+                className="group relative rounded-2xl p-3 flex flex-col items-center gap-2
+                           bg-white/[0.03] border border-white/[0.07]
+                           hover:bg-white/[0.06] hover:border-white/15
+                           hover:-translate-y-0.5 active:scale-95 transition-all duration-200
+                           shadow-sm hover:shadow-lg hover:shadow-black/20"
               >
                 <div
-                  className={`bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg`}
+                  className={`relative bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center
+                              shadow-lg ring-1 ring-white/10 group-hover:ring-white/20 group-hover:scale-105 transition-all`}
                 >
-                  <Icon size={22} className={color} />
+                  <Icon size={22} className={color} strokeWidth={2} />
                 </div>
                 <span className="text-[10px] text-white/80 font-medium text-center leading-tight line-clamp-2 px-0.5">
                   {label}
@@ -1952,7 +2096,8 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* ================================================================ */}
       {/* 6. ACTIVITY TODAY (компактно, без времени, только выполненные)   */}

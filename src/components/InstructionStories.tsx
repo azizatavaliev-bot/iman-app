@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Sprout, LayoutGrid, Trophy, Star, Heart } from "lucide-react";
+
+// Стиль кружков-категорий: иконка + цвет (вместо смайликов)
+const CAT_STYLE: Record<
+  string,
+  { Icon: typeof Sprout; from: string; to: string; text: string; glow: string }
+> = {
+  beginners: { Icon: Sprout, from: "from-emerald-400", to: "to-teal-500", text: "text-emerald-300", glow: "shadow-emerald-500/30" },
+  functions: { Icon: LayoutGrid, from: "from-indigo-400", to: "to-blue-500", text: "text-indigo-300", glow: "shadow-indigo-500/30" },
+  levels: { Icon: Trophy, from: "from-amber-400", to: "to-orange-500", text: "text-amber-300", glow: "shadow-amber-500/30" },
+  sawab: { Icon: Star, from: "from-yellow-400", to: "to-amber-500", text: "text-yellow-300", glow: "shadow-yellow-500/30" },
+  about: { Icon: Heart, from: "from-rose-400", to: "to-pink-500", text: "text-rose-300", glow: "shadow-rose-500/30" },
+};
 
 // ---------------------------------------------------------------------------
 // Story categories (кружки как в Instagram)
@@ -422,32 +434,39 @@ export default function InstructionStories({ totalUsers = 0 }: { totalUsers?: nu
   return (
     <>
       {/* Story circles row */}
-      <div className="flex gap-3 overflow-x-auto scrollbar-none px-1 py-1 -mx-1">
+      <div className="flex gap-3.5 overflow-x-auto scrollbar-none px-1 py-1 -mx-1">
         {STORY_CATEGORIES.map((cat) => {
           const isViewed = viewed.has(cat.id);
+          const st = CAT_STYLE[cat.id] || CAT_STYLE.functions;
+          const Icon = st.Icon;
           return (
             <button
               key={cat.id}
               onClick={() => openCategory(cat)}
               className="flex flex-col items-center gap-1.5 shrink-0 active:scale-95 transition-transform"
             >
+              {/* Градиентное кольцо */}
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
-                style={
+                className={`rounded-full p-[2.5px] ${
                   isViewed
-                    ? { background: "rgba(255,255,255,0.05)", border: "2px solid rgba(255,255,255,0.1)" }
-                    : {
-                        background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(20,184,166,0.2))",
-                        border: "2px solid rgba(16,185,129,0.5)",
-                        boxShadow: "0 0 12px rgba(16,185,129,0.2)",
-                      }
-                }
+                    ? "bg-white/10"
+                    : `bg-gradient-to-br ${st.from} ${st.to} shadow-lg ${st.glow}`
+                }`}
               >
-                {cat.emoji}
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ background: "var(--bg-secondary, #0f172a)" }}
+                >
+                  <Icon
+                    size={26}
+                    strokeWidth={2}
+                    className={isViewed ? "text-white/30" : st.text}
+                  />
+                </div>
               </div>
               <span
-                className="text-[10px] font-medium"
-                style={{ color: isViewed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)" }}
+                className="text-[10px] font-semibold"
+                style={{ color: isViewed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.75)" }}
               >
                 {cat.label}
               </span>

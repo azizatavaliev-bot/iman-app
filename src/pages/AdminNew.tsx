@@ -208,33 +208,45 @@ function DailyChart({
   }
   const max = Math.max(...data.map((d) => d.users), 1);
   return (
-    <div className="flex items-end justify-between gap-1 h-32">
-      {data.map((d) => {
-        const h = Math.max(4, Math.round((d.users / max) * 100));
-        const dd = d.date.slice(8, 10);
-        const mm = d.date.slice(5, 7);
-        return (
-          <div
-            key={d.date}
-            className="flex-1 flex flex-col items-center gap-1 group relative"
-            title={`${dd}.${mm}: ${d.users} польз. / ${d.views} заходов`}
-          >
-            <span
-              className="text-[9px] font-medium"
-              style={{ color: "var(--text-muted)" }}
-            >
-              {d.users}
-            </span>
+    <div>
+      {/* Столбики */}
+      <div className="flex items-end gap-[3px] h-36">
+        {data.map((d) => {
+          const h = Math.max(3, Math.round((d.users / max) * 100));
+          const dd = d.date.slice(8, 10);
+          const mm = d.date.slice(5, 7);
+          return (
             <div
-              className="w-full rounded-t-md bg-gradient-to-t from-purple-500/40 to-purple-400 transition-all"
-              style={{ height: `${h}%` }}
-            ></div>
-            <span className="text-[8px]" style={{ color: "var(--text-faint)" }}>
-              {dd}.{mm}
-            </span>
-          </div>
-        );
-      })}
+              key={d.date}
+              className="flex-1 h-full flex flex-col justify-end items-center gap-1"
+              title={`${dd}.${mm}: ${d.users} польз. / ${d.views} заходов`}
+            >
+              <span
+                className="text-[9px] font-semibold leading-none"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {d.users}
+              </span>
+              <div
+                className="w-full rounded-t-md bg-gradient-to-t from-purple-600 to-purple-400 min-h-[3px]"
+                style={{ height: `${h}%` }}
+              ></div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Подписи дат */}
+      <div className="flex gap-[3px] mt-1.5">
+        {data.map((d) => (
+          <span
+            key={d.date}
+            className="flex-1 text-center text-[8px] leading-none"
+            style={{ color: "var(--text-faint)" }}
+          >
+            {d.date.slice(8, 10)}.{d.date.slice(5, 7)}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

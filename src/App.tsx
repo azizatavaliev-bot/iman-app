@@ -199,6 +199,7 @@ const Holidays = lazy(() => import("./pages/Holidays"));
 const Facts = lazy(() => import("./pages/Facts"));
 const IslamicQA = lazy(() => import("./pages/IslamicQA"));
 const PrayerFlow = lazy(() => import("./pages/PrayerFlow"));
+const PrayerStructure = lazy(() => import("./pages/PrayerStructure"));
 
 function PageLoader() {
   return (
@@ -278,6 +279,7 @@ const PAGES_WITH_OWN_BACK = new Set([
   "/about-app",
   "/memorize",
   "/quiz",
+  "/prayer-structure",
 ]);
 
 function GlobalBackButton() {
@@ -404,6 +406,7 @@ function AppContent() {
             <Route path="/facts" element={<Facts />} />
             <Route path="/qa" element={<IslamicQA />} />
             <Route path="/prayer-flow" element={<PrayerFlow />} />
+            <Route path="/prayer-structure" element={<PrayerStructure />} />
           </Routes>
         </Suspense>
       </div>
