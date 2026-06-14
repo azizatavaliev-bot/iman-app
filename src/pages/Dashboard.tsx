@@ -1969,6 +1969,13 @@ export default function Dashboard() {
           emoji: "🏆",
           items: [
             {
+              icon: Crown,
+              label: "IMAN Quest",
+              path: "/quest",
+              color: "text-emerald-300",
+              grad: "from-emerald-600/50 to-amber-500/30",
+            },
+            {
               icon: Brain,
               label: "Викторина",
               path: "/quiz",

@@ -199,6 +199,8 @@ const Holidays = lazy(() => import("./pages/Holidays"));
 const Facts = lazy(() => import("./pages/Facts"));
 const IslamicQA = lazy(() => import("./pages/IslamicQA"));
 const PrayerFlow = lazy(() => import("./pages/PrayerFlow"));
+const Quest = lazy(() => import("./pages/Quest"));
+const QuestLevel = lazy(() => import("./pages/QuestLevel"));
 const PrayerStructure = lazy(() => import("./pages/PrayerStructure"));
 
 function PageLoader() {
@@ -406,6 +408,8 @@ function AppContent() {
             <Route path="/facts" element={<Facts />} />
             <Route path="/qa" element={<IslamicQA />} />
             <Route path="/prayer-flow" element={<PrayerFlow />} />
+            <Route path="/quest" element={<Quest />} />
+            <Route path="/quest/:worldId/:levelId" element={<QuestLevel />} />
             <Route path="/prayer-structure" element={<PrayerStructure />} />
           </Routes>
         </Suspense>
