@@ -1781,6 +1781,88 @@ export default function Dashboard() {
       {/* Ramadan block removed — Рамадан 2026 прошёл */}
 
       {/* ================================================================ */}
+      {/* 4.5 IMAN QUEST — большой CTA                                     */}
+      {/* ================================================================ */}
+      {(() => {
+        // Прогресс игрока в Quest
+        let totalLevels = 0;
+        let passedLevels = 0;
+        let totalStars = 0;
+        try {
+          const raw = localStorage.getItem("iman_quest_progress");
+          const progress = raw ? JSON.parse(raw) : {};
+          // 6 миров × 10 уровней = 60
+          totalLevels = 60;
+          Object.values(progress).forEach((world) => {
+            Object.values(world as Record<number, { stars: number }>).forEach(
+              (lp) => {
+                if (lp && lp.stars > 0) passedLevels++;
+                totalStars += lp?.stars ?? 0;
+              },
+            );
+          });
+        } catch {
+          /* ignore */
+        }
+        const isNew = passedLevels === 0;
+        const progressPct = Math.round((passedLevels / totalLevels) * 100);
+        return (
+          <button
+            onClick={() => navigate("/quest")}
+            className="relative w-full mb-4 overflow-hidden rounded-2xl text-left active:scale-[0.99] transition group"
+          >
+            {/* Gradient bg */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700" />
+            {/* Decorative orbs */}
+            <div className="absolute -top-8 -right-8 w-40 h-40 bg-amber-400/30 rounded-full blur-3xl pointer-events-none animate-orb-float" />
+            <div
+              className="absolute -bottom-12 -left-12 w-40 h-40 bg-emerald-300/30 rounded-full blur-3xl pointer-events-none animate-orb-float"
+              style={{ animationDelay: "2s" }}
+            />
+            {/* Ornament */}
+            <div className="absolute top-3 right-3 text-amber-200/30 text-3xl font-serif pointer-events-none select-none">
+              ✦
+            </div>
+
+            <div className="relative p-5 flex items-center gap-4">
+              {/* Icon */}
+              <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-4xl shrink-0 ring-1 ring-white/20 shadow-lg">
+                🎮
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-amber-200/90 bg-amber-500/20 px-2 py-0.5 rounded-full ring-1 ring-amber-300/40">
+                    {isNew ? "🆕 НОВОЕ" : "🔥 Квест"}
+                  </span>
+                </div>
+                <p className="text-white text-lg font-bold leading-tight mb-0.5">
+                  IMAN Quest
+                </p>
+                <p className="text-emerald-100/90 text-xs leading-snug">
+                  {isNew
+                    ? "Изучай ислам в формате игры — 6 миров, 300+ вопросов"
+                    : `Пройдено ${passedLevels} / ${totalLevels} · ${totalStars} ⭐`}
+                </p>
+
+                {/* Прогресс-бар (если уже начал) */}
+                {!isNew && (
+                  <div className="mt-2 h-1.5 bg-black/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-300 to-amber-500 rounded-full transition-all duration-500"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <ChevronRight className="w-6 h-6 text-white/70 shrink-0" />
+            </div>
+          </button>
+        );
+      })()}
+
+      {/* ================================================================ */}
       {/* 5. QUICK ACTIONS — по категориям                                */}
       {/* ================================================================ */}
       {[
