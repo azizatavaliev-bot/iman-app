@@ -224,13 +224,64 @@ const NAV_ITEMS = [
   { path: "/profile", icon: User, label: "Профиль" },
 ];
 
+function SidebarNav() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return (
+    <aside
+      className="hidden md:flex fixed top-0 left-0 bottom-0 z-40 w-60 flex-col glass"
+      style={{ borderRight: "1px solid var(--border-secondary)" }}
+    >
+      <div className="px-5 py-6">
+        <div className="text-xl font-bold text-emerald-400">IMAN</div>
+        <div className="text-[11px] text-slate-500 mt-0.5">Путь мусульманина</div>
+      </div>
+      <nav className="flex-1 px-3 flex flex-col gap-1">
+        {NAV_ITEMS.map((item) => {
+          const isActive = location.pathname === item.path;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+                isActive
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+              }`}
+            >
+              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+              <span className="text-sm font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => navigate("/quest")}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left mt-2 ${
+            location.pathname.startsWith("/quest")
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+          }`}
+        >
+          <span className="text-lg">🎮</span>
+          <span className="text-sm font-medium">IMAN Quest</span>
+        </button>
+      </nav>
+      <div className="px-5 py-4 text-[11px] text-slate-500 border-t border-white/5">
+        by <span className="font-semibold text-emerald-400">Aziz Atavaliev</span>
+      </div>
+    </aside>
+  );
+}
+
 function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 glass"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass"
       style={{ borderTop: "1px solid var(--border-secondary)" }}
     >
       {/* Брендинг */}
@@ -295,7 +346,7 @@ function GlobalBackButton() {
       className="sticky top-0 z-40 glass"
       style={{ borderBottom: "1px solid var(--border-secondary)" }}
     >
-      <div className="max-w-lg mx-auto flex items-center px-3 py-2.5">
+      <div className="max-w-lg md:max-w-3xl mx-auto flex items-center px-3 py-2.5">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 px-3 py-2 -ml-1 rounded-xl hover:bg-white/5 active:scale-95 transition-all"
@@ -362,14 +413,15 @@ function AppContent() {
   return (
     <div
       id="app-top"
-      className="min-h-screen"
+      className="min-h-screen md:pl-60"
       style={{
         background: `linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary))`,
       }}
     >
       <ScrollToTop />
+      <SidebarNav />
       <GlobalBackButton />
-      <div className="max-w-lg mx-auto pb-20">
+      <div className="max-w-lg md:max-w-3xl mx-auto px-0 md:px-8 pb-20 md:pb-8">
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
