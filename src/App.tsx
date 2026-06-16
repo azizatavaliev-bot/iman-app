@@ -256,9 +256,12 @@ function SidebarNav() {
             </button>
           );
         })}
+        <div className="mt-3 mb-1 px-3 text-[10px] uppercase tracking-wider text-slate-600 font-semibold">
+          Игра и знания
+        </div>
         <button
           onClick={() => navigate("/quest")}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left mt-2 ${
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
             location.pathname.startsWith("/quest")
               ? "bg-emerald-500/15 text-emerald-400"
               : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
@@ -266,6 +269,39 @@ function SidebarNav() {
         >
           <span className="text-lg">🎮</span>
           <span className="text-sm font-medium">IMAN Quest</span>
+        </button>
+        <button
+          onClick={() => navigate("/qa")}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+            location.pathname === "/qa"
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+          }`}
+        >
+          <span className="text-lg">💬</span>
+          <span className="text-sm font-medium">Вопрос-ответ</span>
+        </button>
+        <button
+          onClick={() => navigate("/seerah")}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+            location.pathname === "/seerah"
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+          }`}
+        >
+          <span className="text-lg">📜</span>
+          <span className="text-sm font-medium">Сира пророка</span>
+        </button>
+        <button
+          onClick={() => navigate("/dua")}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+            location.pathname === "/dua"
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+          }`}
+        >
+          <span className="text-lg">🤲</span>
+          <span className="text-sm font-medium">Дуа</span>
         </button>
       </nav>
       <div className="px-5 py-4 text-[11px] text-slate-500 border-t border-white/5">

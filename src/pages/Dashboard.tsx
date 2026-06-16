@@ -1490,7 +1490,7 @@ export default function Dashboard() {
       {/* ================================================================ */}
       {/* 2.5 ДВЕ БОЛЬШИЕ КНОПКИ (Инструкция + Новичкам)                  */}
       {/* ================================================================ */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Link
           to="/guide"
           className="group relative overflow-hidden col-span-1 h-28 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-4 flex flex-col justify-between shadow-lg shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-transform"
@@ -2161,7 +2161,7 @@ export default function Dashboard() {
               {section.title}
             </h3>
           </div>
-          <div className="grid grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-4 md:grid-cols-6 gap-2.5">
             {section.items.map(({ icon: Icon, label, path, color, grad }) => (
               <button
                 key={path}

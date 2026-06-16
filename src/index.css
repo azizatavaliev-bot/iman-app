@@ -417,3 +417,50 @@ body {
 .animate-confetti {
     animation: confetti-fall linear forwards;
 }
+
+/* ============================== */
+/* DESKTOP ADAPTATIONS (md: 768px+) */
+/* ============================== */
+@media (min-width: 768px) {
+    /* Указатель на всём интерактиве */
+    button, a, [role="button"] {
+        cursor: pointer;
+    }
+
+    /* Скроллбар тоньше и в тему */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(16, 185, 129, 0.35);
+    }
+
+    /* Базовая типографика крупнее на десктопе */
+    html {
+        font-size: 16.5px;
+    }
+
+    /* Плавные hover-эффекты для карточек */
+    .glass-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .glass-card:hover {
+        transform: translateY(-1px);
+        border-color: rgba(16, 185, 129, 0.25);
+    }
+}
+
+/* Очень широкие экраны — ограничиваем максимум, чтоб не растягивалось */
+@media (min-width: 1280px) {
+    html {
+        font-size: 17px;
+    }
+}
