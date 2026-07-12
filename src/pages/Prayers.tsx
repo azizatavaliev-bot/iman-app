@@ -1879,7 +1879,7 @@ export default function Prayers() {
         <h2 className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">
           Статистика за неделю
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="t-bg rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-emerald-400">
               {totalPrayersThisWeek}

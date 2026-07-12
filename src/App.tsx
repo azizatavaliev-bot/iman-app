@@ -18,10 +18,8 @@ import {
   Home,
   Moon,
   BookOpen,
-  Compass,
   User,
   ArrowLeft,
-  Heart,
   Headphones,
 } from "lucide-react";
 import { AudioProvider } from "./components/AudioPlayer";
@@ -179,6 +177,7 @@ const Stats = lazy(() => import("./pages/Stats"));
 const Dua = lazy(() => import("./pages/Dua"));
 const IbadahTimer = lazy(() => import("./pages/IbadahTimer"));
 const Memorize = lazy(() => import("./pages/Memorize"));
+const Wallpapers = lazy(() => import("./pages/Wallpapers"));
 const Quiz = lazy(() => import("./pages/Quiz"));
 const Seerah = lazy(() => import("./pages/Seerah"));
 const Stories = lazy(() => import("./pages/Stories"));
@@ -200,6 +199,7 @@ const Facts = lazy(() => import("./pages/Facts"));
 const IslamicQA = lazy(() => import("./pages/IslamicQA"));
 const PrayerFlow = lazy(() => import("./pages/PrayerFlow"));
 const Quest = lazy(() => import("./pages/Quest"));
+const QuestWorldMap = lazy(() => import("./pages/QuestWorldMap"));
 const QuestLevel = lazy(() => import("./pages/QuestLevel"));
 const PrayerStructure = lazy(() => import("./pages/PrayerStructure"));
 
@@ -224,100 +224,13 @@ const NAV_ITEMS = [
   { path: "/profile", icon: User, label: "Профиль" },
 ];
 
-function SidebarNav() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  return (
-    <aside
-      className="hidden md:flex fixed top-0 left-0 bottom-0 z-40 w-60 flex-col glass"
-      style={{ borderRight: "1px solid var(--border-secondary)" }}
-    >
-      <div className="px-5 py-6">
-        <div className="text-xl font-bold text-emerald-400">IMAN</div>
-        <div className="text-[11px] text-slate-500 mt-0.5">Путь мусульманина</div>
-      </div>
-      <nav className="flex-1 px-3 flex flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive = location.pathname === item.path;
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-                isActive
-                  ? "bg-emerald-500/15 text-emerald-400"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-              }`}
-            >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className="text-sm font-medium">{item.label}</span>
-            </button>
-          );
-        })}
-        <div className="mt-3 mb-1 px-3 text-[10px] uppercase tracking-wider text-slate-600 font-semibold">
-          Игра и знания
-        </div>
-        <button
-          onClick={() => navigate("/quest")}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-            location.pathname.startsWith("/quest")
-              ? "bg-emerald-500/15 text-emerald-400"
-              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-          }`}
-        >
-          <span className="text-lg">🎮</span>
-          <span className="text-sm font-medium">IMAN Quest</span>
-        </button>
-        <button
-          onClick={() => navigate("/qa")}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-            location.pathname === "/qa"
-              ? "bg-emerald-500/15 text-emerald-400"
-              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-          }`}
-        >
-          <span className="text-lg">💬</span>
-          <span className="text-sm font-medium">Вопрос-ответ</span>
-        </button>
-        <button
-          onClick={() => navigate("/seerah")}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-            location.pathname === "/seerah"
-              ? "bg-emerald-500/15 text-emerald-400"
-              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-          }`}
-        >
-          <span className="text-lg">📜</span>
-          <span className="text-sm font-medium">Сира пророка</span>
-        </button>
-        <button
-          onClick={() => navigate("/dua")}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-            location.pathname === "/dua"
-              ? "bg-emerald-500/15 text-emerald-400"
-              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-          }`}
-        >
-          <span className="text-lg">🤲</span>
-          <span className="text-sm font-medium">Дуа</span>
-        </button>
-      </nav>
-      <div className="px-5 py-4 text-[11px] text-slate-500 border-t border-white/5">
-        by <span className="font-semibold text-emerald-400">Aziz Atavaliev</span>
-      </div>
-    </aside>
-  );
-}
-
 function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass"
+      className="fixed bottom-0 left-0 right-0 z-50 glass"
       style={{ borderTop: "1px solid var(--border-secondary)" }}
     >
       {/* Брендинг */}
@@ -376,13 +289,14 @@ function GlobalBackButton() {
   const navigate = useNavigate();
 
   if (PAGES_WITH_OWN_BACK.has(location.pathname)) return null;
+  if (location.pathname.startsWith("/quest")) return null;
 
   return (
     <div
       className="sticky top-0 z-40 glass"
       style={{ borderBottom: "1px solid var(--border-secondary)" }}
     >
-      <div className="max-w-lg md:max-w-3xl mx-auto flex items-center px-3 py-2.5">
+      <div className="max-w-lg mx-auto flex items-center px-3 py-2.5">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 px-3 py-2 -ml-1 rounded-xl hover:bg-white/5 active:scale-95 transition-all"
@@ -449,15 +363,14 @@ function AppContent() {
   return (
     <div
       id="app-top"
-      className="min-h-screen md:pl-60"
+      className="min-h-screen"
       style={{
         background: `linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary))`,
       }}
     >
       <ScrollToTop />
-      <SidebarNav />
       <GlobalBackButton />
-      <div className="max-w-lg md:max-w-3xl mx-auto px-0 md:px-8 pb-20 md:pb-8">
+      <div className="max-w-lg mx-auto px-0 pb-20">
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -476,6 +389,7 @@ function AppContent() {
             <Route path="/dua" element={<Dua />} />
             <Route path="/ibadah" element={<IbadahTimer />} />
             <Route path="/memorize" element={<Memorize />} />
+            <Route path="/wallpapers" element={<Wallpapers />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/seerah" element={<Seerah />} />
             <Route path="/stories" element={<Stories />} />
@@ -497,6 +411,7 @@ function AppContent() {
             <Route path="/qa" element={<IslamicQA />} />
             <Route path="/prayer-flow" element={<PrayerFlow />} />
             <Route path="/quest" element={<Quest />} />
+            <Route path="/quest/:worldId" element={<QuestWorldMap />} />
             <Route path="/quest/:worldId/:levelId" element={<QuestLevel />} />
             <Route path="/prayer-structure" element={<PrayerStructure />} />
           </Routes>

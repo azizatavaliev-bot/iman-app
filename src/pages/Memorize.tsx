@@ -26,6 +26,7 @@ import {
   Zap,
   ScrollText,
   ChevronDown,
+  ImageDown,
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import { useAudio } from "../components/AudioPlayer";
@@ -36,12 +37,13 @@ import { getTransliteration } from "../data/quran-transliteration";
 import { getTafsir, TAFSIR_SOURCE } from "../data/tafsir";
 import { SURAH_TRANSLIT, getSurahTranslit } from "../data/surah-translit";
 import { PRAYERS, type PrayerKey } from "../data/prayer-surahs";
+import { generateAyahWallpaper, shareOrDownloadWallpaper } from "../lib/wallpaper";
 
 // ============================================================
 // Complete Surah Names Map (all 114)
 // ============================================================
 
-const SURAH_NAMES: Record<number, { ru: string; ar: string; ayahs: number }> = {
+export const SURAH_NAMES: Record<number, { ru: string; ar: string; ayahs: number }> = {
   1: { ru: "Открывающая", ar: "الفاتحة", ayahs: 7 },
   2: { ru: "Корова", ar: "البقرة", ayahs: 286 },
   3: { ru: "Семейство Имрана", ar: "آل عمران", ayahs: 200 },
@@ -232,7 +234,7 @@ function ayahWord(n: number): string {
 }
 
 // Returns a curated description if available, otherwise a clean fallback
-function getSurahDescription(num: number): string {
+export function getSurahDescription(num: number): string {
   if (SURAH_DESCRIPTIONS[num]) return SURAH_DESCRIPTIONS[num];
   const info = SURAH_NAMES[num];
   if (!info) return "";
@@ -588,6 +590,10 @@ export default function Memorize() {
   // Per-ayah collapse state for long tafsirs (key: globalAyahNumber)
   const [expandedTafsirs, setExpandedTafsirs] = useState<Set<number>>(
     () => new Set(),
+  );
+  // Какой аят сейчас генерирует обои (key: globalAyahNumber), чтобы показать спиннер именно на нём
+  const [generatingWallpaper, setGeneratingWallpaper] = useState<number | null>(
+    null,
   );
 
   // Load memorization list
@@ -1312,6 +1318,44 @@ export default function Memorize() {
                                 ? "∞"
                                 : `×${loopCount}`
                               : "Аят"}
+                        </span>
+                      </button>
+                      <button
+                        onClick={async () => {
+                          hapticImpact("light");
+                          setGeneratingWallpaper(globalAyahNumber);
+                          try {
+                            const info = studySurah ? SURAH_NAMES[studySurah] : null;
+                            const { dataUrl, blob } = await generateAyahWallpaper({
+                              surahNameRu: info?.ru ?? "Коран",
+                              surahNumber: studySurah ?? 0,
+                              ayahNumber: ayah.numberInSurah,
+                              totalAyahs: info?.ayahs ?? studyData.arabic.length,
+                              arabicText: ayah.text,
+                              translitText: translitText,
+                              translationText: translationAyah?.text,
+                            });
+                            await shareOrDownloadWallpaper(
+                              dataUrl,
+                              blob,
+                              `iman-${studySurah}-${ayah.numberInSurah}.png`,
+                            );
+                          } finally {
+                            setGeneratingWallpaper(null);
+                          }
+                        }}
+                        disabled={generatingWallpaper === globalAyahNumber}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10
+                                   hover:bg-emerald-500/20 hover:scale-105 transition-all disabled:opacity-60"
+                        title="Скачать обои для iPhone с этим аятом"
+                      >
+                        {generatingWallpaper === globalAyahNumber ? (
+                          <Loader2 className="w-3 h-3 text-emerald-400 animate-spin" />
+                        ) : (
+                          <ImageDown className="w-3 h-3 text-emerald-400" />
+                        )}
+                        <span className="text-[10px] font-semibold text-emerald-400">
+                          Обои
                         </span>
                       </button>
                     </div>
