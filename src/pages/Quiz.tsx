@@ -64,6 +64,20 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// Перемешиваем варианты ответа и пересчитываем correctIndex (через
+// перестановку индексов) — чтобы правильный ответ не всегда был вариантом А.
+function shuffleQuizOptions(q: QuizQuestion): QuizQuestion {
+  const order = shuffle([0, 1, 2, 3]);
+  const options = order.map((i) => q.options[i]) as [
+    string,
+    string,
+    string,
+    string,
+  ];
+  const correctIndex = order.indexOf(q.correctIndex);
+  return { ...q, options, correctIndex };
+}
+
 function loadHighScores(): HighScores {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -202,8 +216,8 @@ export default function Quiz() {
       ? QUIZ_DATA.filter((q) => q.category === categoryKey)
       : [...QUIZ_DATA];
 
-    // Shuffle questions
-    const shuffled = shuffle(pool);
+    // Shuffle questions + options within each question
+    const shuffled = shuffle(pool).map(shuffleQuizOptions);
     setQuestions(shuffled);
     setView("playing");
   }, []);

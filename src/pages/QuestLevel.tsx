@@ -29,6 +29,21 @@ function shuffleArray<T>(arr: T[]): T[] {
   return out;
 }
 
+// Перемешиваем варианты ответа внутри вопроса и пересчитываем correctIdx.
+// Через перестановку индексов — надёжно даже при одинаковом тексте вариантов.
+// Решает проблему «викторина угадывается» (60% правильных стояли на варианте А).
+function shuffleQuestionOptions(q: QuestQuestion): QuestQuestion {
+  const order = shuffleArray([0, 1, 2, 3]);
+  const newOptions = order.map((i) => q.options[i]) as [
+    string,
+    string,
+    string,
+    string,
+  ];
+  const newCorrect = order.indexOf(q.correctIdx) as 0 | 1 | 2 | 3;
+  return { ...q, options: newOptions, correctIdx: newCorrect };
+}
+
 export default function QuestLevel() {
   const navigate = useNavigate();
   const { worldId, levelId } = useParams<{ worldId: string; levelId: string }>();
@@ -37,7 +52,7 @@ export default function QuestLevel() {
   const level = world?.levels.find((l) => l.id === Number(levelId));
 
   const [questions] = useState<QuestQuestion[]>(() =>
-    level ? shuffleArray(level.questions) : [],
+    level ? shuffleArray(level.questions).map(shuffleQuestionOptions) : [],
   );
   const [qIdx, setQIdx] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
