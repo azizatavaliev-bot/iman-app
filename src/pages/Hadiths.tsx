@@ -15,11 +15,31 @@ import {
   getHadithSection,
   getRandomExtendedHadith,
   hapticImpact,
+  HADITH_GRADE_LABEL,
 } from "../lib/api";
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import ShareCard from "../components/ShareCard";
-import type { Hadith, ExtendedHadith, HadithCollection } from "../lib/api";
+import type { Hadith, ExtendedHadith, HadithCollection, HadithGrade } from "../lib/api";
+
+// Цвета бейджа степени достоверности
+const GRADE_STYLE: Record<HadithGrade, string> = {
+  sahih: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
+  hasan: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
+  daif: "bg-rose-500/15 text-rose-300 ring-rose-500/30",
+};
+
+function GradeBadge({ grade }: { grade?: HadithGrade }) {
+  if (!grade) return null;
+  return (
+    <span
+      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ring-1 ${GRADE_STYLE[grade]}`}
+      title="Степень достоверности хадиса"
+    >
+      {HADITH_GRADE_LABEL[grade]}
+    </span>
+  );
+}
 
 // ── Persist read hadith IDs ──
 const NAWAWI_READ_KEY = "iman_hadiths_nawawi_read";
@@ -472,14 +492,17 @@ export default function Hadiths() {
                   {hadithOfDay.russian}
                 </p>
 
-                {/* Narrator + Source */}
+                {/* Narrator + Source + grade */}
                 <div className="flex items-center justify-between pt-2 border-t t-border">
-                  <p className="text-[11px] text-slate-500 leading-snug max-w-[65%]">
+                  <p className="text-[11px] text-slate-500 leading-snug max-w-[55%]">
                     {hadithOfDay.narrator}
                   </p>
-                  <span className="text-[11px] font-medium text-amber-500/70 bg-amber-500/10 px-2.5 py-1 rounded-full">
-                    {hadithOfDay.source}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <GradeBadge grade={hadithOfDay.grade} />
+                    <span className="text-[11px] font-medium text-amber-500/70 bg-amber-500/10 px-2.5 py-1 rounded-full">
+                      {hadithOfDay.source}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -561,6 +584,7 @@ export default function Hadiths() {
                         <span className="text-[11px] font-medium text-slate-500 t-bg px-2 py-0.5 rounded-full">
                           {hadith.source}
                         </span>
+                        <GradeBadge grade={hadith.grade} />
                         {readIds.has(hadith.id) && (
                           <span className="text-[10px] text-emerald-500/60">
                             +{POINTS.HADITH}

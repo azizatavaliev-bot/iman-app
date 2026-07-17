@@ -6,6 +6,7 @@
 import type { UserProfile, PrayerLog, HabitLog } from "./storage";
 import { LEVELS } from "./storage";
 import { getTelegramUser } from "./telegram";
+import { ADMIN_TELEGRAM_IDS } from "./adminConfig";
 
 // ---- Types ----
 
@@ -66,6 +67,17 @@ export function getAdminHeaders(): Record<string, string> {
         if (p.telegramUsername) headers["X-Telegram-Username"] = p.telegramUsername;
       }
     } catch {}
+
+    // Локальная разработка на localhost — используем свой уже
+    // авторизованный Telegram ID, чтобы можно было смотреть статистику
+    // из обычного браузера без Telegram. На проде этот блок не сработает.
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1");
+    if (isLocalhost && !headers["X-Telegram-Id"]) {
+      headers["X-Telegram-Id"] = String(ADMIN_TELEGRAM_IDS[0]);
+    }
   }
   return headers;
 }

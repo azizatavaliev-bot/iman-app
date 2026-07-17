@@ -1329,9 +1329,7 @@ export default function Memorize() {
                             const { dataUrl, blob } = await generateAyahWallpaper({
                               surahNameRu: info?.ru ?? "Коран",
                               surahNumber: studySurah ?? 0,
-                              ayahNumber: ayah.numberInSurah,
-                              totalAyahs: info?.ayahs ?? studyData.arabic.length,
-                              arabicText: ayah.text,
+                              footerLabel: `Аят ${ayah.numberInSurah} из ${info?.ayahs ?? studyData.arabic.length}`,
                               translitText: translitText,
                               translationText: translationAyah?.text,
                             });

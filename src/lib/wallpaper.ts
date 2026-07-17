@@ -345,6 +345,12 @@ export async function generateAyahWallpaper(
   const ctx = ctx2d;
   ctx.scale(SUPERSAMPLE, SUPERSAMPLE);
   ctx.textRendering = "optimizeLegibility" as CanvasTextRendering;
+  // Явно фиксируем LTR и базовые настройки текста: без этого canvas берёт
+  // direction "inherit", и если корень приложения rtl — текст уезжает вправо
+  // при textAlign:"center". Держим строго по центру для всех тем/шрифтов.
+  ctx.direction = "ltr";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
 
   const padX = Math.round(WIDTH * 0.077);
   const maxTextWidth = WIDTH - padX * 2;

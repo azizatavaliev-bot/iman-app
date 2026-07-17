@@ -335,7 +335,13 @@ export default function AdminNew() {
       } catch {}
     }
 
-    if (!isAdmin(adminId, adminUsername)) {
+    // Локальный доступ (localhost) — обход только для собственной машины,
+    // не применяется на реальном домене прода
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
+    if (!isLocalhost && !isAdmin(adminId, adminUsername)) {
       navigate("/");
     }
   }, [tgUser, navigate]);

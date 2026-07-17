@@ -458,7 +458,7 @@ export const QURAN_TRANSLITERATION: Record<string, AyahTransliteration> = {
   "36:64": {
     surah: 36,
     ayah: 64,
-    cyrillic: "Ислауhаль-яума бима́ кунтум такфуру́н",
+    cyrillic: "Ислаухаль-яума бима́ кунтум такфуру́н",
   },
   "36:65": {
     surah: 36,
@@ -1543,7 +1543,7 @@ export const QURAN_TRANSLITERATION: Record<string, AyahTransliteration> = {
   "92:7": {
     surah: 92,
     ayah: 7,
-    cyrillic: "Фасанyяссируху́ лиль-юсра́",
+    cyrillic: "Фасануяссируху́ лиль-юсра́",
   },
   "92:8": {
     surah: 92,
