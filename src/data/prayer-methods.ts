@@ -97,6 +97,18 @@ export function getSavedMethod(): number {
   }
 }
 
+/** Явно ли пользователь выбирал метод (иначе можно применить автоподбор). */
+export function hasSavedMethod(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_METHOD) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** id метода САДУМ (ДУМ России) — дефолт для СНГ */
+export const SADUM_METHOD_ID = 14;
+
 export function saveMethod(id: number): void {
   try {
     localStorage.setItem(STORAGE_METHOD, String(id));

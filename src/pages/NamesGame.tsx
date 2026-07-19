@@ -44,8 +44,12 @@ function generateQuestion(excludeIndices: number[] = []): QuizQuestion {
 
   const correctAnswer = NAMES_OF_ALLAH[nameIndex].russian;
 
-  // Pick 3 wrong answers (distinct from correct)
-  const wrongPool = NAMES_OF_ALLAH.filter((_, i) => i !== nameIndex);
+  // Pick 3 wrong answers (distinct from correct — включая одинаковый перевод,
+  // напр. «Вечный» есть у двух имён — иначе появятся 2 одинаковых варианта
+  // и indexOf засчитает неверный)
+  const wrongPool = NAMES_OF_ALLAH.filter(
+    (n, i) => i !== nameIndex && n.russian !== correctAnswer,
+  );
   const shuffledWrong = shuffle(wrongPool).slice(0, 3);
   const options = shuffle([
     correctAnswer,

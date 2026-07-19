@@ -802,11 +802,12 @@ export function getHadithById(id: number): Hadith | undefined {
 }
 
 // -----------------------------------------------------------------------------
-// 5. Extended Hadiths — fawazahmed0/hadith-api (Bukhari, Muslim)
-// CDN: https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/
+// 5. Extended Hadiths — локальный бандл (public/data/hadiths)
+// Полные сборники на русском + арабском лежат локально → быстро, офлайн,
+// без зависимости от внешнего CDN. Бухари, Муслим, Абу Дауд.
 // -----------------------------------------------------------------------------
 
-export type HadithCollection = "bukhari" | "muslim";
+export type HadithCollection = "bukhari" | "muslim" | "abudawud" | "riyad";
 
 export interface ExtendedHadith {
   hadithnumber: number;
@@ -815,95 +816,91 @@ export interface ExtendedHadith {
   arabicText: string;
   collection: HadithCollection;
   book: number;
+  grade?: HadithGrade;
 }
 
-interface HadithApiSection {
-  metadata: {
-    name: string;
-    section: string;
-    section_detail: Record<
-      string,
-      {
-        hadithnumber_first: string;
-        hadithnumber_last: string;
-        arabicnumber_first: string;
-        arabicnumber_last: string;
-      }
-    >;
-  };
-  hadiths: {
-    hadithnumber: number;
-    arabicnumber: number;
-    text: string;
-    grades: unknown[];
-    reference: { book: number; hadith: number };
-  }[];
+// Книга сборника (оглавление)
+export interface HadithBook {
+  book: number;
+  name: string; // русское название книги
+  count: number;
 }
 
-const HADITH_API_BASE =
-  "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions";
+// Формат хадиса в локальных файлах {book}.json (минифицирован)
+interface LocalHadith {
+  n: number; // номер хадиса
+  ru: string; // русский текст
+  ar: string; // арабский текст
+  g?: HadithGrade; // степень достоверности (для Абу Дауда)
+}
+
+const HADITH_DATA_BASE = `${import.meta.env.BASE_URL}data/hadiths`;
+
+// Кэш книг в памяти (сессия) — локальные файлы дешевле localStorage-квоты
+const hadithSectionMemCache = new Map<string, ExtendedHadith[]>();
 
 /**
- * Fetch a section (book/chapter) of hadiths with both Russian + Arabic
+ * Оглавление сборника — список книг с русскими названиями и числом хадисов.
+ */
+export async function getHadithBookIndex(
+  collection: HadithCollection,
+): Promise<HadithBook[]> {
+  const cacheKey = `hadith_index_${collection}`;
+  const cached = getCached<HadithBook[]>(cacheKey, CACHE_TTL_LONG);
+  if (cached) return cached;
+
+  const data = await fetchJSON<HadithBook[]>(
+    `${HADITH_DATA_BASE}/${collection}/index.json`,
+  );
+  setCache(cacheKey, data);
+  return data;
+}
+
+/**
+ * Загрузить книгу сборника (русский + арабский) из локального бандла.
  */
 export async function getHadithSection(
   collection: HadithCollection,
   section: number,
 ): Promise<ExtendedHadith[]> {
-  const cacheKey = `hadith_${collection}_${section}`;
-  const cached = getCached<ExtendedHadith[]>(cacheKey, CACHE_TTL_LONG);
-  if (cached) return cached;
+  const memKey = `${collection}_${section}`;
+  const mem = hadithSectionMemCache.get(memKey);
+  if (mem) return mem;
 
-  const [rusResponse, araResponse] = await Promise.all([
-    fetchJSON<HadithApiSection>(
-      `${HADITH_API_BASE}/rus-${collection}/${section}.json`,
-    ),
-    fetchJSON<HadithApiSection>(
-      `${HADITH_API_BASE}/ara-${collection}/${section}.json`,
-    ),
-  ]);
-
-  const araMap = new Map(
-    araResponse.hadiths.map((h) => [h.hadithnumber, h.text]),
+  const raw = await fetchJSON<LocalHadith[]>(
+    `${HADITH_DATA_BASE}/${collection}/${section}.json`,
   );
 
-  const result: ExtendedHadith[] = rusResponse.hadiths.map((h) => ({
-    hadithnumber: h.hadithnumber,
-    arabicnumber: h.arabicnumber,
-    text: h.text,
-    arabicText: araMap.get(h.hadithnumber) || "",
+  const result: ExtendedHadith[] = raw.map((h) => ({
+    hadithnumber: h.n,
+    arabicnumber: h.n,
+    text: h.ru,
+    arabicText: h.ar || "",
     collection,
-    book: h.reference.book,
+    book: section,
+    grade: h.g,
   }));
 
-  setCache(cacheKey, result);
+  hadithSectionMemCache.set(memKey, result);
   return result;
 }
 
 /**
- * Get a random hadith from Bukhari or Muslim
+ * Случайный хадис из сборника (случайная книга из оглавления).
  */
 export async function getRandomExtendedHadith(
   collection: HadithCollection = "bukhari",
 ): Promise<ExtendedHadith> {
-  // Bukhari has ~97 sections, Muslim has ~56
-  const maxSection = collection === "bukhari" ? 97 : 56;
-  const section = Math.floor(Math.random() * maxSection) + 1;
+  const index = await getHadithBookIndex(collection);
+  if (index.length === 0) throw new Error("Пустое оглавление");
 
-  try {
-    const hadiths = await getHadithSection(collection, section);
-    if (hadiths.length === 0) {
-      // Fallback to section 1
-      const fallback = await getHadithSection(collection, 1);
-      return fallback[0];
-    }
-    const idx = Math.floor(Math.random() * hadiths.length);
-    return hadiths[idx];
-  } catch {
-    // Fallback to section 1
-    const fallback = await getHadithSection(collection, 1);
+  const book = index[Math.floor(Math.random() * index.length)].book;
+  const hadiths = await getHadithSection(collection, book);
+  if (hadiths.length === 0) {
+    const fallback = await getHadithSection(collection, index[0].book);
     return fallback[0];
   }
+  return hadiths[Math.floor(Math.random() * hadiths.length)];
 }
 
 // -----------------------------------------------------------------------------
@@ -939,12 +936,13 @@ interface MP3QuranRecitersResponse {
 }
 
 export async function getReciters(): Promise<Reciter[]> {
-  const cacheKey = "reciters_list";
+  // language=ru → mp3quran отдаёт имена чтецов сразу на русском (все ~240)
+  const cacheKey = "reciters_list_ru";
   const cached = getCached<Reciter[]>(cacheKey, CACHE_TTL_SHORT);
   if (cached) return cached;
 
   const response = await fetchJSON<MP3QuranRecitersResponse>(
-    "https://www.mp3quran.net/api/v3/reciters?language=ar",
+    "https://www.mp3quran.net/api/v3/reciters?language=ru",
   );
 
   const result: Reciter[] = [];
@@ -988,15 +986,17 @@ export function getReciterAudioUrl(
 }
 
 // Popular reciters (hardcoded IDs for quick access)
+// Актуальные id (mp3quran v3) — сверены с API. Старые id устарели и
+// приводили к воспроизведению аудио другого чтеца.
 export const POPULAR_RECITERS = [
-  { id: 7, name: "مشاري العفاسي" }, // Mishary Alafasy
-  { id: 35, name: "عبدالرحمن السديس" }, // Sudais
-  { id: 6, name: "ماهر المعيقلي" }, // Maher Al Muaiqly
-  { id: 5, name: "سعود الشريم" }, // Shuraim
-  { id: 128, name: "أحمد العجمي" }, // Ahmed Al Ajmi
-  { id: 24, name: "عبدالباسط عبدالصمد" }, // Abdul Basit
-  { id: 9, name: "خالد الجليل" }, // Khalid Al Jaleel
-  { id: 48, name: "هزاع البلوشي" }, // Hazza Al Balushi
+  { id: 123, name: "Мишари Рашид аль-Афаси" },
+  { id: 54, name: "Абдуррахман ас-Судайс" },
+  { id: 102, name: "Махер аль-Муайкли" },
+  { id: 92, name: "Ясир ад-Досари" },
+  { id: 5, name: "Ахмад аль-Аджами" },
+  { id: 51, name: "Абдуль-Басит Абдус-Самад" },
+  { id: 118, name: "Махмуд Халиль аль-Хусари" },
+  { id: 30, name: "Саад аль-Гамди" },
 ] as const;
 
 // -----------------------------------------------------------------------------

@@ -993,13 +993,15 @@ export default function Dashboard() {
   const prevLevel =
     currentLevelIndex > 0 ? LEVELS[currentLevelIndex - 1] : null;
 
-  // Level progress
+  // Level progress (округляем — иначе на экране «14.499999999999998%»)
   const levelProgressPct = nextLevel
-    ? Math.min(
-        100,
-        ((profile.totalPoints - currentLevel.minPoints) /
-          (nextLevel.minPoints - currentLevel.minPoints)) *
+    ? Math.round(
+        Math.min(
           100,
+          ((profile.totalPoints - currentLevel.minPoints) /
+            (nextLevel.minPoints - currentLevel.minPoints)) *
+            100,
+        ),
       )
     : 100;
 

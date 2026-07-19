@@ -14,6 +14,7 @@ import {
   Target,
   Lock,
   BookOpen,
+  MapPin,
   Settings,
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
@@ -23,10 +24,13 @@ import {
   MADHHABS,
   getSavedMethod,
   saveMethod,
+  hasSavedMethod,
+  SADUM_METHOD_ID,
   getSavedMadhhab,
   saveMadhhab,
   type MadhhabKey,
 } from "../data/prayer-methods";
+import { reverseGeocode, isCISCountry } from "../lib/geocode";
 import type { PrayerStatus } from "../lib/storage";
 
 // ---------------------------------------------------------------------------
@@ -872,6 +876,9 @@ export default function Prayers() {
   const [calcMethod, setCalcMethod] = useState<number>(() => getSavedMethod());
   const [madhhab, setMadhhab] = useState<MadhhabKey>(() => getSavedMadhhab());
   const [showSettings, setShowSettings] = useState(false);
+  // Город (обратный геокодинг) + флаг отказа в геолокации
+  const [city, setCity] = useState<string>("");
+  const [geoDenied, setGeoDenied] = useState(false);
 
   // Is today Friday?
   const isFriday = new Date().getDay() === 5;
@@ -884,8 +891,28 @@ export default function Prayers() {
     const profile = storage.getProfile();
     if (profile.lat && profile.lng) {
       setCoords({ lat: profile.lat, lng: profile.lng });
+    } else {
+      setGeoDenied(true); // координат нет — предложим выбрать город вручную
     }
   }, []);
+
+  // Обратный геокодинг: город + автоподбор метода (САДУМ для СНГ при первом запуске)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const place = await reverseGeocode(coords.lat, coords.lng);
+      if (cancelled || !place) return;
+      if (place.city) setCity(place.city);
+      // Автометод только если пользователь ещё не выбирал метод сам
+      if (!hasSavedMethod() && isCISCountry(place.countryCode)) {
+        setCalcMethod(SADUM_METHOD_ID);
+        saveMethod(SADUM_METHOD_ID);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [coords.lat, coords.lng]);
 
   // Fetch prayer times and hijri date
   useEffect(() => {
@@ -1000,32 +1027,49 @@ export default function Prayers() {
   }, [prayerLog]);
 
   // ------ Show motivational message ------
-  const showMotivation = useCallback((newCompletedCount: number) => {
-    let msg: string | null = null;
+  // Сообщение зависит от статуса: вовремя / с опозданием — разные строки.
+  const showMotivation = useCallback(
+    (newCompletedCount: number, status: PrayerStatus) => {
+      let msg: string | null = null;
 
-    // Streak milestones
-    const currentStreak = storage.getStreak();
-    if (currentStreak > 0 && currentStreak % 10 === 0 && currentStreak <= 100) {
-      msg = `${currentStreak} дней подряд! Ты молодец!`;
-    } else if (currentStreak === 1 && newCompletedCount === 1) {
-      msg = "Отличное начало дня!";
-    }
+      // Все 5 намазов — общий праздничный тост (независимо от статуса последнего)
+      if (newCompletedCount === 5) {
+        setMotivationalMsg("Субханаллах! Все 5 намазов! \u{1F31F}");
+        return;
+      }
 
-    // Count-based messages override streak unless it's a milestone
-    if (newCompletedCount === 5) {
-      msg = "Субханаллах! Все 5 намазов! \u{1F31F}";
-    } else if (newCompletedCount === 4 && !msg) {
-      msg = "Отлично! Ещё один намаз до совершенства!";
-    } else if (newCompletedCount === 3 && !msg) {
-      msg = "Хорошо! Продолжай в том же духе!";
-    } else if (newCompletedCount === 1 && !msg) {
-      msg = "Отличное начало дня!";
-    }
+      if (status === "late") {
+        // Отмечено с опозданием — поддерживающие, но честные строки
+        const lateMsgs = [
+          "Записал с опозданием — лучше поздно, чем никогда \u{1F91D}",
+          "Namaz-кадаа засчитан. Постарайся в следующий раз вовремя.",
+          "Всё равно молодец, что не оставил намаз!",
+        ];
+        msg = lateMsgs[newCompletedCount % lateMsgs.length];
+      } else {
+        // Вовремя — вдохновляющие строки
+        const currentStreak = storage.getStreak();
+        if (
+          currentStreak > 0 &&
+          currentStreak % 10 === 0 &&
+          currentStreak <= 100
+        ) {
+          msg = `${currentStreak} дней подряд! Ты молодец!`;
+        } else if (newCompletedCount === 4) {
+          msg = "Отлично! Ещё один намаз до совершенства!";
+        } else if (newCompletedCount === 3) {
+          msg = "Хорошо! Продолжай в том же духе!";
+        } else if (newCompletedCount === 1) {
+          msg = "Отличное начало дня!";
+        } else {
+          msg = "МашаАллах, продолжай!";
+        }
+      }
 
-    if (msg) {
-      setMotivationalMsg(msg);
-    }
-  }, []);
+      if (msg) setMotivationalMsg(msg);
+    },
+    [],
+  );
 
   // ------ Smart Mark Prayer (big button) ------
   const smartMarkPrayer = useCallback(
@@ -1090,7 +1134,7 @@ export default function Prayers() {
           saved.prayers[p].status === "late",
       ).length;
 
-      showMotivation(newCount);
+      showMotivation(newCount, status);
     },
     [todayKey, isToday, prayerTimes, showMotivation],
   );
@@ -1494,6 +1538,20 @@ export default function Prayers() {
                     return `${day} ${month} ${year}${label}`;
                   })()}
             </p>
+            {isToday && city && (
+              <p className="text-[11px] text-white/50 mt-0.5 flex items-center justify-center gap-1">
+                <MapPin size={11} className="text-emerald-400/70" />
+                {city}
+              </p>
+            )}
+            {isToday && !city && geoDenied && (
+              <button
+                onClick={() => navigate("/profile")}
+                className="text-[11px] text-amber-400/80 mt-0.5 flex items-center justify-center gap-1 mx-auto"
+              >
+                <MapPin size={11} /> Определите город вручную
+              </button>
+            )}
             {!isToday && (
               <p className="text-[10px] text-amber-400/70 mt-0.5">
                 Ретроспективная отметка

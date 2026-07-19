@@ -13,6 +13,7 @@ import {
   getAllHadiths,
   getHadithOfDay,
   getHadithSection,
+  getHadithBookIndex,
   getRandomExtendedHadith,
   hapticImpact,
   HADITH_GRADE_LABEL,
@@ -20,7 +21,7 @@ import {
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import ShareCard from "../components/ShareCard";
-import type { Hadith, ExtendedHadith, HadithCollection, HadithGrade } from "../lib/api";
+import type { Hadith, ExtendedHadith, HadithCollection, HadithGrade, HadithBook } from "../lib/api";
 
 // Цвета бейджа степени достоверности
 const GRADE_STYLE: Record<HadithGrade, string> = {
@@ -65,26 +66,36 @@ function loadReadExt(): string[] {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Tab = "all" | "favorites";
-type CollectionTab = "nawawi" | "bukhari" | "muslim";
+type CollectionTab = "nawawi" | "riyad" | "bukhari" | "muslim" | "abudawud";
 
 const COLLECTION_INFO: Record<
   CollectionTab,
-  { label: string; subtitle: string; maxSection: number }
+  { label: string; subtitle: string; short: string }
 > = {
   nawawi: {
-    label: "Навави (40)",
+    label: "Навави",
     subtitle: "40 хадисов ан-Навави",
-    maxSection: 0,
+    short: "Навави",
+  },
+  riyad: {
+    label: "Сады",
+    subtitle: "Сады праведных (ан-Навави) — 1885 хадисов",
+    short: "Сады праведных",
   },
   bukhari: {
     label: "Бухари",
-    subtitle: "Сахих аль-Бухари — 7563 хадиса",
-    maxSection: 97,
+    subtitle: "Сахих аль-Бухари — 7196 хадисов",
+    short: "Аль-Бухари",
   },
   muslim: {
     label: "Муслим",
-    subtitle: "Сахих Муслим — 7563 хадиса",
-    maxSection: 56,
+    subtitle: "Сахих Муслим — 2638 хадисов",
+    short: "Муслим",
+  },
+  abudawud: {
+    label: "Абу Дауд",
+    subtitle: "Сунан Абу Дауд — 4602 хадиса",
+    short: "Абу Дауд",
   },
 };
 
@@ -100,8 +111,9 @@ export default function Hadiths() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [readIds, setReadIds] = useState<Set<number>>(() => new Set(loadReadNawawi()));
 
-  // ── Extended collections state (Bukhari / Muslim) ──
+  // ── Extended collections state (Bukhari / Muslim / Abu Dawud) ──
   const [selectedSection, setSelectedSection] = useState<number>(1);
+  const [bookIndex, setBookIndex] = useState<HadithBook[]>([]);
   const [extendedHadiths, setExtendedHadiths] = useState<ExtendedHadith[]>([]);
   const [extLoading, setExtLoading] = useState(false);
   const [extError, setExtError] = useState<string | null>(null);
@@ -145,16 +157,30 @@ export default function Hadiths() {
   );
 
   useEffect(() => {
-    if (collectionTab === "bukhari" || collectionTab === "muslim") {
+    if (collectionTab !== "nawawi") {
       fetchSection(collectionTab, selectedSection);
     }
   }, [collectionTab, selectedSection, fetchSection]);
 
-  // Reset section when switching collection
+  // Load book index (оглавление с названиями книг) when switching collection
   useEffect(() => {
-    setSelectedSection(1);
     setExpandedExtId(null);
     setRandomHadith(null);
+    if (collectionTab === "nawawi") {
+      setBookIndex([]);
+      return;
+    }
+    let cancelled = false;
+    getHadithBookIndex(collectionTab)
+      .then((idx) => {
+        if (!cancelled) setBookIndex(idx);
+      })
+      .catch(() => {
+        if (!cancelled) setBookIndex([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [collectionTab]);
 
   // ── Random hadith ──
@@ -163,7 +189,7 @@ export default function Hadiths() {
     setRandomLoading(true);
     try {
       const collection: HadithCollection =
-        collectionTab === "muslim" ? "muslim" : "bukhari";
+        collectionTab === "nawawi" ? "bukhari" : collectionTab;
       const h = await getRandomExtendedHadith(collection);
       setRandomHadith(h);
     } catch {
@@ -268,12 +294,11 @@ export default function Hadiths() {
       ? hadiths.filter((h) => favorites.has(String(h.id)))
       : hadiths;
 
-  // Build section chips array
-  const maxSection = COLLECTION_INFO[collectionTab].maxSection;
-  const sections = Array.from({ length: maxSection }, (_, i) => i + 1);
+  // Section navigation — driven by the loaded book index (оглавление)
+  const currentBookPos = bookIndex.findIndex((b) => b.book === selectedSection);
+  const currentBook = currentBookPos >= 0 ? bookIndex[currentBookPos] : null;
 
-  const isExtendedCollection =
-    collectionTab === "bukhari" || collectionTab === "muslim";
+  const isExtendedCollection = collectionTab !== "nawawi";
 
   return (
     <div className="min-h-screen pb-28 px-4 pt-6 max-w-2xl mx-auto">
@@ -305,6 +330,7 @@ export default function Hadiths() {
             key={key}
             onClick={() => {
               setCollectionTab(key);
+              setSelectedSection(1);
               setTab("all");
               hapticImpact("light");
             }}
@@ -365,7 +391,7 @@ export default function Hadiths() {
               <span className="text-[11px] font-semibold uppercase tracking-widest text-emerald-400/90">
                 Случайный хадис
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <span className="text-[10px] font-medium text-slate-500 t-bg px-2 py-0.5 rounded-full">
                   #{randomHadith.hadithnumber}
                 </span>
@@ -404,13 +430,14 @@ export default function Hadiths() {
 
             <div className="flex items-center justify-between pt-2 border-t t-border">
               <span className="text-[10px] text-slate-500">
-                Книга {randomHadith.book}
+                № {randomHadith.hadithnumber}
               </span>
-              <span className="text-[11px] font-medium text-emerald-500/70 bg-emerald-500/10 px-2.5 py-1 rounded-full">
-                {randomHadith.collection === "bukhari"
-                  ? "Аль-Бухари"
-                  : "Муслим"}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <GradeBadge grade={randomHadith.grade ?? "sahih"} />
+                <span className="text-[11px] font-medium text-emerald-500/70 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                  {COLLECTION_INFO[randomHadith.collection].short}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -673,34 +700,55 @@ export default function Hadiths() {
       {/* ════════════════════════════════════════════════════════════════ */}
       {isExtendedCollection && (
         <>
-          {/* ── Section Selector (horizontal scrollable chips) ─────────── */}
+          {/* ── Section Selector (books with Russian names) ─────────────── */}
           <div
             className="mb-4 animate-fade-in"
             style={{ animationDelay: "0.07s" }}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-slate-400 font-medium">
-                Раздел (книга)
-              </p>
+              <p className="text-xs text-slate-400 font-medium">Книга</p>
               <span className="text-[10px] text-slate-500">
-                {selectedSection} из {maxSection}
+                {currentBookPos >= 0 ? currentBookPos + 1 : 1} из{" "}
+                {bookIndex.length || "…"}
               </span>
             </div>
+
+            {/* Название текущей книги */}
+            {currentBook && (
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-base font-bold text-amber-300">
+                  {currentBook.name}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  {currentBook.count} хадис
+                  {currentBook.count % 10 === 1 && currentBook.count % 100 !== 11
+                    ? ""
+                    : "ов"}
+                </span>
+              </div>
+            )}
+
             <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
-              {sections.map((s) => (
+              {bookIndex.map((b) => (
                 <button
-                  key={s}
+                  key={b.book}
+                  data-book={b.book}
+                  ref={(el) => {
+                    if (el && b.book === selectedSection)
+                      el.scrollIntoView({ block: "nearest", inline: "center" });
+                  }}
                   onClick={() => {
-                    setSelectedSection(s);
+                    setSelectedSection(b.book);
                     hapticImpact("light");
                   }}
+                  title={b.name}
                   className={`shrink-0 min-w-[36px] h-8 px-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                    selectedSection === s
+                    selectedSection === b.book
                       ? "bg-amber-500/20 text-amber-400 shadow-sm ring-1 ring-amber-500/30"
                       : "t-bg text-slate-500 hover:text-slate-300 hover:t-bg"
                   }`}
                 >
-                  {s}
+                  {b.book}
                 </button>
               ))}
             </div>
@@ -713,28 +761,30 @@ export default function Hadiths() {
           >
             <button
               onClick={() => {
-                if (selectedSection > 1) {
-                  setSelectedSection((s) => s - 1);
+                if (currentBookPos > 0) {
+                  setSelectedSection(bookIndex[currentBookPos - 1].book);
                   hapticImpact("light");
                 }
               }}
-              disabled={selectedSection <= 1}
+              disabled={currentBookPos <= 0}
               className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl t-bg text-slate-400 text-xs font-medium hover:t-bg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              Пред. раздел
+              Пред. книга
             </button>
             <button
               onClick={() => {
-                if (selectedSection < maxSection) {
-                  setSelectedSection((s) => s + 1);
+                if (currentBookPos >= 0 && currentBookPos < bookIndex.length - 1) {
+                  setSelectedSection(bookIndex[currentBookPos + 1].book);
                   hapticImpact("light");
                 }
               }}
-              disabled={selectedSection >= maxSection}
+              disabled={
+                currentBookPos < 0 || currentBookPos >= bookIndex.length - 1
+              }
               className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl t-bg text-slate-400 text-xs font-medium hover:t-bg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              След. раздел
+              След. книга
               <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
             </button>
           </div>
@@ -787,8 +837,10 @@ export default function Hadiths() {
                 const cardId = `${hadith.collection}_${hadith.hadithnumber}`;
                 const isExpanded = expandedExtId === cardId;
                 const isFav = favorites.has(cardId);
-                const collectionLabel =
-                  hadith.collection === "bukhari" ? "Аль-Бухари" : "Муслим";
+                const collectionLabel = COLLECTION_INFO[hadith.collection].short;
+                // Абу Дауд/Сады — степень из данных; Бухари/Муслим — сахих по определению
+                const gradeToShow: HadithGrade | undefined =
+                  hadith.grade ?? "sahih";
 
                 return (
                   <div
@@ -818,6 +870,7 @@ export default function Hadiths() {
                           <span className="text-[11px] font-medium text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded-full">
                             {collectionLabel}
                           </span>
+                          <GradeBadge grade={gradeToShow} />
                         </div>
 
                         <button
@@ -869,11 +922,11 @@ export default function Hadiths() {
 
                         <div className="flex items-center justify-between pt-2 border-t t-border">
                           <span className="text-[10px] text-slate-500">
-                            Книга {hadith.book}
+                            {currentBook?.name ?? `Книга ${hadith.book}`}
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] text-slate-500">
-                              Арабский #{hadith.arabicnumber}
+                              № {hadith.hadithnumber}
                             </span>
                             <button
                               onClick={(e) => {

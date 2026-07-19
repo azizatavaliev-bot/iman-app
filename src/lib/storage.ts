@@ -843,7 +843,18 @@ class Storage {
   // ---- Memorization ----
 
   getMemorizationList(): MemorizationSurah[] {
-    return this.read<MemorizationSurah[]>(KEYS.MEMORIZATION) || [];
+    const list = this.read<MemorizationSurah[]>(KEYS.MEMORIZATION) || [];
+    // Самоисцеление: суры, ни разу не повторявшиеся, не могут иметь уверенность >0
+    // (исправляет старый баг стартовых 50% при 0 повторений).
+    let changed = false;
+    for (const s of list) {
+      if (s.reviewCount === 0 && !s.lastReviewedAt && s.confidence > 0) {
+        s.confidence = 0;
+        changed = true;
+      }
+    }
+    if (changed) this.write(KEYS.MEMORIZATION, list);
+    return list;
   }
 
   addMemorizationSurah(surahNumber: number): MemorizationSurah {
@@ -851,13 +862,16 @@ class Storage {
     const existing = list.find((s) => s.surahNumber === surahNumber);
     if (existing) return existing;
 
+    // Новая сура стартует с 0% уверенности и 0 повторений (SRS с нуля).
+    // Уверенность растёт только через reviewMemorizationSurah по мере повторений.
     const entry: MemorizationSurah = {
       surahNumber,
       addedAt: new Date().toISOString(),
       lastReviewedAt: null,
       reviewCount: 0,
-      confidence: 50,
+      confidence: 0,
       pointsEarned: 0,
+      learnedAyahs: [],
     };
     list.push(entry);
     this.write(KEYS.MEMORIZATION, list);

@@ -283,6 +283,12 @@ const PAGES_WITH_OWN_BACK = new Set([
   "/memorize",
   "/quiz",
   "/prayer-structure",
+  // Свою кнопку «назад» в шапке имеют — не показывать глобальную (иначе дубль)
+  "/favorites",
+  "/habits",
+  "/prayer-flow",
+  "/wallpapers",
+  "/zikr",
 ]);
 
 function GlobalBackButton() {
