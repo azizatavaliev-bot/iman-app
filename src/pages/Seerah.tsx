@@ -1,14 +1,23 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import {
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   BookOpen,
   Share2,
+  ScrollText,
+  BookMarked,
 } from "lucide-react";
 import { storage } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import { SEERAH_CHAPTERS, PROPHET_LIFE_YEARS } from "../data/seerah";
+import { ReadingTimerBar } from "../components/ReadingTimer";
+import { hapticImpact } from "../lib/api";
+
+type ReadMode = "scroll" | "book";
+const MODE_KEY = "iman_seerah_mode";
+const POS_KEY = "iman_seerah_pos"; // индекс главы, где остановился (книжный режим)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Seerah Page — Life of Prophet Muhammad (peace be upon him)
@@ -36,6 +45,40 @@ export default function Seerah() {
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [extendedIds, setExtendedIds] = useState<Set<number>>(new Set());
+  const [mode, setMode] = useState<ReadMode>(
+    () => (localStorage.getItem(MODE_KEY) as ReadMode) || "scroll",
+  );
+  // Позиция чтения в книжном режиме (индекс главы), запоминается
+  const [bookIdx, setBookIdx] = useState<number>(() => {
+    const raw = Number(localStorage.getItem(POS_KEY));
+    return Number.isFinite(raw) && raw >= 0 && raw < SEERAH_CHAPTERS.length
+      ? raw
+      : 0;
+  });
+  const touchStartX = useRef<number | null>(null);
+
+  function changeMode(next: ReadMode) {
+    hapticImpact("light");
+    setMode(next);
+    localStorage.setItem(MODE_KEY, next);
+  }
+
+  function goToChapter(idx: number, markRead = true) {
+    const clamped = Math.max(0, Math.min(SEERAH_CHAPTERS.length - 1, idx));
+    setBookIdx(clamped);
+    localStorage.setItem(POS_KEY, String(clamped));
+    if (markRead) {
+      const ch = SEERAH_CHAPTERS[clamped];
+      if (ch && !readIds.has(ch.id)) {
+        const next = new Set(readIds);
+        next.add(ch.id);
+        setReadIds(next);
+        saveReadChapters(Array.from(next));
+        storage.addExtraPoints(ch.points);
+      }
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   /** Render text with **bold** segments */
   function renderRichText(text: string): ReactNode {
@@ -107,6 +150,37 @@ export default function Seerah() {
           </div>
         </div>
       </header>
+
+      {/* ── Таймер чтения ──────────────────────────────────────────────── */}
+      <div className="mb-3">
+        <ReadingTimerBar section="Сира" />
+      </div>
+
+      {/* ── Переключатель режима чтения ────────────────────────────────── */}
+      <div className="flex gap-1 p-1 rounded-xl glass-card mb-4">
+        <button
+          onClick={() => changeMode("scroll")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+            mode === "scroll"
+              ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <ScrollText className="w-3.5 h-3.5" />
+          Лента
+        </button>
+        <button
+          onClick={() => changeMode("book")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+            mode === "book"
+              ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <BookMarked className="w-3.5 h-3.5" />
+          Книга
+        </button>
+      </div>
 
       {/* ── Progress Bar ───────────────────────────────────────────────── */}
       <div className="glass-card p-4 mb-4">
@@ -210,7 +284,8 @@ export default function Seerah() {
         </div>
       </div>
 
-      {/* ── Timeline ───────────────────────────────────────────────────── */}
+      {/* ── Режим ЛЕНТА: таймлайн со всеми главами ─────────────────────── */}
+      {mode === "scroll" && (
       <div className="relative">
         {SEERAH_CHAPTERS.map((chapter, index) => {
           const isRead = readIds.has(chapter.id);
@@ -465,6 +540,142 @@ export default function Seerah() {
           );
         })}
       </div>
+      )}
+
+      {/* ── Режим КНИГА: одна глава на страницу, свайп/стрелки ──────────── */}
+      {mode === "book" && (() => {
+        const chapter = SEERAH_CHAPTERS[bookIdx];
+        const showExt = extendedIds.has(chapter.id);
+        const body = showExt && chapter.extended ? chapter.extended : chapter.content;
+        return (
+          <div
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0].clientX;
+            }}
+            onTouchEnd={(e) => {
+              if (touchStartX.current === null) return;
+              const dx = e.changedTouches[0].clientX - touchStartX.current;
+              if (Math.abs(dx) > 60) {
+                if (dx < 0 && bookIdx < SEERAH_CHAPTERS.length - 1)
+                  goToChapter(bookIdx + 1);
+                else if (dx > 0 && bookIdx > 0) goToChapter(bookIdx - 1);
+              }
+              touchStartX.current = null;
+            }}
+          >
+            {/* Страница-глава */}
+            <div className="glass-card p-5 animate-fade-in min-h-[60vh]">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-2xl">{chapter.emoji}</span>
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                  Глава {bookIdx + 1} из {SEERAH_CHAPTERS.length} · {chapter.year} · {chapter.age} лет
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-1">{chapter.title}</h2>
+              <p className="text-xs text-slate-500 mb-3">📍 {chapter.location}</p>
+
+              {chapter.quote && (
+                <p className="text-sm italic text-amber-200/80 border-l-2 border-amber-500/40 pl-3 mb-4 leading-relaxed">
+                  {chapter.quote}
+                </p>
+              )}
+
+              <div className="text-[15px] leading-[1.8] text-slate-200 whitespace-pre-line">
+                {renderRichText(body)}
+              </div>
+
+              {/* Переключатель расширенной версии */}
+              {chapter.extended && (
+                <button
+                  onClick={() => {
+                    hapticImpact("light");
+                    setExtendedIds((prev) => {
+                      const next = new Set(prev);
+                      next.has(chapter.id)
+                        ? next.delete(chapter.id)
+                        : next.add(chapter.id);
+                      return next;
+                    });
+                  }}
+                  className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-emerald-300"
+                >
+                  {showExt ? (
+                    <>
+                      <ChevronUp className="w-4 h-4" /> Свернуть подробности
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" /> Подробнее из источников
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Ключевые события */}
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <h4 className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2">
+                  Ключевые события
+                </h4>
+                <ul className="space-y-2">
+                  {chapter.keyEvents.map((event, eIdx) => (
+                    <li key={eIdx} className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 bg-emerald-400" />
+                      <span className="text-xs leading-relaxed text-slate-400">
+                        {event}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {chapter.source && (
+                <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
+                  Источники: {chapter.source}
+                </p>
+              )}
+            </div>
+
+            {/* Навигация страниц */}
+            <div className="flex items-center justify-between gap-3 mt-4">
+              <button
+                onClick={() => goToChapter(bookIdx - 1, false)}
+                disabled={bookIdx === 0}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl glass-card text-sm font-medium text-slate-300 disabled:opacity-30 active:scale-95 transition"
+              >
+                <ChevronLeft className="w-4 h-4" /> Назад
+              </button>
+              <span className="text-xs text-slate-500 tabular-nums">
+                {bookIdx + 1} / {SEERAH_CHAPTERS.length}
+              </span>
+              <button
+                onClick={() => goToChapter(bookIdx + 1)}
+                disabled={bookIdx === SEERAH_CHAPTERS.length - 1}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-200 text-sm font-semibold ring-1 ring-emerald-400/40 disabled:opacity-30 active:scale-95 transition"
+              >
+                Далее <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Точки-страницы */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+              {SEERAH_CHAPTERS.map((c, i) => (
+                <button
+                  key={c.id}
+                  onClick={() => goToChapter(i, false)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === bookIdx
+                      ? "w-5 bg-emerald-400"
+                      : readIds.has(c.id)
+                        ? "w-1.5 bg-emerald-500/50"
+                        : "w-1.5 bg-white/15"
+                  }`}
+                  title={`${i + 1}. ${c.title}`}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Bottom spacer for nav */}
       <div className="h-8" />

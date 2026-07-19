@@ -31,6 +31,7 @@ import { initAnalytics, trackPageView } from "./lib/analytics";
 import Onboarding from "./pages/Onboarding";
 import ChannelGate from "./components/ChannelGate";
 import Splash from "./components/Splash";
+import { ReadingTimerWidget } from "./components/ReadingTimer";
 import { dismissWelcome } from "./components/WelcomeStories";
 import "./index.css";
 
@@ -417,6 +418,7 @@ function AppContent() {
           </Routes>
         </Suspense>
       </div>
+      <ReadingTimerWidget />
       <BottomNav />
     </div>
   );
