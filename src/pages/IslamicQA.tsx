@@ -84,13 +84,22 @@ export default function IslamicQA() {
   }, []);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    // Нормализация: регистр, ё→е, убираем диакритику (ударения в транскрипциях)
+    const norm = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/ё/g, "е")
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "");
+    // Все слова запроса должны найтись (AND) по вопросу+ответу+источнику+учёному
+    const words = norm(search.trim()).split(/\s+/).filter(Boolean);
     return QA_LIST.filter((item) => {
       if (activeCat !== "all" && item.category !== activeCat) return false;
-      if (!q) return true;
-      return (
-        item.q.toLowerCase().includes(q) || item.a.toLowerCase().includes(q)
+      if (!words.length) return true;
+      const hay = norm(
+        `${item.q} ${item.a} ${item.source ?? ""} ${item.scholar ?? ""}`,
       );
+      return words.every((w) => hay.includes(w));
     });
   }, [search, activeCat]);
 
@@ -408,6 +417,12 @@ export default function IslamicQA() {
                             <span>{currentCard.source}</span>
                           </div>
                         )}
+                        {currentCard.scholar && (
+                          <div className={`mt-2 text-[11px] text-slate-300 ${cardColors.bg} rounded-lg p-3 ring-1 ${cardColors.ring} flex items-start gap-2`}>
+                            <span className={`font-bold ${cardColors.text} shrink-0`}>🎓 Ответил:</span>
+                            <span>{currentCard.scholar}</span>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-4 space-y-2">
@@ -541,6 +556,14 @@ export default function IslamicQA() {
                         Источник:
                       </span>
                       <span>{item.source}</span>
+                    </div>
+                  )}
+                  {item.scholar && (
+                    <div className="mt-2 flex items-start gap-2 text-[11px] text-slate-500 bg-white/[0.02] rounded-lg p-2.5">
+                      <span className="font-bold text-amber-400/80">
+                        Ответил:
+                      </span>
+                      <span>{item.scholar}</span>
                     </div>
                   )}
                   <div className="mt-3 flex items-center gap-2">
