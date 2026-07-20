@@ -56,6 +56,50 @@ function getTelegramId(): number | null {
   return user?.id ?? null;
 }
 
+/** Telegram-id, которому принадлежат данные в localStorage (из профиля). */
+function getLocalOwnerId(): number | null {
+  try {
+    const raw = localStorage.getItem("iman_profile");
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    const id = p?.telegramId;
+    return typeof id === "number" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Проставить владельца текущих локальных данных (id текущего пользователя). */
+function stampLocalOwner(telegramId: number): void {
+  try {
+    const raw = localStorage.getItem("iman_profile");
+    const p = raw ? JSON.parse(raw) : {};
+    if (p.telegramId !== telegramId) {
+      p.telegramId = telegramId;
+      localStorage.setItem("iman_profile", JSON.stringify(p));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Стереть все синкаемые ключи (данные чужого аккаунта на общем устройстве). */
+function clearSyncedLocalData(): void {
+  const toRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (
+      k &&
+      (k.startsWith("iman_") &&
+        k !== "iman_onboarded" &&
+        k !== "iman_channel_skipped")
+    ) {
+      toRemove.push(k);
+    }
+  }
+  toRemove.forEach((k) => localStorage.removeItem(k));
+}
+
 /** Gather all iman_* data from localStorage into one object */
 function gatherLocalData(): Record<string, unknown> {
   const data: Record<string, unknown> = {};
@@ -149,18 +193,42 @@ export async function syncUserData(): Promise<void> {
   try {
     const server = await fetchServerData(telegramId);
 
-    if (!server) {
+    // server.data may be a JSON string (double-encoded) — parse it first
+    const serverDataParsed: Record<string, unknown> | null = server
+      ? typeof server.data === "string"
+        ? JSON.parse(server.data)
+        : server.data
+      : null;
+
+    // ⚠️ ЗАЩИТА ОТ КРОСС-АТРИБУЦИИ БАЛЛОВ.
+    // На общем устройстве / при смене Telegram-аккаунта localStorage не
+    // очищается, и данные ПРЕДЫДУЩЕГО пользователя (с его баллами) могут
+    // «перетечь» к текущему через pushToServer. Если владелец локальных
+    // данных не совпадает с текущим id — НЕ пушим чужое: восстанавливаем
+    // данные текущего пользователя с сервера, либо чистим localStorage.
+    const localOwnerId = getLocalOwnerId();
+    if (localOwnerId != null && localOwnerId !== telegramId) {
+      console.warn(
+        `[sync] ⚠️ localStorage принадлежит другому пользователю (${localOwnerId} ≠ ${telegramId}). Чужие данные не пушим.`,
+      );
+      if (serverDataParsed) {
+        restoreToLocal(serverDataParsed);
+      } else {
+        clearSyncedLocalData();
+      }
+      stampLocalOwner(telegramId);
+      return; // finally проставит syncDone
+    }
+
+    if (!server || !serverDataParsed) {
       // No server data yet — push local to server (first time user)
       console.log("[sync] ✅ First time user, pushing local to server");
       await pushToServer(telegramId);
+      stampLocalOwner(telegramId);
       return;
     }
 
-    // server.data may be a JSON string (double-encoded) — parse it first
-    const serverData: Record<string, unknown> =
-      typeof server.data === "string"
-        ? JSON.parse(server.data)
-        : server.data;
+    const serverData: Record<string, unknown> = serverDataParsed;
 
     // SMART MERGE: сравниваем по updated_at и totalPoints
     const localData = gatherLocalData();
@@ -205,6 +273,8 @@ export async function syncUserData(): Promise<void> {
       }
     }
 
+    // Помечаем, что localStorage теперь принадлежит текущему пользователю
+    stampLocalOwner(telegramId);
     console.log("[sync] ✅ Sync complete.");
   } catch (e) {
     console.error("[sync] ❌ Initial sync failed:", e);
