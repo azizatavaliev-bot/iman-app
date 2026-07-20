@@ -1726,12 +1726,12 @@ export default function Quran() {
                             : "max-h-0 opacity-0"
                         }`}
                       >
-                        <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/15">
+                        <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/25">
                           <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="text-[10px] font-semibold uppercase tracking-widest text-purple-400/80">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-purple-300">
                               Толкование
                             </span>
-                            <span className="text-[10px] text-purple-400/60 italic">
+                            <span className="text-[10px] text-purple-300/70 italic">
                               {TAFSIR_SOURCE}
                             </span>
                           </div>

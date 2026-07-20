@@ -33,6 +33,9 @@
     --glass-bg: rgba(255, 255, 255, 0.05);
     --glass-bg-hover: rgba(255, 255, 255, 0.1);
     --glass-border: rgba(255, 255, 255, 0.08);
+    /* Плотная подложка под glass-тинт — чтобы элементы были непрозрачными
+       ДАЖE без backdrop-filter (он не работает в мобильном Telegram WebView). */
+    --glass-solid-base: #111c30;
     --overlay-bg: rgba(2, 6, 23, 0.97);
     --progress-bg: rgba(255, 255, 255, 0.05);
     --dropdown-bg: rgba(17, 24, 39, 0.95);
@@ -60,6 +63,7 @@
     --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-bg-hover: rgba(255, 255, 255, 0.95);
     --glass-border: rgba(99, 113, 135, 0.18);
+    --glass-solid-base: #ffffff;
     --overlay-bg: rgba(240, 244, 248, 0.97);
     --progress-bg: rgba(99, 113, 135, 0.12);
     --dropdown-bg: rgba(255, 255, 255, 0.98);
@@ -96,17 +100,20 @@ body {
 }
 
 .glass {
-    background: var(--glass-bg);
+    /* translucent-тинт поверх плотной подложки → всегда непрозрачно */
+    background: linear-gradient(var(--glass-bg), var(--glass-bg)),
+        var(--glass-solid-base);
     backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
 }
 
 .glass-card {
     background: linear-gradient(
-        135deg,
-        var(--bg-card-gradient-from) 0%,
-        var(--bg-card-gradient-to) 100%
-    );
+            135deg,
+            var(--bg-card-gradient-from) 0%,
+            var(--bg-card-gradient-to) 100%
+        ),
+        var(--glass-solid-base);
     backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
@@ -186,8 +193,8 @@ body {
 /* Bottom nav */
 /* Нижняя навигация должна быть НЕПРОЗРАЧНОЙ (иначе контент/плеер просвечивают).
    --glass-bg в тёмной теме всего 5% — для навбара делаем плотный фон. */
-nav.glass { background: rgba(15, 23, 42, 0.94); }
-[data-theme="light"] nav.glass { background: rgba(255, 255, 255, 0.94) !important; }
+nav.glass { background: var(--glass-solid-base); }
+[data-theme="light"] nav.glass { background: #ffffff !important; }
 
 /* ── Arabic text ────────────────────────────────────────────── */
 /* amber-50/100/200 are near-white — replace with dark amber */
