@@ -75,7 +75,15 @@ export type WallpaperThemeKey =
   | "indigo"
   | "crimson"
   | "sunset"
-  | "graphite";
+  | "graphite"
+  | "ocean"
+  | "forest"
+  | "sakura"
+  | "desert"
+  | "aurora"
+  | "pearl"
+  | "night"
+  | "copper";
 
 interface WallpaperTheme {
   label: string;
@@ -262,6 +270,142 @@ export const WALLPAPER_THEMES: Record<WallpaperThemeKey, WallpaperTheme> = {
     footer: "rgba(203,213,225,0.7)",
     brand: "rgba(203,213,225,0.95)",
   },
+  ocean: {
+    label: "Океан",
+    swatch: "linear-gradient(135deg, #38bdf8, #071a29)",
+    bgStops: [
+      [0, "#0c2436"],
+      [0.55, "#071a29"],
+      [1, "#020e18"],
+    ],
+    glowColor: "56,189,248",
+    bismillah: "rgba(125,211,252,0.5)",
+    arabic: "#dbeafe",
+    divider: "rgba(56,189,248,0.25)",
+    translit: "rgba(165,243,252,0.88)",
+    translation: "rgba(224,242,254,0.92)",
+    footer: "rgba(148,180,210,0.75)",
+    brand: "rgba(56,189,248,0.95)",
+  },
+  forest: {
+    label: "Лес",
+    swatch: "linear-gradient(135deg, #22c55e, #0a1a10)",
+    bgStops: [
+      [0, "#0f2417"],
+      [0.55, "#0a1a10"],
+      [1, "#04100a"],
+    ],
+    glowColor: "34,197,94",
+    bismillah: "rgba(187,247,208,0.5)",
+    arabic: "#e7f6ec",
+    divider: "rgba(34,197,94,0.25)",
+    translit: "rgba(167,243,208,0.88)",
+    translation: "rgba(226,240,230,0.92)",
+    footer: "rgba(150,180,160,0.75)",
+    brand: "rgba(74,222,128,0.95)",
+  },
+  sakura: {
+    label: "Сакура",
+    swatch: "linear-gradient(135deg, #f472b6, #1c0e18)",
+    bgStops: [
+      [0, "#2a1424"],
+      [0.55, "#1c0e18"],
+      [1, "#0f070d"],
+    ],
+    glowColor: "244,114,182",
+    bismillah: "rgba(251,207,232,0.55)",
+    arabic: "#fce7f3",
+    divider: "rgba(244,114,182,0.28)",
+    translit: "rgba(249,168,212,0.9)",
+    translation: "rgba(253,242,248,0.92)",
+    footer: "rgba(216,180,205,0.75)",
+    brand: "rgba(244,114,182,0.95)",
+  },
+  desert: {
+    label: "Пустыня",
+    swatch: "linear-gradient(135deg, #d9a45a, #1f170d)",
+    bgStops: [
+      [0, "#2b2013"],
+      [0.55, "#1f170d"],
+      [1, "#120d06"],
+    ],
+    glowColor: "217,164,90",
+    bismillah: "rgba(253,230,178,0.55)",
+    arabic: "#fdf1d6",
+    divider: "rgba(217,164,90,0.3)",
+    translit: "rgba(240,205,150,0.88)",
+    translation: "rgba(250,242,225,0.92)",
+    footer: "rgba(210,188,150,0.75)",
+    brand: "rgba(230,180,110,0.95)",
+  },
+  aurora: {
+    label: "Аврора",
+    swatch: "linear-gradient(135deg, #2dd4bf, #111a35)",
+    bgStops: [
+      [0, "#08272b"],
+      [0.5, "#111a35"],
+      [1, "#0a0a1e"],
+    ],
+    glowColor: "45,212,191",
+    bismillah: "rgba(153,246,228,0.5)",
+    arabic: "#d6f5ee",
+    divider: "rgba(94,234,212,0.25)",
+    translit: "rgba(165,243,252,0.88)",
+    translation: "rgba(224,242,240,0.92)",
+    footer: "rgba(150,190,190,0.75)",
+    brand: "rgba(45,212,191,0.95)",
+  },
+  pearl: {
+    label: "Жемчуг",
+    swatch: "linear-gradient(135deg, #ffffff, #cbd5e1)",
+    bgStops: [
+      [0, "#f8fafc"],
+      [0.55, "#eef2f7"],
+      [1, "#e2e8f0"],
+    ],
+    glowColor: "180,150,90",
+    bismillah: "rgba(180,140,60,0.65)",
+    arabic: "#3a2f1a",
+    divider: "rgba(100,116,139,0.3)",
+    translit: "rgba(51,65,85,0.95)",
+    translation: "rgba(30,41,59,0.92)",
+    footer: "rgba(100,116,139,0.85)",
+    brand: "rgba(180,140,60,0.95)",
+  },
+  night: {
+    label: "Ночь",
+    swatch: "linear-gradient(135deg, #818cf8, #080a22)",
+    bgStops: [
+      [0, "#0d1030"],
+      [0.55, "#080a22"],
+      [1, "#030414"],
+    ],
+    glowColor: "129,140,248",
+    bismillah: "rgba(199,210,254,0.5)",
+    arabic: "#e0e7ff",
+    divider: "rgba(129,140,248,0.28)",
+    translit: "rgba(196,181,253,0.9)",
+    translation: "rgba(226,232,255,0.92)",
+    footer: "rgba(160,168,210,0.75)",
+    brand: "rgba(129,140,248,0.95)",
+  },
+  copper: {
+    label: "Медь",
+    swatch: "linear-gradient(135deg, #ea8c58, #1e0f09)",
+    bgStops: [
+      [0, "#2b1810"],
+      [0.55, "#1e0f09"],
+      [1, "#100704"],
+    ],
+    glowColor: "234,140,88",
+    bismillah: "rgba(253,200,160,0.55)",
+    arabic: "#fde3cf",
+    divider: "rgba(234,140,88,0.3)",
+    translit: "rgba(248,190,150,0.88)",
+    translation: "rgba(252,238,228,0.92)",
+    footer: "rgba(210,170,140,0.75)",
+    brand: "rgba(234,140,88,0.95)",
+  },
 };
 
 export interface WallpaperAyahSegment {
@@ -323,6 +467,58 @@ async function ensureFontsReady() {
   }
 }
 
+/** Тонкий декоративный слой: россыпь звёзд + 8-конечные орнаменты (рубʼ аль-хизб)
+ *  в цвете темы с низкой прозрачностью — делает обои живее, но не мешает тексту. */
+function drawOrnaments(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  glow: string,
+) {
+  ctx.save();
+
+  // 8-конечная звезда (два наложенных квадрата) — исламский мотив
+  const star8 = (cx: number, cy: number, r: number, alpha: number) => {
+    ctx.strokeStyle = `rgba(${glow},${alpha})`;
+    ctx.lineWidth = 1.4;
+    for (let k = 0; k < 2; k++) {
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = (k * Math.PI) / 4 + (i * Math.PI) / 2;
+        const x = cx + Math.cos(a) * r;
+        const yy = cy + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+  };
+
+  // Мелкие звёзды-точки (фиксированные позиции в долях экрана — плотнее сверху)
+  const dots: [number, number, number, number][] = [
+    [0.1, 0.07, 3, 0.22], [0.83, 0.05, 4, 0.25], [0.28, 0.12, 2, 0.18],
+    [0.7, 0.1, 2.5, 0.2], [0.5, 0.04, 2, 0.16], [0.18, 0.2, 2, 0.14],
+    [0.9, 0.18, 3, 0.2], [0.62, 0.22, 2, 0.14], [0.38, 0.25, 2.5, 0.16],
+    [0.12, 0.86, 3, 0.16], [0.88, 0.9, 2.5, 0.16], [0.5, 0.94, 2, 0.12],
+    [0.3, 0.9, 2, 0.12], [0.72, 0.85, 2, 0.12],
+  ];
+  for (const [fx, fy, r, a] of dots) {
+    ctx.fillStyle = `rgba(${glow},${a})`;
+    ctx.beginPath();
+    ctx.arc(fx * W, fy * H, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 8-конечные орнаменты по углам области контента
+  star8(W * 0.13, H * 0.14, 16, 0.16);
+  star8(W * 0.87, H * 0.13, 16, 0.16);
+  star8(W * 0.14, H * 0.82, 13, 0.13);
+  star8(W * 0.86, H * 0.83, 13, 0.13);
+
+  ctx.restore();
+}
+
 export async function generateAyahWallpaper(
   opts: AyahWallpaperOptions,
 ): Promise<{ dataUrl: string; blob: Blob | null }> {
@@ -374,6 +570,9 @@ export async function generateAyahWallpaper(
   glow.addColorStop(1, `rgba(${theme.glowColor},0)`);
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  // Декоративный слой — звёзды и исламские орнаменты в цвете темы
+  drawOrnaments(ctx, WIDTH, HEIGHT, theme.glowColor);
 
   // Область, доступная под контент (между шапкой и подвалом с лого) —
   // если текст длинный, масштабируем шрифты вниз, чтобы всё поместилось
