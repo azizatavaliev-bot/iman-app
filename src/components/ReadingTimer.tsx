@@ -12,6 +12,7 @@ import {
   formatTimer,
 } from "../lib/readingTimer";
 import { hapticImpact } from "../lib/api";
+import { useAudio } from "./AudioPlayer";
 
 const PRESETS = [5, 10, 15, 20, 30];
 
@@ -20,6 +21,10 @@ const PRESETS = [5, 10, 15, 20, 30];
 // ------------------------------------------------------------
 export function ReadingTimerWidget() {
   const t = useReadingTimer();
+  const audio = useAudio();
+  // Если играет глобальный плеер — поднимаем виджет выше, чтобы не перекрывался
+  const playerVisible = !!audio.currentSurah;
+  const bottomOffset = playerVisible ? 148 : 92; // px над плеером / над навбаром
 
   // Хаптик при завершении
   useEffect(() => {
@@ -37,7 +42,10 @@ export function ReadingTimerWidget() {
   // Экран завершения
   if (t.finished) {
     return (
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] w-[min(92vw,360px)] animate-slide-down">
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-[65] w-[min(92vw,360px)] animate-slide-down"
+        style={{ bottom: bottomOffset }}
+      >
         <div className="glass-card p-4 border border-emerald-400/40 bg-emerald-500/10 shadow-2xl shadow-emerald-500/20 text-center">
           <div className="text-2xl mb-1">🎉</div>
           <p className="text-white text-sm font-bold mb-0.5">
@@ -77,8 +85,11 @@ export function ReadingTimerWidget() {
       : 0;
 
   return (
-    <div className="fixed bottom-24 right-3 z-[55]">
-      <div className="glass-card px-3 py-2.5 flex items-center gap-2.5 shadow-xl shadow-black/30 border border-white/10">
+    <div
+      className="fixed left-1/2 -translate-x-1/2 z-[65]"
+      style={{ bottom: bottomOffset }}
+    >
+      <div className="glass-card px-3 py-2.5 flex items-center gap-2.5 shadow-xl shadow-black/40 border border-white/10 bg-slate-900/90 backdrop-blur-xl">
         {/* Круговой прогресс */}
         <div className="relative w-9 h-9 shrink-0">
           <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">

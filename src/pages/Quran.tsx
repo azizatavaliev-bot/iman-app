@@ -396,14 +396,15 @@ export default function Quran() {
     });
   }
 
-  // Переход по страницам в книжном режиме (+ запоминание позиции)
+  // Переход по страницам в книжном режиме (+ запоминание позиции).
+  // НЕ скроллим наверх — аят заменяется на месте с анимацией перелистывания,
+  // иначе верхний блок «дёргается» на каждом листании.
   function goToBookAyah(idx: number) {
     const clamped = Math.max(0, Math.min(ayahs.length - 1, idx));
     if (clamped !== bookAyahIdx) setFlipDir(clamped > bookAyahIdx ? "next" : "prev");
     setBookAyahIdx(clamped);
     const a = ayahs[clamped];
     if (a && selectedSurah != null) saveLastPos(selectedSurah, a.numberInSurah);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // --- Share state ---
