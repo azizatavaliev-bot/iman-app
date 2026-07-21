@@ -1273,6 +1273,19 @@ export default function Dashboard() {
   const prayersCompleted = todayStats.prayersCompleted;
   const habitsCompleted = todayStats.habitsCompleted;
   const pointsEarned = todayStats.pointsEarned;
+
+  // Сводная статистика для карточки «Моя статистика» на главной
+  const hifzCount = storage.getMemorizationList().length;
+  const readJson = (key: string): number => {
+    try {
+      const v = JSON.parse(localStorage.getItem(key) || "[]");
+      return Array.isArray(v) ? v.length : 0;
+    } catch {
+      return 0;
+    }
+  };
+  const qaReadCount = readJson("iman_qa_read");
+  const surahsReadCount = readJson("iman_quran_read_surahs");
   const overallPct = MAX_DAILY_POINTS > 0 ? pointsEarned / MAX_DAILY_POINTS : 0;
 
   // ---------- Weekly bar data ----------
@@ -1609,6 +1622,51 @@ export default function Dashboard() {
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ================================================================ */}
+      {/* МОЯ СТАТИСТИКА — сводка ключевых показателей                      */}
+      {/* ================================================================ */}
+      <div
+        className="rounded-3xl p-4"
+        style={{
+          background: "#111c30",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-base">📊</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-white/50">
+            Моя статистика
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {[
+            { emoji: "🕌", value: `${prayersCompleted}/5`, label: "Намазов" },
+            { emoji: "🔥", value: streak, label: "Дней подряд" },
+            { emoji: "⭐", value: profile.totalPoints, label: "Баллов" },
+            {
+              emoji: "📖",
+              value: `${surahsReadCount}/114`,
+              label: "Сур прочитано",
+            },
+            { emoji: "🧠", value: hifzCount, label: "Заучено" },
+            { emoji: "❓", value: qaReadCount, label: "Вопросов" },
+          ].map((s, i) => (
+            <div
+              key={i}
+              className="rounded-2xl bg-white/[0.03] ring-1 ring-white/5 px-2 py-3 text-center"
+            >
+              <div className="text-lg mb-0.5">{s.emoji}</div>
+              <div className="text-lg font-black text-white tabular-nums leading-none">
+                {s.value}
+              </div>
+              <div className="text-[9px] text-white/40 mt-1 leading-tight">
+                {s.label}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
