@@ -8,7 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" — показываем кнопку «Обновить» при новой версии (надёжнее
+      // autoUpdate, который применялся только со 2-го рефреша)
+      registerType: "prompt",
       includeAssets: ["favicon.svg"],
       manifest: {
         name: "IMAN — Путь мусульманина",
@@ -42,10 +44,9 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         // Tafsir chunk is ~11 MB (full Tafsir Al-Sa'di for all 6236 ayahs).
         maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
-        // Сразу активируем новый SW и удаляем старый кэш — пользователь
-        // получает актуальную версию без ручного жёсткого рефреша
-        skipWaiting: true,
-        clientsClaim: true,
+        // В режиме "prompt" НЕ форсим skipWaiting/clientsClaim — активацией
+        // управляет кнопка «Обновить» (updateServiceWorker(true) шлёт SKIP_WAITING
+        // и перезагружает). Так пользователь всегда получает свежую версию.
         cleanupOutdatedCaches: true,
         // index.html всегда из сети — чтобы новые JS-чанки находились
         navigateFallback: "/index.html",
