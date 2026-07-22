@@ -42,8 +42,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
-        // Tafsir chunk is ~11 MB (full Tafsir Al-Sa'di for all 6236 ayahs).
-        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
+        // Тафсир (~11 МБ) НЕ кладём в precache — иначе установка PWA тянет 14.5 МБ.
+        // Он кэшируется по запросу (runtimeCaching ниже) при первом открытии толкования.
+        globIgnores: ["**/data-tafsir-*.js"],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // В режиме "prompt" НЕ форсим skipWaiting/clientsClaim — активацией
         // управляет кнопка «Обновить» (updateServiceWorker(true) шлёт SKIP_WAITING
         // и перезагружает). Так пользователь всегда получает свежую версию.
@@ -52,6 +54,16 @@ export default defineConfig({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
+          {
+            // Тафсир-чанк — кэшируем при первом обращении (офлайн сохраняется)
+            urlPattern: /\/assets\/data-tafsir-.*\.js$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "tafsir-cache",
+              expiration: { maxEntries: 3, maxAgeSeconds: 60 * 60 * 24 * 120 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
