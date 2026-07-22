@@ -1684,33 +1684,96 @@ export default function Memorize() {
           return (
             <>
               <div className="grid grid-cols-2 gap-2 mb-3">
+                {/* Учу — карточка-прогресс */}
                 <button
                   onClick={() => setActiveTab("learning")}
-                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+                  className={`text-left p-3 rounded-2xl transition-all active:scale-[0.98] ${
                     activeTab === "learning"
-                      ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/40"
-                      : "bg-white/[0.03] text-slate-400"
+                      ? "bg-amber-500/15 ring-1 ring-amber-500/40 shadow-lg shadow-amber-500/10"
+                      : "bg-white/[0.03] ring-1 ring-white/5"
                   }`}
                 >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  Учу
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    activeTab === "learning" ? "bg-amber-500/30 text-amber-100" : "bg-white/5 text-slate-500"
-                  }`}>{learningList.length}</span>
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        activeTab === "learning" ? "bg-amber-500/25" : "bg-white/5"
+                      }`}
+                    >
+                      <BookOpen
+                        className={`w-4 h-4 ${
+                          activeTab === "learning" ? "text-amber-300" : "text-slate-400"
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`text-2xl font-black tabular-nums leading-none ${
+                        activeTab === "learning" ? "text-amber-100" : "text-slate-300"
+                      }`}
+                    >
+                      {learningList.length}
+                    </span>
+                  </div>
+                  <p
+                    className={`text-xs font-semibold mt-1.5 ${
+                      activeTab === "learning" ? "text-amber-200" : "text-slate-400"
+                    }`}
+                  >
+                    Учу сейчас
+                  </p>
+                  <div className="mt-2 h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-amber-400/70 transition-all duration-500"
+                      style={{
+                        width: `${totalSurahs ? (learningList.length / totalSurahs) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
                 </button>
+
+                {/* Выученные — карточка-прогресс */}
                 <button
                   onClick={() => setActiveTab("mastered")}
-                  className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+                  className={`text-left p-3 rounded-2xl transition-all active:scale-[0.98] ${
                     activeTab === "mastered"
-                      ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/40"
-                      : "bg-white/[0.03] text-slate-400"
+                      ? "bg-emerald-500/15 ring-1 ring-emerald-500/40 shadow-lg shadow-emerald-500/10"
+                      : "bg-white/[0.03] ring-1 ring-white/5"
                   }`}
                 >
-                  <Check className="w-3.5 h-3.5" />
-                  Выученные
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    activeTab === "mastered" ? "bg-emerald-500/30 text-emerald-100" : "bg-white/5 text-slate-500"
-                  }`}>{masteredList.length}</span>
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        activeTab === "mastered" ? "bg-emerald-500/25" : "bg-white/5"
+                      }`}
+                    >
+                      <Check
+                        className={`w-4 h-4 ${
+                          activeTab === "mastered" ? "text-emerald-300" : "text-slate-400"
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`text-2xl font-black tabular-nums leading-none ${
+                        activeTab === "mastered" ? "text-emerald-100" : "text-slate-300"
+                      }`}
+                    >
+                      {masteredList.length}
+                    </span>
+                  </div>
+                  <p
+                    className={`text-xs font-semibold mt-1.5 ${
+                      activeTab === "mastered" ? "text-emerald-200" : "text-slate-400"
+                    }`}
+                  >
+                    Выучил
+                  </p>
+                  <div className="mt-2 h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-emerald-400/70 transition-all duration-500"
+                      style={{
+                        width: `${totalSurahs ? (masteredList.length / totalSurahs) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
                 </button>
               </div>
               {activeList.length === 0 && (

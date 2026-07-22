@@ -401,6 +401,32 @@ nav.glass { background: var(--glass-solid-base); }
     animation: pulse-slow 3s ease-in-out infinite;
 }
 
+/* ── Splash-экран: кинематографичный вход ─────────────────────── */
+@keyframes splashFadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashRing {
+    0%   { transform: translate(-50%, -50%) scale(0.35); opacity: 0.55; }
+    100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+@keyframes splashSpin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes splashTwinkle {
+    0%, 100% { opacity: 0.15; transform: scale(0.7); }
+    50%      { opacity: 0.85; transform: scale(1.25); }
+}
+@keyframes splashShimmer {
+    0%   { background-position: 150% 0; }
+    100% { background-position: -150% 0; }
+}
+@keyframes splashProgress {
+    from { width: 0%; }
+    to   { width: 100%; }
+}
+
 @keyframes card-enter {
     from { opacity: 0; transform: translateY(12px) scale(0.96); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
