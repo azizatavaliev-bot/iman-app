@@ -64,6 +64,20 @@ export default function Splash({ onDone, duration = 2000 }: SplashProps) {
         />
       ))}
 
+      {/* Внешний контр-вращающийся геометрический орнамент (глубина) */}
+      <svg
+        className="absolute top-[38%] left-1/2 w-[520px] h-[520px] opacity-[0.06]"
+        viewBox="0 0 100 100"
+        style={{ animation: "splashSpinRev 40s linear infinite" }}
+      >
+        <g fill="none" stroke="rgb(52,211,153)" strokeWidth="0.4">
+          <circle cx="50" cy="50" r="48" />
+          <rect x="14" y="14" width="72" height="72" />
+          <rect x="14" y="14" width="72" height="72" transform="rotate(30 50 50)" />
+          <rect x="14" y="14" width="72" height="72" transform="rotate(60 50 50)" />
+        </g>
+      </svg>
+
       {/* Вращающийся 8-конечный орнамент (рубʼ аль-хизб) за логотипом */}
       <svg
         className="absolute top-[38%] left-1/2 w-[340px] h-[340px] opacity-[0.12]"

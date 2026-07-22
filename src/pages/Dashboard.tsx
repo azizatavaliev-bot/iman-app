@@ -1565,11 +1565,23 @@ export default function Dashboard() {
         className="relative overflow-hidden rounded-3xl p-4 flex items-center gap-4"
         style={{
           background:
-            "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-          border: "1px solid rgba(255,255,255,0.07)",
+            "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(20,28,48,0.55) 48%, rgba(16,185,129,0.10) 100%)",
+          border: "1px solid rgba(245,158,11,0.16)",
+          boxShadow: "0 8px 30px rgba(245,158,11,0.06)",
         }}
       >
-        <div className="absolute -bottom-12 -right-8 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -right-8 w-32 h-32 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-14 -left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Исламский орнамент — 8-конечная звезда в углу */}
+        <svg
+          className="absolute top-2 right-3 w-16 h-16 opacity-[0.10] pointer-events-none"
+          viewBox="0 0 100 100"
+        >
+          <g fill="none" stroke="rgb(251,191,36)" strokeWidth="2">
+            <rect x="22" y="22" width="56" height="56" />
+            <rect x="22" y="22" width="56" height="56" transform="rotate(45 50 50)" />
+          </g>
+        </svg>
 
         {/* Daily Score Ring — нажми для объяснения */}
         <button
@@ -2239,10 +2251,14 @@ export default function Dashboard() {
             </h3>
           </div>
           <div className="grid grid-cols-4 gap-2.5">
-            {section.items.map(({ icon: Icon, label, path, color, grad }) => (
+            {section.items.map(({ icon: Icon, label, path, color, grad }, i) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
+                style={{
+                  animation: "tileIn 0.4s ease-out both",
+                  animationDelay: `${Math.min(i * 0.04, 0.32)}s`,
+                }}
                 className="group relative rounded-2xl p-3 flex flex-col items-center gap-2
                            bg-white/[0.03] border border-white/[0.07]
                            hover:bg-white/[0.06] hover:border-white/15
@@ -2250,8 +2266,8 @@ export default function Dashboard() {
                            shadow-sm hover:shadow-lg hover:shadow-black/20"
               >
                 <div
-                  className={`relative bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center
-                              shadow-lg ring-1 ring-white/10 group-hover:ring-white/20 group-hover:scale-105 transition-all`}
+                  className={`icon-fx-${i % 6} relative bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center
+                              shadow-lg ring-1 ring-white/10 group-hover:ring-white/20 transition-shadow`}
                 >
                   <Icon size={22} className={color} strokeWidth={2} />
                 </div>

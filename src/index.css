@@ -414,6 +414,10 @@ nav.glass { background: var(--glass-solid-base); }
     from { transform: translate(-50%, -50%) rotate(0deg); }
     to   { transform: translate(-50%, -50%) rotate(360deg); }
 }
+@keyframes splashSpinRev {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(-360deg); }
+}
 @keyframes splashTwinkle {
     0%, 100% { opacity: 0.15; transform: scale(0.7); }
     50%      { opacity: 0.85; transform: scale(1.25); }
@@ -426,6 +430,48 @@ nav.glass { background: var(--glass-solid-base); }
     from { width: 0%; }
     to   { width: 100%; }
 }
+
+/* ── Плитки разделов: появление + разная анимация иконок при наведении ── */
+@keyframes tileIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.94); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fxWiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-11deg); }
+    75% { transform: rotate(11deg); }
+}
+@keyframes fxBounce {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-7px); }
+    70% { transform: translateY(-3px); }
+}
+@keyframes fxSpin {
+    to { transform: rotate(360deg); }
+}
+@keyframes fxPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.18); }
+}
+@keyframes fxSwing {
+    20% { transform: rotate(14deg); }
+    40% { transform: rotate(-10deg); }
+    60% { transform: rotate(6deg); }
+    80% { transform: rotate(-4deg); }
+    100% { transform: rotate(0deg); }
+}
+@keyframes fxJelly {
+    0%, 100% { transform: scale(1, 1); }
+    30% { transform: scale(1.2, 0.8); }
+    50% { transform: scale(0.85, 1.15); }
+    70% { transform: scale(1.08, 0.92); }
+}
+.group:hover .icon-fx-0 { animation: fxWiggle 0.55s ease; }
+.group:hover .icon-fx-1 { animation: fxBounce 0.6s ease; }
+.group:hover .icon-fx-2 { animation: fxSpin 0.7s ease; }
+.group:hover .icon-fx-3 { animation: fxPulse 0.55s ease; }
+.group:hover .icon-fx-4 { animation: fxSwing 0.7s ease; }
+.group:hover .icon-fx-5 { animation: fxJelly 0.6s ease; }
 
 @keyframes card-enter {
     from { opacity: 0; transform: translateY(12px) scale(0.96); }
