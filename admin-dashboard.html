@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>IMAN — Дашборд</title>
+<style>
+  :root { --bg:#0a0f1c; --card:#111c30; --card2:#0f172a; --line:rgba(255,255,255,.07);
+    --txt:#e8eef7; --mut:#8595ad; --em:#34d399; --emd:#10b981; --am:#fbbf24; --sky:#38bdf8; --vio:#a78bfa; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:linear-gradient(180deg,#0b1220,#060a14); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif; padding:20px; min-height:100vh; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:8px; }
+  h1 { font-size:22px; font-weight:800; letter-spacing:-.02em; }
+  h1 span { color:var(--em); }
+  .sub { color:var(--mut); font-size:12px; }
+  .grid { display:grid; gap:12px; }
+  .cards { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px; }
+  .kpi .lbl { color:var(--mut); font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; }
+  .kpi .val { font-size:30px; font-weight:900; line-height:1.1; margin-top:6px; }
+  .kpi .val.em{color:var(--em)} .kpi .val.am{color:var(--am)} .kpi .val.sky{color:var(--sky)} .kpi .val.vio{color:var(--vio)}
+  .kpi .sub2 { color:var(--mut); font-size:11px; margin-top:4px; }
+  .sec { margin-top:20px; }
+  .sec h2 { font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--mut); font-weight:800; margin-bottom:10px; }
+  .row3 { grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+  .mini { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .mini:last-child{border-bottom:0}
+  .mini b { font-weight:800; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); }
+  th { color:var(--mut); font-size:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
+  .bar { height:8px; border-radius:4px; background:var(--emd); }
+  .barbg { background:rgba(255,255,255,.05); border-radius:4px; overflow:hidden; }
+  .chart { display:flex; align-items:flex-end; gap:4px; height:150px; }
+  .chart .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; }
+  .chart .bwrap { width:100%; display:flex; align-items:flex-end; height:120px; }
+  .chart .b { width:100%; background:linear-gradient(180deg,var(--em),var(--emd)); border-radius:5px 5px 0 0; min-height:2px; }
+  .chart .dt { font-size:9px; color:var(--mut); white-space:nowrap; transform:rotate(-45deg); transform-origin:center; }
+  .pill { font-size:10px; padding:2px 8px; border-radius:999px; background:rgba(52,211,153,.15); color:var(--em); font-weight:700; }
+  .muted{color:var(--mut)} .err{color:#f87171; padding:20px; text-align:center}
+  .refresh{ font-size:11px; color:var(--mut); display:flex; align-items:center; gap:6px; }
+  .dot{ width:7px;height:7px;border-radius:50%;background:var(--em); animation:pulse 2s infinite; }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>IMAN <span>Дашборд</span></h1>
+      <div class="sub" id="tz">аналитика · загрузка…</div>
+    </div>
+    <div class="refresh"><span class="dot"></span><span id="updated">обновление…</span></div>
+  </header>
+  <div id="root"><div class="muted" style="padding:40px;text-align:center">Загрузка статистики…</div></div>
+</div>
+<script>
+const TOKEN = location.pathname.split("/").filter(Boolean).pop() || "";
+const $ = (h) => { const t=document.createElement("template"); t.innerHTML=h.trim(); return t.content.firstChild; };
+const n = (x) => (x==null?0:Number(x)).toLocaleString("ru-RU");
+const pad = (s) => String(s);
+
+async function load() {
+  try {
+    const r = await fetch("/api/admin/analytics", { headers: { "X-Dashboard-Token": TOKEN } });
+    if (r.status === 403) { document.getElementById("root").innerHTML='<div class="err">⛔ Доступ запрещён — неверная ссылка/токен.</div>'; return; }
+    if (!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    render(d);
+    document.getElementById("tz").textContent = "Часовой пояс: " + (d.timezone||"—");
+    document.getElementById("updated").textContent = "обновлено " + new Date().toLocaleTimeString("ru-RU");
+  } catch(e) {
+    document.getElementById("root").innerHTML='<div class="err">Ошибка загрузки: '+e.message+'</div>';
+  }
+}
+
+function kpi(lbl, val, cls, sub2){ return `<div class="card kpi"><div class="lbl">${lbl}</div><div class="val ${cls||''}">${val}</div>${sub2?`<div class="sub2">${sub2}</div>`:''}</div>`; }
+function miniPanel(title, obj){ return `<div class="card"><h2 style="margin-bottom:8px">${title}</h2>
+  <div class="mini"><span class="muted">Сегодня</span><b>${n(obj.today)}</b></div>
+  <div class="mini"><span class="muted">Неделя</span><b>${n(obj.week)}</b></div>
+  <div class="mini"><span class="muted">Месяц</span><b>${n(obj.month)}</b></div></div>`; }
+
+function render(d){
+  const daily = d.dailyVisitors||[];
+  const maxU = Math.max(1, ...daily.map(x=>+x.users||0));
+  const chart = daily.map(x=>{
+    const h = Math.round((+x.users/maxU)*118);
+    const dd = (x.date||"").slice(5);
+    return `<div class="col"><div class="bwrap"><div class="b" style="height:${h}px" title="${x.users} юзеров · ${x.views} просм."></div></div><div class="dt">${dd}</div></div>`;
+  }).join("");
+
+  const tl = d.timeline||[];
+  const maxH = Math.max(1, ...tl.map(x=>+x.users||0));
+
+  const pages = (d.topPages||[]).slice(0,10).map(p=>{
+    const mx = Math.max(1, ...(d.topPages||[]).map(x=>+x.count||0));
+    return `<tr><td>${p.page}</td><td class="num">${n(p.count)}</td><td style="width:35%"><div class="barbg"><div class="bar" style="width:${Math.round((+p.count/mx)*100)}%"></div></div></td><td class="num">${n(p.users)}</td></tr>`;
+  }).join("");
+
+  const acts = (d.topActions||[]).slice(0,10).map(a=>`<tr><td>${a.action}</td><td class="num">${n(a.count)}</td></tr>`).join("");
+
+  const users = (d.topUsers||[]).map((u,i)=>`<tr><td>${i+1}. ${u.name||"—"} ${u.username?'<span class="muted">@'+u.username+'</span>':''}</td><td><span class="pill">${u.level||''}</span></td><td class="num">${n(u.points)}</td></tr>`).join("");
+
+  const eng = d.engagement||{sessions:{},pageViews:{},avgVisitsPerUser:{}};
+
+  document.getElementById("root").innerHTML = `
+    <div class="grid cards">
+      ${kpi("Всего пользователей", n(d.totalUsers), "em")}
+      ${kpi("Зашло сегодня", n(d.activeToday), "am")}
+      ${kpi("Онлайн сейчас", n(d.onlineNow), "sky")}
+      ${kpi("Новых сегодня", n((d.newUsers||{}).today), "vio", "за неделю: "+n((d.newUsers||{}).week))}
+      ${kpi("Намазов сегодня", n((d.prayers||{}).today), "em")}
+      ${kpi("Просмотров Корана", n(d.quranViews), "sky")}
+    </div>
+
+    <div class="sec"><h2>Рост — посетители за 14 дней</h2>
+      <div class="card"><div class="chart">${chart||'<span class="muted">нет данных</span>'}</div></div>
+    </div>
+
+    <div class="sec grid row3">
+      ${miniPanel("👥 Посетители", d.visitors||{})}
+      ${miniPanel("✨ Новые пользователи", d.newUsers||{})}
+      ${miniPanel("🕌 Намазы отмечено", d.prayers||{})}
+    </div>
+
+    <div class="sec grid row3">
+      <div class="card"><h2 style="margin-bottom:8px">📈 Сессии</h2>
+        <div class="mini"><span class="muted">Сегодня</span><b>${n(eng.sessions.today)}</b></div>
+        <div class="mini"><span class="muted">Неделя</span><b>${n(eng.sessions.week)}</b></div>
+        <div class="mini"><span class="muted">Месяц</span><b>${n(eng.sessions.month)}</b></div></div>
+      <div class="card"><h2 style="margin-bottom:8px">📄 Просмотры страниц</h2>
+        <div class="mini"><span class="muted">Сегодня</span><b>${n(eng.pageViews.today)}</b></div>
+        <div class="mini"><span class="muted">Неделя</span><b>${n(eng.pageViews.week)}</b></div>
+        <div class="mini"><span class="muted">Месяц</span><b>${n(eng.pageViews.month)}</b></div></div>
+      <div class="card"><h2 style="margin-bottom:8px">⏱️ Активность</h2>
+        <div class="mini"><span class="muted">Ср. сессия</span><b>${Math.round((d.avgSessionDuration||0))} сек</b></div>
+        <div class="mini"><span class="muted">Визитов/юзер (день)</span><b>${(eng.avgVisitsPerUser?.today??0)}</b></div>
+        <div class="mini"><span class="muted">Визитов/юзер (неделя)</span><b>${(eng.avgVisitsPerUser?.week??0)}</b></div></div>
+    </div>
+
+    <div class="sec grid" style="grid-template-columns:1fr 1fr">
+      <div class="card"><h2>🔥 Топ страниц</h2>
+        <table><thead><tr><th>Страница</th><th class="num">Просм.</th><th></th><th class="num">Юзеров</th></tr></thead><tbody>${pages}</tbody></table></div>
+      <div class="card"><h2>⚡ Топ действий</h2>
+        <table><thead><tr><th>Действие</th><th class="num">Раз</th></tr></thead><tbody>${acts}</tbody></table></div>
+    </div>
+
+    <div class="sec"><div class="card"><h2>🏆 Топ пользователей по саваб</h2>
+      <table><thead><tr><th>Пользователь</th><th>Уровень</th><th class="num">Саваб</th></tr></thead><tbody>${users}</tbody></table></div></div>
+
+    <div class="sec"><div class="card"><h2>🕐 Активность по часам (сегодня)</h2>
+      <div class="chart" style="height:90px">${(tl.length?tl:[]).map(x=>`<div class="col"><div class="bwrap" style="height:60px"><div class="b" style="height:${Math.round((+x.users/maxH)*60)}px"></div></div><div class="dt" style="transform:none">${pad(x.hour)}ч</div></div>`).join("")||'<span class="muted">нет активности</span>'}</div></div></div>
+
+    <div class="sec" style="text-align:center;color:var(--mut);font-size:11px;padding:10px">
+      Обновляется автоматически каждые 30 сек · IMAN App · ${new Date().getFullYear()}
+    </div>`;
+}
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

@@ -294,6 +294,13 @@ function isAdmin(telegramId, username) {
   return false;
 }
 
+// Секретный токен для отдельного дашборда статистики (доступ по ссылке,
+// без Telegram-логина). Задаётся через env DASHBOARD_TOKEN.
+const DASHBOARD_TOKEN = process.env.DASHBOARD_TOKEN || "";
+function dashboardTokenOk(req) {
+  return Boolean(DASHBOARD_TOKEN) && req.headers["x-dashboard-token"] === DASHBOARD_TOKEN;
+}
+
 // =========================================================================
 // SECURITY — Webhook secret token for Telegram verification
 // =========================================================================
@@ -1792,7 +1799,7 @@ const server = createServer(async (req, res) => {
       : null;
     const telegramUsername = req.headers["x-telegram-username"] || null;
 
-    if (!isAdmin(telegramId, telegramUsername)) {
+    if (!isAdmin(telegramId, telegramUsername) && !dashboardTokenOk(req)) {
       res.writeHead(403, corsHeaders);
       res.end('{"error":"forbidden","message":"Admin access required"}');
       return;
@@ -2097,7 +2104,7 @@ const server = createServer(async (req, res) => {
       : null;
     const telegramUsername = req.headers["x-telegram-username"] || null;
 
-    if (!isAdmin(telegramId, telegramUsername)) {
+    if (!isAdmin(telegramId, telegramUsername) && !dashboardTokenOk(req)) {
       res.writeHead(403, corsHeaders);
       res.end('{"error":"forbidden","message":"Admin access required"}');
       return;
@@ -2441,6 +2448,29 @@ const server = createServer(async (req, res) => {
 
     res.writeHead(405, corsHeaders);
     res.end('{"error":"method_not_allowed"}');
+    return;
+  }
+
+  // ── Отдельный дашборд статистики (доступ по секретной ссылке) ──────────
+  if (req.method === "GET" && req.url && req.url.startsWith("/dashboard/")) {
+    const t = req.url.slice("/dashboard/".length).split(/[?#]/)[0];
+    if (DASHBOARD_TOKEN && t === DASHBOARD_TOKEN) {
+      try {
+        const html = readFileSync(join(__dirname, "admin-dashboard.html"), "utf8");
+        res.writeHead(200, {
+          ...SECURITY_HEADERS,
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache",
+        });
+        res.end(html);
+      } catch (e) {
+        res.writeHead(500, { ...SECURITY_HEADERS, "Content-Type": "text/plain" });
+        res.end("dashboard unavailable");
+      }
+    } else {
+      res.writeHead(404, { ...SECURITY_HEADERS, "Content-Type": "text/plain" });
+      res.end("Not found");
+    }
     return;
   }
 
