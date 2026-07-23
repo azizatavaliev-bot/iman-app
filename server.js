@@ -1517,7 +1517,7 @@ const server = createServer(async (req, res) => {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers":
-        "Content-Type, X-Telegram-Id, X-Telegram-Username",
+        "Content-Type, X-Telegram-Id, X-Telegram-Username, X-Dashboard-Token",
       "Access-Control-Max-Age": "86400",
     });
     res.end();
@@ -1784,7 +1784,7 @@ const server = createServer(async (req, res) => {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers":
-        "Content-Type, X-Telegram-Id, X-Telegram-Username",
+        "Content-Type, X-Telegram-Id, X-Telegram-Username, X-Dashboard-Token",
     };
 
     if (req.method === "OPTIONS") {
@@ -2089,7 +2089,7 @@ const server = createServer(async (req, res) => {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers":
-        "Content-Type, X-Telegram-Id, X-Telegram-Username",
+        "Content-Type, X-Telegram-Id, X-Telegram-Username, X-Dashboard-Token",
     };
 
     if (req.method === "OPTIONS") {
