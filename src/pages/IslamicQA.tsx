@@ -9,6 +9,7 @@ import {
   List,
   Layers,
   Check as CheckIcon,
+  BookOpen,
 } from "lucide-react";
 import { trackAction } from "../lib/analytics";
 import {
@@ -20,6 +21,7 @@ import {
 } from "../data/islamic-qa";
 
 const READ_KEY = "iman_qa_read";
+const LAST_KEY = "iman_qa_last";
 
 // Маппинг цвета категории → статические Tailwind классы
 // (динамические классы Tailwind не purg'ает, поэтому только литералы)
@@ -57,11 +59,29 @@ function saveRead(set: Set<number>) {
   }
 }
 
+function loadLast(): number | null {
+  try {
+    const raw = localStorage.getItem(LAST_KEY);
+    return raw != null ? Number(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLast(id: number) {
+  try {
+    localStorage.setItem(LAST_KEY, String(id));
+  } catch {
+    // ignore
+  }
+}
+
 export default function IslamicQA() {
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<QACategory | "all">("all");
   const [openId, setOpenId] = useState<number | null>(null);
   const [read, setRead] = useState<Set<number>>(new Set());
+  const [lastId, setLastId] = useState<number | null>(null);
   const [mode, setMode] = useState<"list" | "cards">(() => {
     try { return (localStorage.getItem("iman_qa_mode") as "list" | "cards") || "list"; } catch { return "list"; }
   });
@@ -78,8 +98,19 @@ export default function IslamicQA() {
 
   const qaOfTheDay = useMemo(() => getQAOfTheDay(), []);
 
+  // Последний открытый вопрос (позиция чтения) — для кнопки «Продолжить»
+  const lastQ = useMemo(
+    () => (lastId != null ? QA_LIST.find((q) => q.id === lastId) ?? null : null),
+    [lastId],
+  );
+  const lastNum = useMemo(
+    () => (lastId != null ? QA_LIST.findIndex((q) => q.id === lastId) + 1 : 0),
+    [lastId],
+  );
+
   useEffect(() => {
     setRead(loadRead());
+    setLastId(loadLast());
     trackAction("qa_opened");
   }, []);
 
@@ -103,8 +134,12 @@ export default function IslamicQA() {
     });
   }, [search, activeCat]);
 
-  const toggleOpen = (id: number) => {
+  const toggleOpen = (id: number, track = false) => {
     setOpenId(openId === id ? null : id);
+    if (track) {
+      setLastId(id);
+      saveLast(id);
+    }
     if (!read.has(id)) {
       const next = new Set(read);
       next.add(id);
@@ -112,6 +147,19 @@ export default function IslamicQA() {
       saveRead(next);
     }
   };
+
+  // Вернуться к последнему открытому вопросу (сбрасываем фильтры, скроллим и раскрываем)
+  function continueReading() {
+    if (lastId == null) return;
+    setActiveCat("all");
+    setSearch("");
+    setOpenId(lastId);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`qa-${lastId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   const random = () => {
     if (mode === "cards") {
@@ -183,6 +231,14 @@ export default function IslamicQA() {
     setCardOpen(false);
   }, [activeCat, search, mode]);
 
+  // Запоминаем текущую карточку как позицию чтения
+  useEffect(() => {
+    if (mode === "cards" && currentCard) {
+      setLastId(currentCard.id);
+      saveLast(currentCard.id);
+    }
+  }, [mode, currentCard]);
+
   return (
     <div className="min-h-screen pb-28 max-w-lg mx-auto animate-fade-in">
       {/* Decorative hero header */}
@@ -244,6 +300,32 @@ export default function IslamicQA() {
         </p>
         <p className="text-xs text-slate-400 line-clamp-2">{qaOfTheDay.a}</p>
       </button>
+
+      {/* Continue reading — возврат к последнему открытому вопросу */}
+      {mode === "list" && lastQ && !search.trim() && (
+        <button
+          onClick={continueReading}
+          className="w-full text-left glass-card p-3.5 mb-4 flex items-center gap-3 bg-gradient-to-br from-amber-500/10 via-amber-500/[0.03] to-transparent border border-amber-500/20 active:scale-[0.99] transition"
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-amber-500/15 ring-1 ring-amber-500/30 shrink-0">
+            <BookOpen size={16} className="text-amber-300" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-wider text-amber-300 font-bold">
+                Продолжить чтение
+              </span>
+              <span className="text-[10px] text-slate-500">
+                · {lastNum} из {QA_TOTAL}
+              </span>
+            </div>
+            <p className="text-sm text-slate-200 font-medium truncate">
+              {lastQ.q}
+            </p>
+          </div>
+          <ChevronRight size={18} className="text-amber-300/70 shrink-0" />
+        </button>
+      )}
 
       {/* Search */}
       <div className="relative mb-3">
@@ -519,7 +601,7 @@ export default function IslamicQA() {
               {/* Цветная левая полоска по категории */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${colors.bar}`} />
               <button
-                onClick={() => toggleOpen(item.id)}
+                onClick={() => toggleOpen(item.id, true)}
                 className="w-full flex items-start gap-3 p-3.5 pl-4 text-left"
               >
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${colors.bg} ring-1 ring-white/[0.04]`}>
