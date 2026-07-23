@@ -52,7 +52,9 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         // index.html всегда из сети — чтобы новые JS-чанки находились
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//],
+        // /dashboard/* — отдельный админ-дашборд, НЕ перехватывать SW-ом
+        // (иначе вместо него грузится index.html Mini App)
+        navigateFallbackDenylist: [/^\/api\//, /^\/dashboard/],
         runtimeCaching: [
           {
             // Тафсир-чанк — кэшируем при первом обращении (офлайн сохраняется)
