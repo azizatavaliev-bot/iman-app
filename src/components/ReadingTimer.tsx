@@ -22,9 +22,10 @@ const PRESETS = [5, 10, 15, 20, 30];
 export function ReadingTimerWidget() {
   const t = useReadingTimer();
   const audio = useAudio();
-  // Если играет глобальный плеер — поднимаем виджет выше, чтобы не перекрывался
+  // Если играет глобальный плеер — поднимаем виджет выше, чтобы не перекрывался.
+  // Навбар (панель + подпись "by...") занимает 83px; мини-плеер аудио — ещё ~63px.
   const playerVisible = !!audio.currentSurah;
-  const bottomOffset = playerVisible ? 148 : 92; // px над плеером / над навбаром
+  const bottomOffset = playerVisible ? 156 : 93; // px над плеером / над навбаром
 
   // Хаптик при завершении
   useEffect(() => {

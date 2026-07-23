@@ -318,48 +318,7 @@ export default function Quran() {
   );
   const [bookAyahIdx, setBookAyahIdx] = useState(0); // индекс текущего аята в книжном режиме
   const [showSurahInfo, setShowSurahInfo] = useState(false); // карточка «О суре»
-  const [speaking, setSpeaking] = useState(false); // озвучка перевода (TTS)
   const [flipDir, setFlipDir] = useState<"next" | "prev">("next"); // направление перелистывания
-
-  // Озвучка перевода на русском через синтез речи браузера (работает оффлайн).
-  // В книжном режиме читает текущий аят, в ленте — всю суру подряд.
-  function speakTranslation() {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-    if (speaking) {
-      synth.cancel();
-      setSpeaking(false);
-      return;
-    }
-    const text =
-      quranMode === "book"
-        ? ayahs[bookAyahIdx]?.translation || ""
-        : ayahs.map((a) => a.translation).join(". ");
-    if (!text.trim()) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "ru-RU";
-    u.rate = 0.95;
-    const ruVoice = synth
-      .getVoices()
-      .find((v) => v.lang.toLowerCase().startsWith("ru"));
-    if (ruVoice) u.voice = ruVoice;
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-    synth.cancel();
-    synth.speak(u);
-    setSpeaking(true);
-  }
-
-  // Останавливаем озвучку при уходе со страницы/смене суры
-  useEffect(() => {
-    return () => {
-      try {
-        window.speechSynthesis?.cancel();
-      } catch {
-        /* ignore */
-      }
-    };
-  }, []);
 
   function setQuranModePersist(m: "scroll" | "book") {
     hapticImpact("light");
@@ -1446,17 +1405,13 @@ export default function Quran() {
 
                   {/* Сетка действий */}
                   <div className="grid grid-cols-2 gap-2">
-                    {/* Слушать перевод (озвучка на русском) */}
+                    {/* Слушать перевод — реальная озвучка (аудио-библиотека) */}
                     <button
-                      onClick={speakTranslation}
-                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium ring-1 active:scale-[0.98] transition ${
-                        speaking
-                          ? "bg-sky-500/25 ring-sky-400/40 text-sky-100"
-                          : "bg-sky-500/10 ring-sky-500/20 text-sky-300 hover:bg-sky-500/20"
-                      }`}
+                      onClick={() => navigate("/audio")}
+                      className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium ring-1 bg-sky-500/10 ring-sky-500/20 text-sky-300 hover:bg-sky-500/20 active:scale-[0.98] transition"
                     >
                       <Volume2 className="w-4 h-4" />
-                      {speaking ? "Стоп перевод" : "Слушать перевод"}
+                      Слушать перевод
                     </button>
 
                     {/* Учить суру */}

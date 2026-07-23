@@ -11,6 +11,7 @@ import {
   Mic2,
   ExternalLink,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { trackAction } from "../lib/analytics";
 import { scheduleSyncPush } from "../lib/sync";
 import {
@@ -114,6 +115,28 @@ export default function Nasheeds() {
           </div>
         </div>
       </header>
+
+      {/* Аудио-библиотека (проверенное аудио на русском) */}
+      <Link
+        to="/audio"
+        className="glass-card p-4 mb-4 flex items-center gap-3 hover:bg-white/[0.03] transition-colors active:scale-[0.99]"
+      >
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+          <span className="text-lg">🎧</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-sm font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Аудио-библиотека
+          </p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            Коран с переводом, лекции, хутбы — на русском
+          </p>
+        </div>
+        <ChevronDown className="w-4 h-4 -rotate-90 text-slate-500 shrink-0" />
+      </Link>
 
       {/* Info card */}
       <div className="glass-card p-4 mb-5">

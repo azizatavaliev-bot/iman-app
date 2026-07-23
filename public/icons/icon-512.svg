@@ -1,11 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#059669"/>
-      <stop offset="100%" stop-color="#0d9488"/>
+    <radialGradient id="bg" cx="50%" cy="34%" r="75%">
+      <stop offset="0%" stop-color="#146356"/>
+      <stop offset="55%" stop-color="#0a3d2e"/>
+      <stop offset="100%" stop-color="#051a14"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="45%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
     </linearGradient>
+    <mask id="crescentCut">
+      <rect width="100" height="100" fill="white"/>
+      <circle cx="57" cy="45" r="21" fill="black"/>
+    </mask>
   </defs>
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <text x="256" y="200" text-anchor="middle" font-size="120" font-weight="800" fill="white" font-family="system-ui, sans-serif">IMAN</text>
-  <text x="256" y="360" text-anchor="middle" font-size="140" fill="white">☪</text>
+
+  <rect width="100" height="100" rx="22" fill="url(#bg)"/>
+
+  <!-- мягкое золотое свечение -->
+  <circle cx="50" cy="46" r="34" fill="#fbbf24" opacity="0.10"/>
+
+  <!-- полумесяц -->
+  <circle cx="48" cy="45" r="24" fill="url(#gold)" mask="url(#crescentCut)"/>
+
+  <!-- главная звезда -->
+  <polygon
+    points="74.00,22.00 75.82,27.49 81.61,27.53 76.95,30.96 78.70,36.47 74.00,33.10 69.30,36.47 71.05,30.96 66.39,27.53 72.18,27.49"
+    fill="url(#gold)"
+  />
+
+  <!-- малая звезда для баланса композиции -->
+  <polygon
+    points="26.00,68.00 26.94,70.71 29.80,70.76 27.52,72.49 28.35,75.24 26.00,73.60 23.65,75.24 24.48,72.49 22.20,70.76 25.06,70.71"
+    fill="url(#gold)"
+    opacity="0.85"
+  />
 </svg>

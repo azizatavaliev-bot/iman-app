@@ -738,8 +738,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       )}
 
       {/* ---- Mini player bar ---- */}
+      {/* bottom: 83px — точная высота нижней навигации (панель + подпись "by..."),
+          иначе бар налезает на навбар/накладывается на другие плавающие виджеты */}
       {currentSurah && !expanded && (
-        <div className="fixed left-0 right-0 z-[60]" style={{ bottom: "60px" }}>
+        <div className="fixed left-0 right-0 z-[60]" style={{ bottom: "83px" }}>
           {/* Thin progress bar at top */}
           <div className="w-full h-[3px] t-bg overflow-hidden">
             <div

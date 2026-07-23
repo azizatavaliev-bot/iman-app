@@ -551,6 +551,8 @@ const PRAYER_AR: Record<string, string> = {
 const SECTION_ICONS: Record<string, typeof Moon> = {
   "Намаз и поклонение": Landmark,
   "Коран и знания": BookOpen,
+  "Истории и сира": Scroll,
+  "Развитие и прогресс": Trophy,
   Ещё: Sparkles,
   Сообщество: Users,
 };
@@ -2241,12 +2243,16 @@ export default function Dashboard() {
         const SectionIcon =
           SECTION_ICONS[section.title] || Sparkles;
         return (
-        <div key={section.title}>
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center">
-              <SectionIcon size={15} className="text-emerald-300" />
+        <div
+          key={section.title}
+          className="glass-card p-3.5 rounded-3xl"
+          style={{ animation: "card-enter 0.4s ease-out both" }}
+        >
+          <div className="flex items-center gap-2.5 mb-3.5 px-0.5">
+            <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0">
+              <SectionIcon size={16} className="text-white/50" />
             </div>
-            <h3 className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">
+            <h3 className="text-[11px] font-semibold text-white/55 uppercase tracking-wider">
               {section.title}
             </h3>
           </div>
@@ -2261,12 +2267,11 @@ export default function Dashboard() {
                 }}
                 className="group relative rounded-2xl p-3 flex flex-col items-center gap-2
                            bg-white/[0.03] border border-white/[0.07]
-                           hover:bg-white/[0.06] hover:border-white/15
-                           hover:-translate-y-0.5 active:scale-95 transition-all duration-200
-                           shadow-sm hover:shadow-lg hover:shadow-black/20"
+                           hover:bg-white/[0.06] hover:border-white/12
+                           active:scale-95 transition-all duration-200"
               >
                 <div
-                  className={`icon-fx-${i % 6} relative bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center
+                  className={`icon-fx-${i % 6} bg-gradient-to-br ${grad} w-12 h-12 rounded-2xl flex items-center justify-center
                               shadow-lg ring-1 ring-white/10 group-hover:ring-white/20 transition-shadow`}
                 >
                   <Icon size={22} className={color} strokeWidth={2} />

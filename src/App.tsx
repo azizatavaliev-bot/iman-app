@@ -20,7 +20,7 @@ import {
   BookOpen,
   User,
   ArrowLeft,
-  Headphones,
+  Brain,
 } from "lucide-react";
 import { AudioProvider } from "./components/AudioPlayer";
 import { ThemeProvider } from "./lib/ThemeContext";
@@ -172,6 +172,7 @@ const Dhikr = lazy(() => import("./pages/Dhikr"));
 const Qibla = lazy(() => import("./pages/Qibla"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Nasheeds = lazy(() => import("./pages/Nasheeds"));
+const AudioLibrary = lazy(() => import("./pages/AudioLibrary"));
 const Dreams = lazy(() => import("./pages/Dreams"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Stats = lazy(() => import("./pages/Stats"));
@@ -221,13 +222,14 @@ const NAV_ITEMS = [
   { path: "/", icon: Home, label: "Главная" },
   { path: "/prayers", icon: Moon, label: "Намазы" },
   { path: "/quran", icon: BookOpen, label: "Коран" },
-  { path: "/memorize", icon: Headphones, label: "Заучивание" },
+  { path: "/memorize", icon: Brain, label: "Хифз" },
   { path: "/profile", icon: User, label: "Профиль" },
 ];
 
 function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const activeIndex = NAV_ITEMS.findIndex((i) => i.path === location.pathname);
 
   return (
     <nav
@@ -240,7 +242,20 @@ function BottomNav() {
         <span className="font-semibold text-emerald-400">Aziz Atavaliev</span>
       </div>
 
-      <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-1">
+      <div className="relative max-w-lg mx-auto flex items-stretch py-2">
+        {/* Скользящий индикатор активного пункта (пружинистое движение) */}
+        {activeIndex >= 0 && (
+          <div
+            className="pointer-events-none absolute top-1.5 bottom-1.5 transition-transform duration-300"
+            style={{
+              width: `${100 / NAV_ITEMS.length}%`,
+              transform: `translateX(${activeIndex * 100}%)`,
+              transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+            }}
+          >
+            <div className="h-full mx-2 rounded-2xl bg-emerald-500/12 ring-1 ring-emerald-400/25" />
+          </div>
+        )}
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -248,19 +263,29 @@ function BottomNav() {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all duration-200 ${
+              className={`relative z-10 flex-1 flex flex-col items-center gap-1 py-1 rounded-2xl transition-colors duration-200 active:scale-90 ${
                 isActive
-                  ? "text-emerald-400 scale-105"
+                  ? "text-emerald-400"
                   : "text-slate-500 hover:text-slate-300"
               }`}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
-              <span className="text-[9px] font-medium leading-tight truncate max-w-[50px]">
+              <Icon
+                size={20}
+                strokeWidth={isActive ? 2.6 : 1.8}
+                className={`transition-transform duration-300 ${
+                  isActive ? "-translate-y-0.5 scale-110" : ""
+                }`}
+                style={{
+                  transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+                }}
+              />
+              <span
+                className={`text-[10px] leading-none truncate max-w-[64px] transition-all duration-200 ${
+                  isActive ? "font-bold" : "font-medium"
+                }`}
+              >
                 {item.label}
               </span>
-              {isActive && (
-                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-0.5" />
-              )}
             </button>
           );
         })}
@@ -390,6 +415,7 @@ function AppContent() {
             <Route path="/qibla" element={<Qibla />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/nasheeds" element={<Nasheeds />} />
+            <Route path="/audio" element={<AudioLibrary />} />
             <Route path="/dreams" element={<Dreams />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/stats" element={<Stats />} />

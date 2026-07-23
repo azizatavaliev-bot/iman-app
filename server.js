@@ -43,6 +43,12 @@ const pool = new Pool({
     const res = await client.query("SELECT NOW()");
     console.log("✅ Database connected:", res.rows[0].now);
 
+    // Локальные пулы контента для бота (не зависят от БД — грузим сразу)
+    loadHadithIndexes();
+    loadAudioCatalog();
+    loadDuaPool();
+    loadSurahNamesRu();
+
     // Create users table (renamed to iman_users to avoid conflict with Unity)
     await client.query(`
       CREATE TABLE IF NOT EXISTS iman_users (
@@ -484,7 +490,184 @@ function formatPrayerTimesMessage(times) {
 }
 
 // =========================================================================
+// БОЛЬШОЙ ЛОКАЛЬНЫЙ ПУЛ ХАДИСОВ (те же данные, что в Mini App: ~16 300 хадисов)
+// Бухари, Муслим, Абу Дауд, Сады праведных — читаем index.json один раз при
+// старте, тексты книг подгружаем по требованию (не держим всё в памяти).
+// =========================================================================
+
+const HADITH_DATA_DIR = join(__dirname, "public", "data", "hadiths");
+const HADITH_COLLECTIONS = ["bukhari", "muslim", "abudawud", "riyad"];
+const HADITH_COLLECTION_LABEL = {
+  bukhari: "Сахих аль-Бухари",
+  muslim: "Сахих Муслим",
+  abudawud: "Сунан Абу Дауда",
+  riyad: "Сады праведных",
+};
+const HADITH_GRADE_LABEL = {
+  sahih: "Достоверный (сахих)",
+  hasan: "Хороший (хасан)",
+  daif: "Слабый (даиф)",
+};
+
+// Плоский диапазон: [{ collection, book, name, start, count }, ...] —
+// позволяет по одному глобальному индексу найти нужную книгу и офсет внутри неё.
+let hadithFlatRanges = [];
+let hadithTotalCount = 0;
+
+function loadHadithIndexes() {
+  let cursor = 0;
+  const ranges = [];
+  for (const collection of HADITH_COLLECTIONS) {
+    try {
+      const idxPath = join(HADITH_DATA_DIR, collection, "index.json");
+      const idx = JSON.parse(readFileSync(idxPath, "utf-8"));
+      for (const b of idx) {
+        ranges.push({ collection, book: b.book, name: b.name, start: cursor, count: b.count });
+        cursor += b.count;
+      }
+    } catch (e) {
+      console.error(`Failed to load hadith index for ${collection}:`, e.message);
+    }
+  }
+  hadithFlatRanges = ranges;
+  hadithTotalCount = cursor;
+  console.log(`✅ Hadith pool: ${hadithTotalCount} hadiths across ${HADITH_COLLECTIONS.length} collections`);
+}
+
+function hadithAtGlobalIndex(globalIdx) {
+  const range = hadithFlatRanges.find(
+    (r) => globalIdx >= r.start && globalIdx < r.start + r.count,
+  );
+  if (!range) return null;
+  const localIdx = globalIdx - range.start;
+  try {
+    const bookPath = join(HADITH_DATA_DIR, range.collection, `${range.book}.json`);
+    const arr = JSON.parse(readFileSync(bookPath, "utf-8"));
+    const h = arr[localIdx];
+    if (!h) return null;
+    return {
+      text: h.ru,
+      arabic: h.ar || "",
+      source: `${HADITH_COLLECTION_LABEL[range.collection]}, ${range.name}, №${h.n}`,
+      grade: h.g || (range.collection === "riyad" ? undefined : "sahih"),
+    };
+  } catch (e) {
+    console.error("Failed to read hadith book file:", e.message);
+    return null;
+  }
+}
+
+function getRandomHadithFromPool() {
+  if (hadithTotalCount === 0) return null;
+  return hadithAtGlobalIndex(Math.floor(Math.random() * hadithTotalCount));
+}
+
+function getDailyHadithFromPool(seed) {
+  if (hadithTotalCount === 0) return null;
+  return hadithAtGlobalIndex(((seed % hadithTotalCount) + hadithTotalCount) % hadithTotalCount);
+}
+
+function formatHadithMessage(h, title = "Хадис") {
+  if (!h) return "Не удалось загрузить хадис.";
+  const grade = h.grade ? ` · _${HADITH_GRADE_LABEL[h.grade]}_` : "";
+  return `\u{1F4D6} *${title}:*\n\n${h.text}\n\n_${h.source}_${grade}`;
+}
+
+// =========================================================================
+// АУДИО-БИБЛИОТЕКА — реальные голоса (islamhouse.com), та же база, что в
+// разделе /audio Mini App. 109 серий, 384 дорожки: Коран, тафсир, лекции...
+// =========================================================================
+
+let audioCatalog = [];
+function loadAudioCatalog() {
+  try {
+    const p = join(__dirname, "public", "data", "audio", "catalog.json");
+    audioCatalog = JSON.parse(readFileSync(p, "utf-8"));
+    console.log(`✅ Audio catalog: ${audioCatalog.length} series loaded`);
+  } catch (e) {
+    console.error("Failed to load audio catalog:", e.message);
+  }
+}
+
+function getRandomAudioTrack() {
+  if (audioCatalog.length === 0) return null;
+  const series = audioCatalog[Math.floor(Math.random() * audioCatalog.length)];
+  const url = series.tracks[Math.floor(Math.random() * series.tracks.length)];
+  return { title: series.title, url };
+}
+
+// =========================================================================
+// РАСШИРЕННЫЙ ПУЛ ДУА (93 дуа из Mini App, вместо 15 захардкоженных)
+// =========================================================================
+
+let duaPool = [];
+function loadDuaPool() {
+  try {
+    const p = join(__dirname, "public", "data", "dua-pool.json");
+    duaPool = JSON.parse(readFileSync(p, "utf-8"));
+    console.log(`✅ Dua pool: ${duaPool.length} duas loaded`);
+  } catch (e) {
+    console.error("Failed to load dua pool:", e.message);
+  }
+}
+
+function getRandomDuaFromPool() {
+  if (duaPool.length === 0) return null;
+  const d = duaPool[Math.floor(Math.random() * duaPool.length)];
+  return { text: d.ru, arabic: d.ar, source: d.src };
+}
+
+function getDailyDuaFromPool(seed) {
+  if (duaPool.length === 0) return null;
+  const d = duaPool[((seed % duaPool.length) + duaPool.length) % duaPool.length];
+  return { text: d.ru, arabic: d.ar, source: d.src };
+}
+
+// =========================================================================
+// ЖИВОЙ СЛУЧАЙНЫЙ АЯТ — весь Коран (6236 аятов) через alquran.cloud,
+// вместо 25 захардкоженных цитат.
+// =========================================================================
+
+const QURAN_TOTAL_AYAHS = 6236;
+
+let surahNamesRu = {};
+function loadSurahNamesRu() {
+  try {
+    const p = join(__dirname, "public", "data", "surah-names-ru.json");
+    surahNamesRu = JSON.parse(readFileSync(p, "utf-8"));
+    console.log(`✅ Surah names (RU): ${Object.keys(surahNamesRu).length} loaded`);
+  } catch (e) {
+    console.error("Failed to load Russian surah names:", e.message);
+  }
+}
+
+async function getRandomAyahLive() {
+  const n = Math.floor(Math.random() * QURAN_TOTAL_AYAHS) + 1;
+  try {
+    const res = await fetch(
+      `https://api.alquran.cloud/v1/ayah/${n}/editions/quran-uthmani,ru.kuliev`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const [arabicEd, ruEd] = data?.data || [];
+    if (!ruEd) return null;
+    const surahName =
+      surahNamesRu[ruEd.surah.number] || ruEd.surah.englishNameTranslation;
+    return {
+      text: ruEd.text,
+      arabic: arabicEd?.text || "",
+      surah: `Сура «${surahName}» (${ruEd.surah.number}:${ruEd.numberInSurah})`,
+    };
+  } catch (e) {
+    console.error("Failed to fetch live ayah:", e.message);
+    return null;
+  }
+}
+
+// =========================================================================
 // CONTENT DATA — Hadiths, Ayats, Duas for bot commands
+// (старые короткие массивы — оставлены как офлайн-fallback, если новый
+// локальный пул/сеть недоступны)
 // =========================================================================
 
 const HADITHS = [
@@ -776,6 +959,28 @@ let sentBroadcasts = {
   motivation: "",
 };
 
+// ── Реальные адхан-уведомления — точно ко времени намаза (не по фикс. часам) ──
+const PRAYER_RU_NAME = {
+  Fajr: "Фаджр",
+  Dhuhr: "Зухр",
+  Asr: "Аср",
+  Maghrib: "Магриб",
+  Isha: "Иша",
+};
+const sentAdhan = {}; // `${prayer}_${dateStr}` -> true
+let cachedPrayerTimes = null;
+let cachedPrayerTimesDate = "";
+
+async function getCachedTodayPrayerTimes(today) {
+  if (cachedPrayerTimesDate === today && cachedPrayerTimes) return cachedPrayerTimes;
+  const times = await fetchPrayerTimes();
+  if (times) {
+    cachedPrayerTimes = times;
+    cachedPrayerTimesDate = today;
+  }
+  return cachedPrayerTimes;
+}
+
 async function broadcastToAll(message, replyMarkup = null) {
   const ids = [...subscribers];
   let sent = 0;
@@ -819,6 +1024,40 @@ async function sendScheduledBroadcasts() {
   const dayIndex = Math.floor(
     (Date.now() - new Date("2026-01-01").getTime()) / 86400000,
   );
+
+  // ── Адхан: пуш точно к наступлению времени намаза (Fajr/Dhuhr/Asr/Maghrib/Isha) ──
+  // В отличие от фикс. рассылок ниже (7:00/13:00/20:00...), эти уведомления
+  // привязаны к реальному расчёту времени намаза на сегодня (Бишкек).
+  try {
+    const times = await getCachedTodayPrayerTimes(today);
+    if (times) {
+      const nowTotalMin = hour * 60 + minutes;
+      for (const prayer of ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]) {
+        const raw = times[prayer];
+        const m = raw && raw.match(/^(\d{1,2}):(\d{2})/);
+        if (!m) continue;
+        const prayerTotalMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+        const diff = nowTotalMin - prayerTotalMin;
+        const key = `${prayer}_${today}`;
+        if (diff >= 0 && diff <= 1 && sentAdhan[key] !== true) {
+          sentAdhan[key] = true;
+          const adhanMsg =
+            `\u{1F54C} *Наступило время намаза: ${PRAYER_RU_NAME[prayer]}*\n\n` +
+            `⏰ ${raw} (Бишкек)\n\n` +
+            `_«Поистине, намаз предписан верующим в определённое время» (Коран, 4:103)_`;
+          const adhanButtons = {
+            inline_keyboard: [
+              [{ text: "\u{1F54C} Я прочитал намаз", web_app: { url: APP_URL + "/prayers" } }],
+            ],
+          };
+          const sent = await broadcastToAll(adhanMsg, adhanButtons);
+          console.log(`Adhan (${prayer}) broadcast sent to ${sent} subscribers`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Adhan broadcast error:", e);
+  }
 
   // ── Хелпер: кнопка для открытия конкретного экрана Mini App ─────────
   const wa = (text, route = "") => ({
@@ -1062,6 +1301,32 @@ async function sendMessage(chatId, text, replyMarkup = null) {
   }
 }
 
+// Отправка аудио по прямой ссылке (Telegram сам скачивает файл по URL —
+// нам не нужно проксировать/хранить его самим).
+async function sendAudio(chatId, audioUrl, title, replyMarkup = null) {
+  const payload = {
+    chat_id: chatId,
+    audio: audioUrl,
+    title: title?.slice(0, 64) || "Аудио",
+    performer: "IMAN — islamhouse.com",
+  };
+  if (replyMarkup) payload.reply_markup = replyMarkup;
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) console.error("sendAudio failed:", data.description);
+    return data.ok;
+  } catch (e) {
+    console.error("sendAudio error:", e);
+    return false;
+  }
+}
+
 async function handleWebhook(body) {
   const msg = body.message;
   if (!msg || !msg.text) return;
@@ -1107,12 +1372,14 @@ async function handleWebhook(body) {
         `   • Перед сном 22:30 — защитные суры\n` +
         `   • Пятница 9:00 — про Аль-Кахф и джуму\n` +
         `   • Воскресенье 19:00 — мотивация на неделю\n` +
+        `\u{1F514} Плюс: уведомление точно ко времени каждого намаза (Бишкек).\n` +
         `\u{1F4E2} Подписывайтесь на наш канал: ${CHANNEL_LINK}\n\n` +
         `Команды:\n` +
         `/namaz — Время намаза (ханафитский масхаб)\n` +
-        `/hadith — Случайный хадис\n` +
-        `/ayat — Случайный аят Корана\n` +
+        `/hadith — Случайный хадис (пул ~16 300, все степени)\n` +
+        `/ayat — Случайный аят (весь Коран, 6236 аятов)\n` +
         `/dua — Случайное дуа\n` +
+        `/audio — Случайное аудио (Коран, лекции — реальные голоса)\n` +
         `/zikr — Зикр после намаза\n` +
         `/remind — Подписка на напоминания\n` +
         `/stop — Отписка\n` +
@@ -1124,23 +1391,34 @@ async function handleWebhook(body) {
     const times = await fetchPrayerTimes();
     await sendMessage(chatId, formatPrayerTimesMessage(times));
   } else if (text === "/hadith") {
-    const h = HADITHS[Math.floor(Math.random() * HADITHS.length)];
-    await sendMessage(
-      chatId,
-      `\u{1F4D6} *Хадис:*\n\n${h.text}\n\n_Источник: ${h.source}_`,
-    );
+    // Большой локальный пул (~16 300), с фолбэком на короткий офлайн-список
+    const h =
+      getRandomHadithFromPool() ||
+      HADITHS[Math.floor(Math.random() * HADITHS.length)];
+    await sendMessage(chatId, formatHadithMessage(h));
   } else if (text === "/ayat") {
-    const a = AYATS[Math.floor(Math.random() * AYATS.length)];
+    // Живой случайный аят из ВСЕГО Корана (6236), фолбэк — короткий список
+    const a =
+      (await getRandomAyahLive()) ||
+      AYATS[Math.floor(Math.random() * AYATS.length)];
     await sendMessage(
       chatId,
       `\u{1F4D6} *Аят Корана:*\n\n${a.text}\n\n_${a.surah}_`,
     );
   } else if (text === "/dua") {
-    const d = DUAS[Math.floor(Math.random() * DUAS.length)];
+    const d =
+      getRandomDuaFromPool() || DUAS[Math.floor(Math.random() * DUAS.length)];
     await sendMessage(
       chatId,
       `\u{1F64F} *Дуа:*\n\n${d.text}\n\n_Источник: ${d.source}_`,
     );
+  } else if (text === "/audio") {
+    const track = getRandomAudioTrack();
+    if (track) {
+      await sendAudio(chatId, track.url, track.title, appButton);
+    } else {
+      await sendMessage(chatId, "Аудио-библиотека временно недоступна. Попробуйте позже.");
+    }
   } else if (text === "/zikr") {
     await sendMessage(
       chatId,
@@ -1183,9 +1461,10 @@ async function handleWebhook(body) {
         `Команды:\n` +
         `/start — Приветствие\n` +
         `/namaz — Время намаза на сегодня\n` +
-        `/hadith — Случайный хадис\n` +
-        `/ayat — Случайный аят Корана\n` +
+        `/hadith — Случайный хадис (пул ~16 300)\n` +
+        `/ayat — Случайный аят (весь Коран)\n` +
         `/dua — Случайное дуа\n` +
+        `/audio — Случайное аудио (реальные голоса)\n` +
         `/zikr — Зикр после намаза\n` +
         `/remind — Подписка на напоминания\n` +
         `/stop — Отписка от напоминаний\n` +
@@ -2480,6 +2759,7 @@ server.listen(PORT, "0.0.0.0", async () => {
             { command: "hadith", description: "Случайный хадис" },
             { command: "ayat", description: "Случайный аят Корана" },
             { command: "dua", description: "Случайное дуа" },
+            { command: "audio", description: "Случайное аудио (реальные голоса)" },
             { command: "remind", description: "Подписка на напоминания" },
             { command: "stop", description: "Отписка от напоминаний" },
             { command: "app", description: "Открыть приложение" },
@@ -2500,6 +2780,7 @@ server.listen(PORT, "0.0.0.0", async () => {
             { command: "hadith", description: "Случайный хадис" },
             { command: "ayat", description: "Случайный аят Корана" },
             { command: "dua", description: "Случайное дуа" },
+            { command: "audio", description: "Случайное аудио (реальные голоса)" },
             { command: "remind", description: "Подписка на напоминания" },
             { command: "stop", description: "Отписка от напоминаний" },
             { command: "app", description: "Открыть приложение" },
