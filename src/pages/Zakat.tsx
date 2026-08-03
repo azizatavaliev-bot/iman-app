@@ -21,6 +21,8 @@ import { storage, POINTS } from "../lib/storage";
 import type { ZakatAssets, ZakatHistoryEntry } from "../lib/storage";
 import { trackAction } from "../lib/analytics";
 import { hapticSuccess } from "../lib/api";
+import { toDateKey } from "../lib/dateKey";
+const todayKey = () => toDateKey();
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -150,9 +152,7 @@ const RECIPIENTS = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+
 
 function formatCurrency(amount: number): string {
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;

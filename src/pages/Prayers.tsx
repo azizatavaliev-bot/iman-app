@@ -32,6 +32,7 @@ import {
 } from "../data/prayer-methods";
 import { reverseGeocode, isCISCountry } from "../lib/geocode";
 import type { PrayerStatus } from "../lib/storage";
+import { toDateKey } from "../lib/dateKey";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
@@ -146,9 +147,7 @@ function formatGregorian(): string {
   return `${day} ${month} ${year}`;
 }
 
-function toDateKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
+
 
 /** Parse "HH:MM" (or "HH:MM (XXX)") string into today's Date */
 function parseTimeToday(timeStr: string): Date | null {

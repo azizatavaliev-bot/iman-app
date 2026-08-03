@@ -66,8 +66,10 @@ import {
   hapticSuccess,
   hapticImpact,
 } from "../lib/api";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 import type { PrayerTimes, Hadith } from "../lib/api";
 import type { UserProfile, TodayStats, HabitLog } from "../lib/storage";
+import { toDateKey } from "../lib/dateKey";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -160,11 +162,7 @@ const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toDateKey(date?: Date | string): string {
-  if (!date) return new Date().toISOString().slice(0, 10);
-  if (typeof date === "string") return date.slice(0, 10);
-  return date.toISOString().slice(0, 10);
-}
+
 
 const DAILY_MOTIVATIONS = [
   "Каждый намаз — разговор с Аллахом",
@@ -312,7 +310,7 @@ function DailyProgressRing({
   possible: number;
   size?: number;
 }) {
-  const strokeWidth = 10;
+  const strokeWidth = size >= 130 ? 12 : 10;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const pct = possible > 0 ? earned / possible : 0;
@@ -357,13 +355,19 @@ function DailyProgressRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-black text-white tabular-nums">
+        <span
+          className="font-black text-white tabular-nums leading-none"
+          style={{ fontSize: size >= 130 ? 46 : 30 }}
+        >
           {earned}
         </span>
-        <span className="text-[11px] text-white/40 font-medium">
+        <span
+          className="text-white/40 font-medium mt-1"
+          style={{ fontSize: size >= 130 ? 13 : 11 }}
+        >
           из {possible}
         </span>
-        <span className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5 flex items-center gap-1 justify-center">
+        <span className="text-[9px] text-white/25 uppercase tracking-widest mt-1 flex items-center gap-1 justify-center">
           саваб <SawabCoin size={12} />
         </span>
       </div>
@@ -945,6 +949,10 @@ export default function Dashboard() {
 
   // Global search
   const [showSearch, setShowSearch] = useState(false);
+
+  // Escape + аппаратная кнопка «Назад» закрывают модалки
+  useModalDismiss(showSawabInfo, () => setShowSawabInfo(false));
+  useModalDismiss(showPointsInfo, () => setShowPointsInfo(false));
 
   // Core state
   const [profile, setProfile] = useState<UserProfile>(storage.getProfile());
@@ -1564,77 +1572,75 @@ export default function Dashboard() {
       {/* 3. DAILY SCORE + LEVEL (компактно в одну строку)                */}
       {/* ================================================================ */}
       <div
-        className="relative overflow-hidden rounded-3xl p-4 flex items-center gap-4"
+        className="relative overflow-hidden rounded-3xl p-5 pt-6"
         style={{
           background:
-            "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(20,28,48,0.55) 48%, rgba(16,185,129,0.10) 100%)",
-          border: "1px solid rgba(245,158,11,0.16)",
-          boxShadow: "0 8px 30px rgba(245,158,11,0.06)",
+            "linear-gradient(160deg, rgba(245,158,11,0.14) 0%, rgba(20,28,48,0.7) 45%, rgba(16,185,129,0.12) 100%)",
+          border: "1px solid rgba(245,158,11,0.2)",
+          boxShadow: "0 10px 40px rgba(245,158,11,0.08)",
         }}
       >
-        <div className="absolute -bottom-12 -right-8 w-32 h-32 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -top-14 -left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        {/* Исламский орнамент — 8-конечная звезда в углу */}
+        <div className="absolute -bottom-16 -right-10 w-44 h-44 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 -left-12 w-40 h-40 bg-emerald-500/12 rounded-full blur-3xl pointer-events-none" />
+        {/* Медленно вращающийся орнамент за кольцом — «живая» глубина */}
         <svg
-          className="absolute top-2 right-3 w-16 h-16 opacity-[0.10] pointer-events-none"
+          className="absolute left-1/2 top-[104px] -translate-x-1/2 -translate-y-1/2 w-52 h-52 opacity-[0.07] pointer-events-none"
           viewBox="0 0 100 100"
+          style={{ animation: "splashSpin 50s linear infinite" }}
         >
-          <g fill="none" stroke="rgb(251,191,36)" strokeWidth="2">
-            <rect x="22" y="22" width="56" height="56" />
-            <rect x="22" y="22" width="56" height="56" transform="rotate(45 50 50)" />
+          <g fill="none" stroke="rgb(251,191,36)" strokeWidth="1.2">
+            <rect x="20" y="20" width="60" height="60" />
+            <rect x="20" y="20" width="60" height="60" transform="rotate(45 50 50)" />
+            <circle cx="50" cy="50" r="46" strokeWidth="0.8" />
           </g>
         </svg>
 
-        {/* Daily Score Ring — нажми для объяснения */}
+        {/* Заголовок + уровень */}
+        <div className="relative z-10 flex items-center justify-between mb-4">
+          <p className="text-[10px] text-white/45 uppercase tracking-[0.2em] font-semibold">
+            Саваб сегодня
+          </p>
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl shrink-0"
+            style={{
+              background: "rgba(69,45,8,0.92)",
+              border: "1px solid rgba(245,158,11,0.3)",
+            }}
+          >
+            <span className="text-base">{currentLevel.icon}</span>
+            <span className="text-xs font-bold text-amber-300">
+              {currentLevel.name}
+            </span>
+          </div>
+        </div>
+
+        {/* Крупное кольцо прогресса — центральный акцент */}
         <button
           onClick={() => setShowSawabInfo(true)}
-          className="active:scale-95 transition-transform flex-shrink-0"
+          className="relative z-10 block mx-auto active:scale-95 transition-transform mb-5"
         >
           <DailyProgressRing
             earned={pointsEarned}
             possible={MAX_DAILY_POINTS}
-            size={90}
+            size={148}
           />
         </button>
 
-        {/* Stats + Level */}
-        <div className="flex-1 min-w-0 space-y-2.5 relative">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest mb-0.5">
-                Саваб сегодня
-              </p>
-              <p className="text-xl font-black text-white leading-none">
-                {pointsEarned}
-                <span className="text-white/35 font-medium text-sm">
-                  {" "}
-                  / {MAX_DAILY_POINTS}
-                </span>
-              </p>
-            </div>
-            <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">
-              <span className="text-sm">{currentLevel.icon}</span>
-              <span className="text-[11px] font-bold text-amber-300">
-                {currentLevel.name}
-              </span>
-            </div>
+        {/* Прогресс до следующего уровня */}
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-white/40 uppercase tracking-wider font-medium">
+              До следующего уровня
+            </span>
+            <span className="text-[11px] font-bold text-emerald-400 tabular-nums">
+              {levelProgressPct}%
+            </span>
           </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] text-white/35 uppercase tracking-wider">
-                До следующего уровня
-              </span>
-              <span className="text-[9px] font-bold text-emerald-400 tabular-nums">
-                {levelProgressPct}%
-              </span>
-            </div>
-            <div className="h-2 rounded-full overflow-hidden bg-white/[0.07]">
-              <div
-                className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400"
-                style={{ width: `${levelProgressPct}%` }}
-              />
-            </div>
+          <div className="h-2.5 rounded-full overflow-hidden bg-white/[0.07]">
+            <div
+              className="h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-300"
+              style={{ width: `${levelProgressPct}%` }}
+            />
           </div>
         </div>
       </div>

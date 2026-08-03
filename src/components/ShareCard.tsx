@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Download, Share2, X, Palette } from "lucide-react";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 // Gradient themes for share cards
 const THEMES = [
@@ -21,6 +22,7 @@ interface ShareCardProps {
 }
 
 export default function ShareCard({ type, arabic, text, source, surah, onClose }: ShareCardProps) {
+  useModalDismiss(true, onClose);
   const [themeIdx, setThemeIdx] = useState(0);
   const [generating, setGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -14,6 +14,8 @@ import type { Dhikr } from "../data/dhikr";
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import ShareCard from "../components/ShareCard";
+import { toDateKey } from "../lib/dateKey";
+const todayKey = () => toDateKey();
 
 // ============================================================
 // Types
@@ -34,9 +36,7 @@ type ViewMode = "main" | "practice" | "complete";
 // Helpers
 // ============================================================
 
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+
 
 function getProgress(): DhikrProgress {
   try {
@@ -106,7 +106,7 @@ function getStreakDays(categoryId: string): number {
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = toDateKey(d);
     const cat = progress[key]?.[categoryId];
     const dhikrInCat = DHIKR_DATA.filter(
       (item: Dhikr) => item.category === categoryId,

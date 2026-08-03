@@ -4,6 +4,7 @@ import { ChevronLeft, RotateCcw, Check } from "lucide-react";
 import { hapticImpact, hapticSuccess } from "../lib/api";
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
+import { toDateKey } from "../lib/dateKey";
 
 // ============================================================
 // Zikr Counter — тасбих после намаза
@@ -78,7 +79,7 @@ function getTodayZikrCount(): number {
     const raw = localStorage.getItem(key);
     if (!raw) return 0;
     const sessions = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toDateKey();
     return sessions.filter((s: { date: string }) => s.date.slice(0, 10) === today).length;
   } catch { return 0; }
 }
@@ -119,6 +120,8 @@ export default function ZikrCounter() {
   const [showComplete, setShowComplete] = useState(false);
   const rippleId = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Был ли тап уже обработан через touchstart (чтобы click его не продублировал)
+  const touchHandled = useRef(false);
 
   const phase = PHASES[phaseIndex];
   const globalCount = PHASES.slice(0, phaseIndex).reduce((s, p) => s + p.count, 0) + count;
@@ -284,8 +287,19 @@ export default function ZikrCounter() {
     <div
       ref={containerRef}
       className={`min-h-screen flex flex-col select-none relative overflow-hidden bg-gradient-to-b ${phase.bgFrom} ${phase.bgTo} from-slate-900 via-slate-950 to-black transition-colors duration-500`}
-      onTouchStart={handleTap}
-      onClick={handleTap}
+      // На мобиле один тап порождает и touchstart, и click — раньше зикр
+      // считался дважды. Гасим синтетический click после касания.
+      onTouchStart={(e) => {
+        touchHandled.current = true;
+        handleTap(e);
+      }}
+      onClick={(e) => {
+        if (touchHandled.current) {
+          touchHandled.current = false;
+          return;
+        }
+        handleTap(e);
+      }}
     >
       {/* Ripples */}
       {ripples.map(r => (

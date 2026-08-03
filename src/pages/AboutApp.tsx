@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 import {
   ArrowLeft,
   Sparkles,
@@ -126,6 +127,7 @@ const APP_STORIES = [
 // ---------------------------------------------------------------------------
 
 function StoriesViewer({ onClose }: { onClose: () => void }) {
+  useModalDismiss(true, onClose);
   const [current, setCurrent] = useState(0);
   const [progress, setProgress] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);

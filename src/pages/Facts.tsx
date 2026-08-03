@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, Search, Sparkles, Shuffle } from "lucide-react";
 import { trackAction } from "../lib/analytics";
 import {
@@ -28,7 +29,8 @@ function saveRead(set: Set<number>) {
 }
 
 export default function Facts() {
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [activeCat, setActiveCat] = useState<FactCategory | "all">("all");
   const [openId, setOpenId] = useState<number | null>(null);
   const [read, setRead] = useState<Set<number>>(new Set());

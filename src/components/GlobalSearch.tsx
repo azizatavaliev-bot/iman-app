@@ -1,231 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, ChevronRight } from "lucide-react";
-
-// Data imports
-import { NAMES_OF_ALLAH } from "../data/names";
-import { DUA_DATA } from "../data/dua";
-import { DHIKR_DATA } from "../data/dhikr";
-import { STORIES } from "../data/stories";
-import { PROPHETS } from "../data/prophets";
-import { SEERAH_CHAPTERS } from "../data/seerah";
-import { NAMAZ_GUIDE_SECTIONS } from "../data/namazGuide";
-import { BEGINNER_SECTIONS } from "../data/beginners";
-import { GLOSSARY, APP_FEATURES } from "../data/guide";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface SearchResult {
-  title: string;
-  subtitle: string;
-  category: string;
-  icon: string;
-  path: string;
-}
-
-type CategoryColor = string;
-
-const CATEGORY_COLORS: Record<string, CategoryColor> = {
-  "99 имён": "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  "Дуа": "text-pink-400 bg-pink-500/10 border-pink-500/20",
-  "Зикры": "text-teal-400 bg-teal-500/10 border-teal-500/20",
-  "Истории": "text-violet-400 bg-violet-500/10 border-violet-500/20",
-  "Пророки": "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-  "Сира": "text-sky-400 bg-sky-500/10 border-sky-500/20",
-  "Намаз": "text-orange-400 bg-orange-500/10 border-orange-500/20",
-  "Новичкам": "text-lime-400 bg-lime-500/10 border-lime-500/20",
-  "Словарь": "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
-  "Функции": "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
-};
-
-// ---------------------------------------------------------------------------
-// Search logic
-// ---------------------------------------------------------------------------
-
-function searchAll(query: string): SearchResult[] {
-  if (!query || query.length < 2) return [];
-
-  const q = query.toLowerCase().trim();
-  const results: SearchResult[] = [];
-  const limit = 20;
-
-  // 99 имён Аллаха
-  for (const name of NAMES_OF_ALLAH) {
-    if (results.length >= limit) break;
-    if (
-      name.russian.toLowerCase().includes(q) ||
-      name.transliteration.toLowerCase().includes(q) ||
-      name.meaning.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: `${name.russian} (${name.transliteration})`,
-        subtitle: name.meaning,
-        category: "99 имён",
-        icon: "✨",
-        path: "/names",
-      });
-    }
-  }
-
-  // Дуа
-  for (const dua of DUA_DATA) {
-    if (results.length >= limit) break;
-    if (
-      dua.translation.toLowerCase().includes(q) ||
-      (dua.situation && dua.situation.toLowerCase().includes(q)) ||
-      dua.transcription.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: dua.situation || dua.translation.slice(0, 50) + "...",
-        subtitle: dua.translation.slice(0, 80),
-        category: "Дуа",
-        icon: "🤲",
-        path: "/dua",
-      });
-    }
-  }
-
-  // Зикры
-  for (const dhikr of DHIKR_DATA) {
-    if (results.length >= limit) break;
-    if (
-      dhikr.russian.toLowerCase().includes(q) ||
-      dhikr.transcription.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: dhikr.russian.slice(0, 60),
-        subtitle: dhikr.transcription.slice(0, 60),
-        category: "Зикры",
-        icon: "📿",
-        path: "/dhikr",
-      });
-    }
-  }
-
-  // Истории
-  for (const story of STORIES) {
-    if (results.length >= limit) break;
-    if (
-      story.title.toLowerCase().includes(q) ||
-      story.subtitle.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: story.title,
-        subtitle: story.subtitle,
-        category: "Истории",
-        icon: story.icon,
-        path: "/stories",
-      });
-    }
-  }
-
-  // Пророки
-  for (const prophet of PROPHETS) {
-    if (results.length >= limit) break;
-    if (
-      prophet.name.toLowerCase().includes(q) ||
-      prophet.title.toLowerCase().includes(q) ||
-      prophet.summary.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: prophet.name,
-        subtitle: prophet.summary.slice(0, 80),
-        category: "Пророки",
-        icon: "📖",
-        path: "/prophets",
-      });
-    }
-  }
-
-  // Сира
-  for (const chapter of SEERAH_CHAPTERS) {
-    if (results.length >= limit) break;
-    if (
-      chapter.title.toLowerCase().includes(q) ||
-      chapter.summary.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: chapter.title,
-        subtitle: chapter.summary.slice(0, 80),
-        category: "Сира",
-        icon: "🌙",
-        path: "/seerah",
-      });
-    }
-  }
-
-  // Намаз-гайд
-  for (const section of NAMAZ_GUIDE_SECTIONS) {
-    if (results.length >= limit) break;
-    if (
-      section.title.toLowerCase().includes(q) ||
-      section.summary.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: section.title,
-        subtitle: section.summary,
-        category: "Намаз",
-        icon: "🕌",
-        path: "/namaz-guide",
-      });
-    }
-  }
-
-  // Новичкам
-  for (const section of BEGINNER_SECTIONS) {
-    if (results.length >= limit) break;
-    if (
-      section.title.toLowerCase().includes(q) ||
-      section.summary.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: section.title,
-        subtitle: section.summary,
-        category: "Новичкам",
-        icon: "🌟",
-        path: "/beginners",
-      });
-    }
-  }
-
-  // Глоссарий
-  for (const item of GLOSSARY) {
-    if (results.length >= limit) break;
-    if (
-      item.term.toLowerCase().includes(q) ||
-      item.meaning.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: item.term,
-        subtitle: item.meaning.slice(0, 80),
-        category: "Словарь",
-        icon: "📚",
-        path: "/guide",
-      });
-    }
-  }
-
-  // Функции приложения
-  for (const feature of APP_FEATURES) {
-    if (results.length >= limit) break;
-    if (
-      feature.name.toLowerCase().includes(q) ||
-      feature.description.toLowerCase().includes(q)
-    ) {
-      results.push({
-        title: feature.name,
-        subtitle: feature.description,
-        category: "Функции",
-        icon: feature.icon,
-        path: feature.path,
-      });
-    }
-  }
-
-  return results;
-}
+import { Search, X, ChevronRight, Loader2, CornerDownLeft } from "lucide-react";
+import {
+  type SearchResult,
+  type HadithIndexEntry,
+  type AyahIndexEntry,
+  type QA,
+  CATEGORY_COLORS,
+  loadHadithIndexOnce,
+  loadQuranIndexOnce,
+  loadQAOnce,
+  loadFactsOnce,
+  searchInstant,
+  searchHadithIndex,
+  searchQuranIndex,
+  searchQAList,
+  searchFactsList,
+} from "../lib/megaSearch";
+import type { IslamicFact } from "../data/facts";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -243,18 +36,48 @@ export default function GlobalSearch({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
 
+  // Escape / кнопка «Назад» закрывают поиск даже без фокуса в поле ввода
+  useModalDismiss(isOpen, onClose);
+
+  // Ленивые источники «мега-поиска» — грузятся при открытии, кэшируются на сессию
+  const [hadithIndex, setHadithIndex] = useState<HadithIndexEntry[] | null>(null);
+  const [quranIndex, setQuranIndex] = useState<AyahIndexEntry[] | null>(null);
+  const [qaList, setQaList] = useState<QA[] | null>(null);
+  const [factsList, setFactsList] = useState<IslamicFact[] | null>(null);
+  const loadingExtra = !hadithIndex || !quranIndex || !qaList || !factsList;
+
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
+      loadHadithIndexOnce().then(setHadithIndex);
+      loadQuranIndexOnce().then(setQuranIndex);
+      loadQAOnce().then(setQaList);
+      loadFactsOnce().then(setFactsList);
     } else {
       setQuery("");
       setResults([]);
     }
   }, [isOpen]);
 
+  // Пересчитываем результаты при каждом изменении запроса И по мере
+  // подгрузки тяжёлых источников (появляются «доездом», без блокировки UI)
+  useEffect(() => {
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
+    const combined = [
+      ...searchInstant(query),
+      ...(quranIndex ? searchQuranIndex(query, quranIndex) : []),
+      ...(hadithIndex ? searchHadithIndex(query, hadithIndex) : []),
+      ...(qaList ? searchQAList(query, qaList) : []),
+      ...(factsList ? searchFactsList(query, factsList) : []),
+    ];
+    setResults(combined);
+  }, [query, quranIndex, hadithIndex, qaList, factsList]);
+
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
-    setResults(searchAll(value));
   }, []);
 
   const handleSelect = useCallback(
@@ -265,6 +88,13 @@ export default function GlobalSearch({
     [navigate, onClose],
   );
 
+  // Enter — открыть полный экран со всеми результатами (без ограничений)
+  const handleShowAll = useCallback(() => {
+    if (query.trim().length < 2) return;
+    onClose();
+    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  }, [query, navigate, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -274,9 +104,15 @@ export default function GlobalSearch({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg mx-auto px-4 pt-[env(safe-area-inset-top)] mt-4">
+      <div
+        className="w-full max-w-lg mx-auto px-3 sm:px-4 flex-1 min-h-0 flex flex-col"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top) + 12px)",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)",
+        }}
+      >
         {/* Search Input */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <Search
             size={18}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30"
@@ -285,8 +121,14 @@ export default function GlobalSearch({
             ref={inputRef}
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleShowAll();
+              if (e.key === "Escape") onClose();
+            }}
             placeholder="Поиск по всему приложению..."
-            className="w-full pl-11 pr-12 py-4 rounded-2xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+            enterKeyHint="search"
+            inputMode="search"
+            className="w-full pl-11 pr-20 py-4 rounded-2xl text-base sm:text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
             style={{
               background: "rgba(255,255,255,0.08)",
               border: "1px solid rgba(255,255,255,0.1)",
@@ -295,28 +137,30 @@ export default function GlobalSearch({
           {query && (
             <button
               onClick={() => handleSearch("")}
-              className="absolute right-12 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              className="absolute right-11 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 active:bg-white/25 transition-colors"
             >
-              <X size={12} className="text-white/50" />
+              <X size={14} className="text-white/50" />
             </button>
           )}
           <button
             onClick={onClose}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/40 hover:text-white/60 transition-colors px-1"
+            aria-label="Закрыть поиск"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center text-white/40 hover:text-white/60 active:bg-white/10 transition-colors"
           >
-            Esc
+            <span className="hidden sm:inline text-xs">Esc</span>
+            <X size={16} className="sm:hidden" />
           </button>
         </div>
 
         {/* Results */}
         <div
-          className="mt-3 rounded-2xl overflow-hidden max-h-[70vh] overflow-y-auto"
+          className="mt-3 rounded-2xl overflow-hidden flex-1 min-h-0 overflow-y-auto overscroll-contain"
           style={{
             background: "rgba(15,15,25,0.95)",
             border: "1px solid rgba(255,255,255,0.06)",
           }}
         >
-          {query.length >= 2 && results.length === 0 && (
+          {query.length >= 2 && results.length === 0 && !loadingExtra && (
             <div className="py-12 text-center">
               <span className="text-3xl mb-3 block">🔍</span>
               <p className="text-sm text-white/40">
@@ -331,11 +175,13 @@ export default function GlobalSearch({
           {query.length < 2 && (
             <div className="py-8 text-center space-y-3">
               <span className="text-3xl block">🔎</span>
-              <p className="text-sm text-white/40">
-                Ищите по дуа, зикрам, именам Аллаха, историям...
+              <p className="text-sm text-white/40 px-6">
+                Мега-поиск: любое слово — по всему Корану (6 236 аятов), хадисам
+                (16 400+), вопросам-ответам, дуа, зикрам, историям, фактам и
+                всему приложению
               </p>
               <div className="flex flex-wrap gap-2 justify-center px-4">
-                {["Фатиха", "Аль-Курси", "намаз", "вуду", "дуа", "Ибрахим"].map(
+                {["вода", "жена", "терпение", "закят", "намаз", "пост"].map(
                   (hint) => (
                     <button
                       key={hint}
@@ -347,7 +193,20 @@ export default function GlobalSearch({
                   ),
                 )}
               </div>
+              {loadingExtra && (
+                <p className="text-[10px] text-white/20 flex items-center justify-center gap-1.5 pt-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Догружаю хадисы и базу вопросов…
+                </p>
+              )}
             </div>
+          )}
+
+          {query.length >= 2 && loadingExtra && (
+            <p className="text-[10px] text-white/25 flex items-center justify-center gap-1.5 py-2 border-b border-white/5">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Ищу также в хадисах и вопросах-ответах…
+            </p>
           )}
 
           {results.length > 0 && (
@@ -375,7 +234,7 @@ export default function GlobalSearch({
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`text-[9px] font-semibold px-2 py-0.5 rounded-full border ${colorClass}`}
+                        className={`hidden sm:inline text-[9px] font-semibold px-2 py-0.5 rounded-full border ${colorClass}`}
                       >
                         {result.category}
                       </span>
@@ -385,6 +244,16 @@ export default function GlobalSearch({
                 );
               })}
             </div>
+          )}
+
+          {query.length >= 2 && (
+            <button
+              onClick={handleShowAll}
+              className="w-full px-4 py-3 flex items-center justify-center gap-2 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 border-t border-white/5 transition-colors"
+            >
+              <CornerDownLeft size={14} />
+              Показать все результаты по «{query}»
+            </button>
           )}
         </div>
       </div>

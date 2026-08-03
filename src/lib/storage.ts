@@ -1,3 +1,4 @@
+import { toDateKey } from "./dateKey";
 // ============================================================
 // IMAN App - Local Storage Manager
 // All user data persisted in localStorage with 'iman_' prefix
@@ -237,15 +238,7 @@ const HABIT_KEYS: (keyof Omit<HabitLog, "date">)[] = [
 
 // ---- Helper: date formatting ----
 
-function toDateKey(date?: Date | string): string {
-  if (!date) {
-    return new Date().toISOString().slice(0, 10);
-  }
-  if (typeof date === "string") {
-    return date.slice(0, 10);
-  }
-  return date.toISOString().slice(0, 10);
-}
+
 
 function defaultPrayers(): PrayerPrayers {
   const entry: PrayerEntry = { status: "none", timestamp: null };
@@ -894,10 +887,18 @@ class Storage {
     const entry = list.find((s) => s.surahNumber === surahNumber);
     if (!entry) return null;
 
+    // Баллы за повтор — не чаще раза в час на суру. Раньше каждый тап
+    // «Повторил» давал +5, и 20 тапов подряд приносили +100 саваба.
+    const prevReview = entry.lastReviewedAt
+      ? new Date(entry.lastReviewedAt).getTime()
+      : 0;
+    const HOUR = 60 * 60 * 1000;
+    const rewardable = Date.now() - prevReview >= HOUR;
+
     entry.lastReviewedAt = new Date().toISOString();
     entry.reviewCount += 1;
     entry.confidence = Math.min(100, newConfidence);
-    entry.pointsEarned += POINTS.MEMORIZE_REPEAT;
+    if (rewardable) entry.pointsEarned += POINTS.MEMORIZE_REPEAT;
     this.write(KEYS.MEMORIZATION, list);
 
     // Recalculate — memorization points are included in recalculateTotalPoints

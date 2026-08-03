@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import type { HabitLog } from "../lib/storage";
+import { toDateKey } from "../lib/dateKey";
 
 // ---------------------------------------------------------------------------
 // Types & Constants
@@ -91,9 +92,7 @@ const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("ru-RU", {

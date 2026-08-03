@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { storage, POINTS } from "../lib/storage";
 import type { IbadahSession } from "../lib/storage";
+import { toDateKey } from "../lib/dateKey";
 
 // ============================================================
 // Types & Constants
@@ -330,7 +331,7 @@ export default function IbadahTimer() {
   const todayMinutes = storage.getTodayIbadahMinutes();
   const totalMinutes = storage.getTotalIbadahMinutes();
   const allSessions = storage.getIbadahSessions();
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = toDateKey();
   const todaySessions = allSessions.filter((s) => s.date === todayKey);
   const todayPoints = todaySessions.reduce((sum, s) => sum + s.pointsEarned, 0);
 

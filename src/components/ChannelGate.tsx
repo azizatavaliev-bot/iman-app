@@ -25,6 +25,17 @@ export default function ChannelGate({ children }: ChannelGateProps) {
     checkSubscription();
   }, []);
 
+  // Страховка: если проверка почему-то зависла — пускаем в приложение,
+  // чтобы пользователь не остался запертым на экране «Проверяем подписку…».
+  useEffect(() => {
+    if (!checking) return;
+    const watchdog = setTimeout(() => {
+      setHasAccess(true);
+      setChecking(false);
+    }, 5000);
+    return () => clearTimeout(watchdog);
+  }, [checking]);
+
   async function checkSubscription() {
     setChecking(true);
     setError(null);

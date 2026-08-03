@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronRight, ExternalLink, X, Sparkles } from "lucide-react";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 const CHANNEL_LINK = "https://t.me/+UcggjLlqNuAyN2Qy";
 
@@ -63,6 +64,7 @@ const STORIES: StorySlide[] = [
 ];
 
 export default function WelcomeStories({ onComplete }: WelcomeStoriesProps) {
+  useModalDismiss(true, onComplete);
   const [current, setCurrent] = useState(0);
   const [progress, setProgress] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -156,6 +158,18 @@ export default function WelcomeStories({ onComplete }: WelcomeStoriesProps) {
       onPointerUp={() => { isPaused.current = false; }}
       onClick={handleTap}
     >
+      {/* Закрыть — чтобы выход был очевиден с любого слайда, а не только внизу */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onComplete();
+        }}
+        aria-label="Закрыть"
+        className="absolute z-20 right-3 top-[calc(env(safe-area-inset-top)+18px)] w-9 h-9 rounded-full bg-black/30 flex items-center justify-center text-white/70 hover:text-white active:bg-black/50 transition-colors"
+      >
+        <X size={18} />
+      </button>
+
       {/* Progress bars */}
       <div className="flex gap-1 px-3 pt-[calc(env(safe-area-inset-top)+8px)]">
         {STORIES.map((_, i) => (

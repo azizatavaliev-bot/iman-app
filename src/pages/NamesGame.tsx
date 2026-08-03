@@ -11,6 +11,7 @@ import {
 import { NAMES_OF_ALLAH } from "../data/names";
 import { getNameStory, hasNameStory } from "../data/names-stories";
 import { storage, POINTS } from "../lib/storage";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 // ---- Types ----
 
@@ -716,6 +717,7 @@ function AllNamesTab({
   onUnmarkLearned: (id: number) => void;
 }) {
   const [selectedName, setSelectedName] = useState<number | null>(null);
+  useModalDismiss(selectedName !== null, () => setSelectedName(null));
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredNames = NAMES_OF_ALLAH.filter((name) => {

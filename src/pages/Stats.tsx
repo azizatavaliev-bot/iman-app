@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { storage, POINTS, LEVELS, getCurrentLevel } from "../lib/storage";
 import type { UserProfile, WeeklyStats } from "../lib/storage";
+import { toDateKey } from "../lib/dateKey";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,9 +103,7 @@ const MONTH_NAMES = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+
 
 function pluralDays(n: number): string {
   const abs = Math.abs(n) % 100;

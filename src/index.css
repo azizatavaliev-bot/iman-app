@@ -306,7 +306,11 @@ nav.glass { background: var(--glass-solid-base); }
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        /* ВАЖНО: именно `none`, а не `translateY(0)`.
+           Любой transform ≠ none у предка делает его containing block для
+           `position: fixed` — тогда модалки внутри страницы позиционируются
+           относительно всего документа и «уезжают» вниз при прокрутке. */
+        transform: none;
     }
 }
 
@@ -355,7 +359,7 @@ nav.glass { background: var(--glass-solid-base); }
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: none;
     }
 }
 
@@ -384,7 +388,7 @@ nav.glass { background: var(--glass-solid-base); }
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: none;
     }
 }
 
@@ -404,7 +408,7 @@ nav.glass { background: var(--glass-solid-base); }
 /* ── Splash-экран: кинематографичный вход ─────────────────────── */
 @keyframes splashFadeUp {
     from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: none; }
 }
 @keyframes splashRing {
     0%   { transform: translate(-50%, -50%) scale(0.35); opacity: 0.55; }
@@ -430,11 +434,22 @@ nav.glass { background: var(--glass-solid-base); }
     from { width: 0%; }
     to   { width: 100%; }
 }
+/* Каллиграфия «прописывается» справа налево, как пишут по-арабски */
+@keyframes splashWrite {
+    from { clip-path: inset(0 0 0 100%); opacity: 0.9; }
+    to   { clip-path: inset(0 0 0 0%);   opacity: 1; }
+}
+/* Медленный дрейф фонового орнамента — «дышащая» глубина */
+@keyframes splashDrift {
+    0%   { transform: translate(0, 0) scale(1); }
+    50%  { transform: translate(-18px, -12px) scale(1.05); }
+    100% { transform: translate(0, 0) scale(1); }
+}
 
 /* ── Плитки разделов: появление + разная анимация иконок при наведении ── */
 @keyframes tileIn {
     from { opacity: 0; transform: translateY(12px) scale(0.94); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 1; transform: none; }
 }
 @keyframes fxWiggle {
     0%, 100% { transform: rotate(0deg); }
@@ -475,7 +490,7 @@ nav.glass { background: var(--glass-solid-base); }
 
 @keyframes card-enter {
     from { opacity: 0; transform: translateY(12px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 1; transform: none; }
 }
 
 .animate-card-enter {

@@ -173,6 +173,7 @@ const Qibla = lazy(() => import("./pages/Qibla"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Nasheeds = lazy(() => import("./pages/Nasheeds"));
 const AudioLibrary = lazy(() => import("./pages/AudioLibrary"));
+const SearchResults = lazy(() => import("./pages/SearchResults"));
 const Dreams = lazy(() => import("./pages/Dreams"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Stats = lazy(() => import("./pages/Stats"));
@@ -314,6 +315,7 @@ const PAGES_WITH_OWN_BACK = new Set([
   "/prayer-flow",
   "/wallpapers",
   "/zikr",
+  "/search",
 ]);
 
 function GlobalBackButton() {
@@ -416,6 +418,7 @@ function AppContent() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/nasheeds" element={<Nasheeds />} />
             <Route path="/audio" element={<AudioLibrary />} />
+            <Route path="/search" element={<SearchResults />} />
             <Route path="/dreams" element={<Dreams />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/stats" element={<Stats />} />
@@ -485,9 +488,18 @@ function ensureTelegramProfile(): boolean {
       telegramUsername: tgUser.username || "",
     };
     const existing = localStorage.getItem("iman_profile");
-    const merged = existing
-      ? { ...JSON.parse(existing), ...autoProfile }
-      : autoProfile;
+    // Повреждённый профиль (обрыв записи, переполнение квоты) раньше валил
+    // всё приложение в белый экран: эта функция вызывается из эффекта самого
+    // App, выше ErrorBoundary — поймать исключение было некому.
+    let parsed: Record<string, unknown> = {};
+    if (existing) {
+      try {
+        parsed = JSON.parse(existing);
+      } catch {
+        console.warn("iman_profile повреждён — создаём заново");
+      }
+    }
+    const merged = { ...parsed, ...autoProfile };
     localStorage.setItem("iman_profile", JSON.stringify(merged));
     localStorage.setItem("iman_onboarded", "true");
     scheduleSyncPush();

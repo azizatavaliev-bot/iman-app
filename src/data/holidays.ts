@@ -1,3 +1,4 @@
+import { toDateKey } from "../lib/dateKey";
 // ============================================================
 // Исламские праздники и значимые даты
 // Даты лунного календаря (Хиджра) — каждый год сдвигаются на ~11 дней назад
@@ -190,7 +191,7 @@ export const HOLIDAYS: Holiday[] = [
 
 /** Получить ближайший предстоящий праздник (или сегодняшний) */
 export function getNextHoliday(today: Date = new Date()): Holiday | null {
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toDateKey(today);
   const future = HOLIDAYS.filter((h) => h.date2026 >= todayStr).sort((a, b) =>
     a.date2026.localeCompare(b.date2026),
   );
@@ -199,7 +200,7 @@ export function getNextHoliday(today: Date = new Date()): Holiday | null {
 
 /** Получить праздник, который сегодня (если есть) */
 export function getTodayHoliday(today: Date = new Date()): Holiday | null {
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toDateKey(today);
   return HOLIDAYS.find((h) => h.date2026 === todayStr) || null;
 }
 

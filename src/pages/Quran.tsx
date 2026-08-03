@@ -49,6 +49,7 @@ import {
   TOTAL_SURAHS,
   sumAyahsForSurahs,
 } from "../data/surah-ayah-counts";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 import type { Surah, SurahDetail, Reciter } from "../lib/api";
 import type { QuranBookmark } from "../lib/storage";
 
@@ -418,6 +419,7 @@ export default function Quran() {
   const [selectedReciter, setSelectedReciter] =
     useState<SavedReciter>(loadSavedReciter);
   const [showReciterModal, setShowReciterModal] = useState(false);
+  useModalDismiss(showReciterModal, () => setShowReciterModal(false));
   const [allReciters, setAllReciters] = useState<Reciter[]>([]);
   const [recitersLoading, setRecitersLoading] = useState(false);
   const [reciterSearch, setReciterSearch] = useState("");

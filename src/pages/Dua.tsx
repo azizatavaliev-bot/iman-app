@@ -16,6 +16,8 @@ import type { Dua } from "../data/dua";
 import { storage, POINTS } from "../lib/storage";
 import { scheduleSyncPush } from "../lib/sync";
 import ShareCard from "../components/ShareCard";
+import { toDateKey } from "../lib/dateKey";
+const todayKey = () => toDateKey();
 
 // ============================================================
 // Dua Collection Page
@@ -24,9 +26,7 @@ import ShareCard from "../components/ShareCard";
 
 // ---- Helpers ----
 
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+
 
 /** Deterministic "dua of the day" — uses date string as seed */
 function getDuaOfDay(): Dua {

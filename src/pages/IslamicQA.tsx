@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -77,7 +78,8 @@ function saveLast(id: number) {
 }
 
 export default function IslamicQA() {
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [activeCat, setActiveCat] = useState<QACategory | "all">("all");
   const [openId, setOpenId] = useState<number | null>(null);
   const [read, setRead] = useState<Set<number>>(new Set());

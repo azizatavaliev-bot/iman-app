@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Plus, Heart, Send, X, Loader2 } from "lucide-react";
 import { getTelegramUser } from "../lib/telegram";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,6 +80,7 @@ export default function DuaWall() {
   const [requests, setRequests] = useState<DuaRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  useModalDismiss(showForm, () => setShowForm(false));
   const [newText, setNewText] = useState("");
   const [newCategory, setNewCategory] = useState("general");
   const [submitting, setSubmitting] = useState(false);

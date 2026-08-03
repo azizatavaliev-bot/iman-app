@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Heart,
   BookOpen,
@@ -84,25 +85,33 @@ const COLLECTION_INFO: Record<
   },
   bukhari: {
     label: "Бухари",
-    subtitle: "Сахих аль-Бухари — 7196 хадисов",
+    subtitle: "Сахих аль-Бухари — 7506 хадисов",
     short: "Аль-Бухари",
   },
   muslim: {
     label: "Муслим",
-    subtitle: "Сахих Муслим — 2638 хадисов",
+    subtitle: "Сахих Муслим — 2454 хадиса",
     short: "Муслим",
   },
   abudawud: {
     label: "Абу Дауд",
-    subtitle: "Сунан Абу Дауд — 4602 хадиса",
+    subtitle: "Сунан Абу Дауд — 4616 хадисов",
     short: "Абу Дауд",
   },
 };
 
 export default function Hadiths() {
+  // ── Deep-link из поиска: ?collection=bukhari&book=3&h=42 ──
+  const [searchParams] = useSearchParams();
+  const deepLinkCollection = searchParams.get("collection") as CollectionTab | null;
+  const deepLinkBook = Number(searchParams.get("book")) || null;
+  const deepLinkHadith = Number(searchParams.get("h")) || null;
+
   // ── Shared state ──
   const [tab, setTab] = useState<Tab>("all");
-  const [collectionTab, setCollectionTab] = useState<CollectionTab>("nawawi");
+  const [collectionTab, setCollectionTab] = useState<CollectionTab>(
+    deepLinkCollection && deepLinkCollection !== "nawawi" ? deepLinkCollection : "nawawi",
+  );
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   // ── Nawawi state ──
@@ -112,7 +121,9 @@ export default function Hadiths() {
   const [readIds, setReadIds] = useState<Set<number>>(() => new Set(loadReadNawawi()));
 
   // ── Extended collections state (Bukhari / Muslim / Abu Dawud) ──
-  const [selectedSection, setSelectedSection] = useState<number>(1);
+  const [selectedSection, setSelectedSection] = useState<number>(
+    deepLinkBook || 1,
+  );
   const [bookIndex, setBookIndex] = useState<HadithBook[]>([]);
   const [extendedHadiths, setExtendedHadiths] = useState<ExtendedHadith[]>([]);
   const [extLoading, setExtLoading] = useState(false);
@@ -155,6 +166,22 @@ export default function Hadiths() {
     },
     [],
   );
+
+  // Deep-link из поиска: раскрыть и проскроллить к нужному хадису после загрузки книги
+  useEffect(() => {
+    if (!deepLinkHadith || extendedHadiths.length === 0) return;
+    const match = extendedHadiths.find((h) => h.hadithnumber === deepLinkHadith);
+    if (!match) return;
+    const cardId = `${match.collection}_${match.hadithnumber}`;
+    setExpandedExtId(cardId);
+    const t = setTimeout(() => {
+      document
+        .getElementById(`hadith-${cardId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extendedHadiths]);
 
   useEffect(() => {
     if (collectionTab !== "nawawi") {
@@ -845,6 +872,7 @@ export default function Hadiths() {
                 return (
                   <div
                     key={cardId}
+                    id={`hadith-${cardId}`}
                     className="animate-fade-in"
                     style={{
                       animationDelay: `${0.08 + Math.min(index, 15) * 0.03}s`,

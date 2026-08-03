@@ -1,17 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, ChevronRight, Sprout, LayoutGrid, Trophy, Star, Heart } from "lucide-react";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 // Стиль кружков-категорий: иконка + цвет (вместо смайликов)
 const CAT_STYLE: Record<
   string,
-  { Icon: typeof Sprout; from: string; to: string; text: string; glow: string }
+  {
+    Icon: typeof Sprout;
+    from: string;
+    to: string;
+    text: string;
+    glow: string;
+    /** rgb-компоненты акцента — для мягкой заливки внутри кружка */
+    rgb: string;
+  }
 > = {
-  beginners: { Icon: Sprout, from: "from-emerald-400", to: "to-teal-500", text: "text-emerald-300", glow: "shadow-emerald-500/30" },
-  functions: { Icon: LayoutGrid, from: "from-indigo-400", to: "to-blue-500", text: "text-indigo-300", glow: "shadow-indigo-500/30" },
-  levels: { Icon: Trophy, from: "from-amber-400", to: "to-orange-500", text: "text-amber-300", glow: "shadow-amber-500/30" },
-  sawab: { Icon: Star, from: "from-yellow-400", to: "to-amber-500", text: "text-yellow-300", glow: "shadow-yellow-500/30" },
-  about: { Icon: Heart, from: "from-rose-400", to: "to-pink-500", text: "text-rose-300", glow: "shadow-rose-500/30" },
+  beginners: { Icon: Sprout, from: "from-emerald-400", to: "to-teal-500", text: "text-emerald-300", glow: "shadow-emerald-500/30", rgb: "16,185,129" },
+  functions: { Icon: LayoutGrid, from: "from-indigo-400", to: "to-blue-500", text: "text-indigo-300", glow: "shadow-indigo-500/30", rgb: "99,102,241" },
+  levels: { Icon: Trophy, from: "from-amber-400", to: "to-orange-500", text: "text-amber-300", glow: "shadow-amber-500/30", rgb: "245,158,11" },
+  sawab: { Icon: Star, from: "from-yellow-400", to: "to-amber-500", text: "text-yellow-300", glow: "shadow-yellow-500/30", rgb: "234,179,8" },
+  about: { Icon: Heart, from: "from-rose-400", to: "to-pink-500", text: "text-rose-300", glow: "shadow-rose-500/30", rgb: "244,63,94" },
 };
 
 // ---------------------------------------------------------------------------
@@ -264,6 +273,7 @@ interface StoryViewerProps {
 }
 
 function StoryViewer({ category, onClose, totalUsers = 0 }: StoryViewerProps) {
+  useModalDismiss(true, onClose);
   const [current, setCurrent] = useState(0);
   const [progress, setProgress] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -447,26 +457,44 @@ export default function InstructionStories({ totalUsers = 0 }: { totalUsers?: nu
             >
               {/* Градиентное кольцо */}
               <div
-                className={`rounded-full p-[2.5px] ${
+                className={`relative rounded-full p-[2px] ${
                   isViewed
-                    ? "bg-white/10"
-                    : `bg-gradient-to-br ${st.from} ${st.to} shadow-lg ${st.glow}`
+                    ? "bg-white/[0.13]"
+                    : `bg-gradient-to-br ${st.from} ${st.to}`
                 }`}
               >
                 <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden relative"
                   style={{ background: "var(--bg-secondary, #0f172a)" }}
                 >
+                  {/* Едва заметный орнамент внутри — фактура, не заливка */}
+                  {!isViewed && (
+                    <svg
+                      className="absolute inset-0 w-full h-full opacity-[0.13] pointer-events-none"
+                      viewBox="0 0 100 100"
+                    >
+                      <g fill="none" stroke={`rgb(${st.rgb})`} strokeWidth="1.4">
+                        <rect x="26" y="26" width="48" height="48" />
+                        <rect
+                          x="26"
+                          y="26"
+                          width="48"
+                          height="48"
+                          transform="rotate(45 50 50)"
+                        />
+                      </g>
+                    </svg>
+                  )}
                   <Icon
-                    size={26}
+                    size={25}
                     strokeWidth={2}
-                    className={isViewed ? "text-white/30" : st.text}
+                    className={`relative ${isViewed ? "text-white/30" : st.text}`}
                   />
                 </div>
               </div>
               <span
                 className="text-[10px] font-semibold"
-                style={{ color: isViewed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.75)" }}
+                style={{ color: isViewed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.8)" }}
               >
                 {cat.label}
               </span>
