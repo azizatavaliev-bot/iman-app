@@ -32,6 +32,9 @@ export interface SearchResult {
   /** Координаты хадиса — чтобы догрузить ПОЛНЫЙ текст при раскрытии
    * (в поисковом индексе лежит только фрагмент на 280 символов). */
   hadithRef?: { c: string; b: number; n: number };
+  /** Координаты аята — чтобы догрузить арабский оригинал, транскрипцию
+   * и толкование Ас-Саади при раскрытии. */
+  ayahRef?: { s: number; a: number };
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -350,6 +353,7 @@ export function searchQuranIndex(
         title: v.t.length > 90 ? v.t.slice(0, 90) + "…" : v.t,
         subtitle: `Сура ${v.s} «${v.n}» · аят ${v.a}`,
         preview: v.t,
+        ayahRef: { s: v.s, a: v.a },
         category: "Аяты",
         icon: "📕",
         path: `/quran?surah=${v.s}&ayah=${v.a}`,
@@ -451,4 +455,60 @@ export async function loadFullHadith(ref: {
   ]
     .filter(Boolean)
     .join("\n\n");
+}
+
+// ---------------------------------------------------------------------------
+// Полный разбор аята по требованию: арабский оригинал + транскрипция
+// кириллицей (есть у части аятов) + перевод + толкование Ас-Саади.
+// Тафсир разбит по сурам (public/data/tafsir/{N}.json) — грузим только нужную.
+// ---------------------------------------------------------------------------
+
+let arabicPromise: Promise<Record<string, string>> | null = null;
+function loadArabicOnce(): Promise<Record<string, string>> {
+  if (!arabicPromise) {
+    arabicPromise = fetch(`${import.meta.env.BASE_URL}data/quran-arabic.json`)
+      .then((r) => r.json())
+      .catch(() => ({}));
+  }
+  return arabicPromise;
+}
+
+const tafsirCache = new Map<number, Promise<Record<string, string>>>();
+function loadTafsirSurah(surah: number): Promise<Record<string, string>> {
+  if (!tafsirCache.has(surah)) {
+    tafsirCache.set(
+      surah,
+      fetch(`${import.meta.env.BASE_URL}data/tafsir/${surah}.json`)
+        .then((r) => r.json())
+        .catch(() => ({})),
+    );
+  }
+  return tafsirCache.get(surah)!;
+}
+
+export interface AyahDetails {
+  arabic: string | null;
+  transliteration: string | null;
+  translation: string;
+  tafsir: string | null;
+}
+
+export async function loadAyahDetails(
+  ref: { s: number; a: number },
+  translation: string,
+): Promise<AyahDetails> {
+  const key = `${ref.s}:${ref.a}`;
+  const [arabicMap, tafsirMap, translit] = await Promise.all([
+    loadArabicOnce(),
+    loadTafsirSurah(ref.s),
+    import("../data/quran-transliteration")
+      .then((m) => m.getTransliteration(ref.s, ref.a))
+      .catch(() => null),
+  ]);
+  return {
+    arabic: arabicMap[key] || null,
+    transliteration: translit || null,
+    translation,
+    tafsir: tafsirMap[key] || null,
+  };
 }

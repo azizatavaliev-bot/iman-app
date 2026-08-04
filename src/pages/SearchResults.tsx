@@ -17,6 +17,8 @@ import {
   searchQAList,
   searchFactsList,
   loadFullHadith,
+  loadAyahDetails,
+  type AyahDetails,
 } from "../lib/megaSearch";
 import type { IslamicFact } from "../data/facts";
 
@@ -43,6 +45,8 @@ export default function SearchResults() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Полные тексты хадисов, догруженные по требованию (индекс хранит фрагмент)
   const [fullTexts, setFullTexts] = useState<Record<string, string>>({});
+  // Полный разбор аята: арабский + транскрипция + тафсир
+  const [ayahDetails, setAyahDetails] = useState<Record<string, AyahDetails>>({});
 
   const toggleExpanded = (key: string, result?: SearchResult) => {
     setExpanded((prev) => {
@@ -56,6 +60,12 @@ export default function SearchResults() {
       loadFullHadith(result.hadithRef).then((text) => {
         if (text) setFullTexts((prev) => ({ ...prev, [key]: text }));
       });
+    }
+    // Раскрыли аят — подтягиваем арабский, транскрипцию и толкование
+    if (result?.ayahRef && !ayahDetails[key]) {
+      loadAyahDetails(result.ayahRef, result.preview || result.title).then((d) =>
+        setAyahDetails((prev) => ({ ...prev, [key]: d })),
+      );
     }
   };
 
@@ -229,9 +239,16 @@ export default function SearchResults() {
                       </button>
                       {isOpen && (
                         <div className="pl-11 pr-1 pb-3 -mt-1">
-                          <p className="text-[14px] text-white/85 leading-relaxed whitespace-pre-line">
-                            {fullTexts[key] || result.preview || result.title}
-                          </p>
+                          {result.ayahRef ? (
+                            <AyahBlock
+                              details={ayahDetails[key]}
+                              fallback={result.preview || result.title}
+                            />
+                          ) : (
+                            <p className="text-[14px] text-white/85 leading-relaxed whitespace-pre-line">
+                              {fullTexts[key] || result.preview || result.title}
+                            </p>
+                          )}
                           {result.hadithRef && !fullTexts[key] && (
                             <p className="text-[11px] text-white/30 mt-1.5 flex items-center gap-1.5">
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -255,6 +272,74 @@ export default function SearchResults() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Разбор аята: арабский оригинал → транскрипция → перевод → толкование
+// ---------------------------------------------------------------------------
+
+function AyahBlock({
+  details,
+  fallback,
+}: {
+  details?: AyahDetails;
+  fallback: string;
+}) {
+  if (!details) {
+    return (
+      <div>
+        <p className="text-[14px] text-white/85 leading-relaxed">{fallback}</p>
+        <p className="text-[11px] text-white/30 mt-2 flex items-center gap-1.5">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Загружаю арабский текст, транскрипцию и толкование…
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {details.arabic && (
+        <p
+          className="text-right text-[19px] leading-[2] text-emerald-100/90"
+          dir="rtl"
+          style={{ fontFamily: "'Scheherazade New', 'Amiri', serif" }}
+        >
+          {details.arabic}
+        </p>
+      )}
+
+      {details.transliteration && (
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-white/30 mb-1">
+            Транскрипция
+          </p>
+          <p className="text-[13.5px] italic text-amber-100/70 leading-relaxed">
+            {details.transliteration}
+          </p>
+        </div>
+      )}
+
+      <div>
+        <p className="text-[10px] uppercase tracking-widest text-white/30 mb-1">
+          Перевод
+        </p>
+        <p className="text-[14px] text-white/85 leading-relaxed">
+          {details.translation}
+        </p>
+      </div>
+
+      {details.tafsir && (
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-white/30 mb-1">
+            Толкование (Ас-Саади)
+          </p>
+          <p className="text-[13.5px] text-white/65 leading-relaxed whitespace-pre-line">
+            {details.tafsir}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

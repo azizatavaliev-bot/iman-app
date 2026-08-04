@@ -67,6 +67,19 @@ export default defineConfig({
             },
           },
           {
+            // Данные поиска и разбора аятов (индексы Корана/хадисов, арабский
+            // текст, тафсир по сурам, книги хадисов). В precache их нет —
+            // JSON не входит в globPatterns, — поэтому кэшируем по факту
+            // обращения: после первого открытия доступны офлайн.
+            urlPattern: /\/data\/.*\.json$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "iman-data-cache",
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 120 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
             options: {
