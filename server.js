@@ -4,7 +4,7 @@ import https from "https";
 import { readFileSync, readFile, writeFileSync as fsWriteFileSync, existsSync, mkdirSync } from "fs";
 import { join, extname, normalize } from "path";
 import { fileURLToPath } from "url";
-import { randomBytes, createHmac } from "crypto";
+import { randomBytes, createHmac, scryptSync, timingSafeEqual } from "crypto";
 import pkg from "pg";
 const { Pool } = pkg;
 
@@ -110,6 +110,24 @@ const pool = new Pool({
       )
     `);
 
+
+    // Учётные данные для входа вне Telegram (браузер, другое устройство).
+    // Пользователь сам придумывает логин+пароль внутри Mini App — регистрация
+    // подтверждается подлинными данными Telegram (initData с HMAC-подписью),
+    // так что чужой telegram_id занять нельзя.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS iman_credentials (
+        telegram_id BIGINT PRIMARY KEY REFERENCES iman_users(telegram_id) ON DELETE CASCADE,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        password_salt TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL
+      )
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_iman_credentials_username ON iman_credentials(LOWER(username))`,
+    );
 
     // Create audit log table
     await client.query(`
@@ -310,6 +328,93 @@ const WEBHOOK_SECRET =
     .update("iman-webhook")
     .digest("hex")
     .slice(0, 64);
+
+// =========================================================================
+// BROWSER LOGIN — свой логин+пароль для входа вне Telegram, с любого устройства
+// =========================================================================
+// Каждый пользователь сам придумывает логин+пароль ВНУТРИ Telegram Mini App
+// (там его личность уже подтверждена самим Telegram). Дальше этим
+// логином+паролем можно войти в обычном браузере на любом устройстве —
+// сессия ведёт к тому же профилю (namaz/саваб/уровень), что и в Telegram.
+//
+// Регистрация обязана проверять ПОДЛИННОСТЬ Telegram-данных (initData
+// с HMAC-подписью бота) — иначе кто угодно мог бы прислать чужой telegram_id
+// и присвоить себе чужой прогресс.
+const SESSION_SECRET = process.env.IMAN_SESSION_SECRET || WEBHOOK_SECRET;
+
+function signBrowserSession(telegramId, expiresAt) {
+  const payload = `${telegramId}.${expiresAt}`;
+  const sig = createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
+  return Buffer.from(`${payload}.${sig}`).toString("base64url");
+}
+
+/**
+ * Проверка подлинности Telegram.WebApp.initData по алгоритму из документации
+ * Telegram: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+ * Возвращает { id, first_name, ... } реального пользователя или null.
+ */
+function validateTelegramInitData(initData) {
+  try {
+    const params = new URLSearchParams(initData);
+    const hash = params.get("hash");
+    if (!hash) return null;
+    params.delete("hash");
+
+    const authDate = parseInt(params.get("auth_date") || "0", 10);
+    // initData старше 24 часов — не принимаем (защита от replay сохранённой строки)
+    if (!authDate || Date.now() / 1000 - authDate > 24 * 60 * 60) return null;
+
+    const dataCheckString = [...params.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${v}`)
+      .join("\n");
+
+    const secretKey = createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
+    const computedHash = createHmac("sha256", secretKey)
+      .update(dataCheckString)
+      .digest("hex");
+
+    const a = Buffer.from(computedHash, "hex");
+    const b = Buffer.from(hash, "hex");
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+
+    const userJson = params.get("user");
+    if (!userJson) return null;
+    return JSON.parse(userJson);
+  } catch {
+    return null;
+  }
+}
+
+// Пароли хранятся как scrypt-хеш + случайная соль (встроено в Node, без зависимостей)
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return { salt, hash };
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  const a = Buffer.from(hash, "hex");
+  const b = Buffer.from(expectedHash, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// Отдельный, более строгий лимитер — против перебора пароля
+const loginAttempts = new Map(); // IP -> { count, resetTime }
+const LOGIN_WINDOW = 15 * 60 * 1000; // 15 минут
+const LOGIN_MAX = 5; // 5 попыток за окно
+
+function isLoginRateLimited(ip) {
+  const now = Date.now();
+  let entry = loginAttempts.get(ip);
+  if (!entry || now > entry.resetTime) {
+    entry = { count: 0, resetTime: now + LOGIN_WINDOW };
+    loginAttempts.set(ip, entry);
+  }
+  entry.count++;
+  return entry.count > LOGIN_MAX;
+}
 
 // =========================================================================
 // SECURITY — Rate limiting
@@ -1648,6 +1753,171 @@ const server = createServer(async (req, res) => {
         );
       }
     })();
+    return;
+  }
+
+  // ── Set Credentials API — придумать логин+пароль ВНУТРИ Telegram ───────
+  // Вызывается только из настоящего Telegram Mini App: identity проверяется
+  // подписью initData, поэтому подделать чужой telegram_id нельзя.
+  if (req.url === "/api/set-credentials" && req.method === "POST") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    };
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+
+    const ip = req.socket.remoteAddress || "unknown";
+    if (isLoginRateLimited(ip)) {
+      res.writeHead(429, corsHeaders);
+      res.end(JSON.stringify({ error: "too_many_attempts" }));
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      try {
+        const { initData, username, password } = JSON.parse(body || "{}");
+
+        const tgUser = validateTelegramInitData(initData || "");
+        if (!tgUser?.id) {
+          res.writeHead(401, corsHeaders);
+          res.end(JSON.stringify({ error: "invalid_telegram_data" }));
+          return;
+        }
+
+        const cleanUsername = String(username || "").trim().toLowerCase();
+        if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
+          res.writeHead(400, corsHeaders);
+          res.end(
+            JSON.stringify({
+              error: "bad_username",
+              message: "Логин: 3-20 символов, латиница/цифры/подчёркивание",
+            }),
+          );
+          return;
+        }
+        if (!password || String(password).length < 6) {
+          res.writeHead(400, corsHeaders);
+          res.end(
+            JSON.stringify({
+              error: "bad_password",
+              message: "Пароль минимум 6 символов",
+            }),
+          );
+          return;
+        }
+
+        // Логин занят кем-то ДРУГИМ?
+        const existing = await pool.query(
+          "SELECT telegram_id FROM iman_credentials WHERE LOWER(username) = $1",
+          [cleanUsername],
+        );
+        if (existing.rows.length && existing.rows[0].telegram_id !== tgUser.id) {
+          res.writeHead(409, corsHeaders);
+          res.end(JSON.stringify({ error: "username_taken" }));
+          return;
+        }
+
+        const { salt, hash } = hashPassword(String(password));
+        const now = Date.now();
+        await pool.query(
+          `INSERT INTO iman_credentials (telegram_id, username, password_hash, password_salt, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $5)
+           ON CONFLICT (telegram_id) DO UPDATE
+             SET username = $2, password_hash = $3, password_salt = $4, updated_at = $5`,
+          [tgUser.id, cleanUsername, hash, salt, now],
+        );
+
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({ ok: true, username: cleanUsername }));
+        console.log(`✅ Credentials set for telegramId ${tgUser.id} (${cleanUsername})`);
+        await auditLog(tgUser.id, "credentials_set", "user", String(tgUser.id), {});
+      } catch (err) {
+        console.error("set-credentials error:", err);
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ error: "bad_request" }));
+      }
+    });
+    return;
+  }
+
+  // ── Browser Login API — вход логином+паролем вне Telegram ──────────────
+  if (req.url === "/api/browser-login" && req.method === "POST") {
+    const corsHeaders = {
+      ...SECURITY_HEADERS,
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    };
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders);
+      res.end();
+      return;
+    }
+
+    const ip = req.socket.remoteAddress || "unknown";
+    if (isLoginRateLimited(ip)) {
+      res.writeHead(429, corsHeaders);
+      res.end(JSON.stringify({ error: "too_many_attempts" }));
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      try {
+        const { login, password } = JSON.parse(body || "{}");
+        const cleanUsername = String(login || "").trim().toLowerCase();
+
+        const result = await pool.query(
+          "SELECT telegram_id, password_hash, password_salt FROM iman_credentials WHERE LOWER(username) = $1",
+          [cleanUsername],
+        );
+        const row = result.rows[0];
+        // Одинаковое сообщение и на "нет логина", и на "неверный пароль" —
+        // не давать перебору подсказку, какие логины вообще существуют.
+        if (!row || !verifyPassword(String(password || ""), row.password_salt, row.password_hash)) {
+          res.writeHead(401, corsHeaders);
+          res.end(JSON.stringify({ error: "invalid_credentials" }));
+          return;
+        }
+
+        const telegramId = row.telegram_id;
+        const expiresAt = Date.now() + 90 * 24 * 60 * 60 * 1000; // 90 дней
+        const token = signBrowserSession(telegramId, expiresAt);
+
+        let firstName = "Друг";
+        try {
+          const userRow = await stmtGetUser.get(telegramId);
+          const data =
+            userRow && (typeof userRow.data === "string" ? JSON.parse(userRow.data) : userRow.data);
+          if (data?.iman_profile?.name) {
+            firstName = String(data.iman_profile.name).split(" ")[0];
+          }
+        } catch {
+          /* профиля ещё нет — оставляем дефолтное имя */
+        }
+
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({ token, telegramId, firstName, expiresAt }));
+        console.log(`✅ Browser login OK for telegramId ${telegramId}`);
+      } catch (err) {
+        console.error("browser-login error:", err);
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ error: "bad_request" }));
+      }
+    });
     return;
   }
 

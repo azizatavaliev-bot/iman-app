@@ -16,14 +16,22 @@ import {
   GraduationCap,
   ChevronRight,
   Shield,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { storage, getCurrentLevel, LEVELS } from "../lib/storage";
 import type { UserProfile } from "../lib/storage";
 import { COMMON_CITIES } from "../data/cities";
 import type { CityOption } from "../data/cities";
 import { useTheme } from "../lib/ThemeContext";
-import { getTelegramUser } from "../lib/telegram";
+import {
+  getTelegramUser,
+  isRealTelegramWebApp,
+  hasBrowserSession,
+  clearBrowserSession,
+} from "../lib/telegram";
 import { isAdmin } from "../lib/adminConfig";
+import CredentialsSetup from "../components/CredentialsSetup";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -810,6 +818,52 @@ export default function Profile() {
           <ChevronRight className="w-5 h-5" />
         </button>
       )}
+
+      {/* ================================================================ */}
+      {/* CREDENTIALS SETUP — придумать логин+пароль (только внутри Telegram) */}
+      {/* ================================================================ */}
+      {isRealTelegramWebApp() && <CredentialsSetup />}
+
+      {/* ================================================================ */}
+      {/* BROWSER LOGIN — вход/выход вне Telegram                          */}
+      {/* ================================================================ */}
+      {!isRealTelegramWebApp() &&
+        (hasBrowserSession() ? (
+          <button
+            onClick={() => {
+              clearBrowserSession();
+              window.location.href = "/login";
+            }}
+            className="w-full p-4 rounded-xl flex items-center justify-between transition-all active:scale-[0.98]"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <LogOut className="w-5 h-5 text-slate-400" />
+              <span className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                Выйти из аккаунта
+              </span>
+            </div>
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl flex items-center justify-between hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <LogIn className="w-5 h-5" />
+              <div className="text-left">
+                <p className="font-semibold text-sm">Войти в аккаунт</p>
+                <p className="text-xs opacity-70">
+                  Синхронизация с Telegram-версией
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        ))}
 
       {/* ================================================================ */}
       {/* CHANNEL LINK                                                     */}

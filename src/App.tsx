@@ -174,6 +174,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Nasheeds = lazy(() => import("./pages/Nasheeds"));
 const AudioLibrary = lazy(() => import("./pages/AudioLibrary"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
+const BrowserLogin = lazy(() => import("./pages/BrowserLogin"));
 const Dreams = lazy(() => import("./pages/Dreams"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Stats = lazy(() => import("./pages/Stats"));
@@ -315,6 +316,7 @@ const PAGES_WITH_OWN_BACK = new Set([
   "/prayer-flow",
   "/wallpapers",
   "/zikr",
+  "/login",
   "/search",
 ]);
 
@@ -419,6 +421,7 @@ function AppContent() {
             <Route path="/nasheeds" element={<Nasheeds />} />
             <Route path="/audio" element={<AudioLibrary />} />
             <Route path="/search" element={<SearchResults />} />
+            <Route path="/login" element={<BrowserLogin />} />
             <Route path="/dreams" element={<Dreams />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/stats" element={<Stats />} />
