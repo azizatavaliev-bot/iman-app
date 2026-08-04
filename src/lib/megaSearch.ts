@@ -29,6 +29,9 @@ export interface SearchResult {
   category: string;
   icon: string;
   path: string;
+  /** Координаты хадиса — чтобы догрузить ПОЛНЫЙ текст при раскрытии
+   * (в поисковом индексе лежит только фрагмент на 280 символов). */
+  hadithRef?: { c: string; b: number; n: number };
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -129,18 +132,18 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
 
   const q = query.toLowerCase().trim();
   const results: SearchResult[] = [];
+  /** Есть ли запрос хотя бы в одном из полей */
+  const hit = (...fields: (string | undefined)[]) =>
+    fields.some((f) => f && f.toLowerCase().includes(q));
 
   // 99 имён Аллаха
   for (const name of NAMES_OF_ALLAH) {
     if (results.length >= limit) break;
-    if (
-      name.russian.toLowerCase().includes(q) ||
-      name.transliteration.toLowerCase().includes(q) ||
-      name.meaning.toLowerCase().includes(q)
-    ) {
+    if (hit(name.russian, name.transliteration, name.meaning, name.arabic)) {
       results.push({
         title: `${name.russian} (${name.transliteration})`,
-        subtitle: name.meaning,
+        subtitle: `Имя Аллаха №${name.id} · ${name.arabic}`,
+        preview: `${name.arabic}\n\n${name.russian} — ${name.transliteration}\n\n${name.meaning}`,
         category: "99 имён",
         icon: "✨",
         path: `/names?id=${name.id}`,
@@ -151,14 +154,11 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
   // Дуа
   for (const dua of DUA_DATA) {
     if (results.length >= limit) break;
-    if (
-      dua.translation.toLowerCase().includes(q) ||
-      (dua.situation && dua.situation.toLowerCase().includes(q)) ||
-      dua.transcription.toLowerCase().includes(q)
-    ) {
+    if (hit(dua.translation, dua.situation, dua.transcription, dua.category)) {
       results.push({
-        title: dua.situation || dua.translation.slice(0, 50) + "...",
-        subtitle: dua.translation.slice(0, 80),
+        title: dua.situation || dua.translation.slice(0, 60),
+        subtitle: `Дуа · ${dua.source}`,
+        preview: `${dua.arabic}\n\n${dua.transcription}\n\n${dua.translation}\n\nИсточник: ${dua.source}`,
         category: "Дуа",
         icon: "🤲",
         path: `/dua?id=${dua.id}`,
@@ -169,13 +169,11 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
   // Зикры
   for (const dhikr of DHIKR_DATA) {
     if (results.length >= limit) break;
-    if (
-      dhikr.russian.toLowerCase().includes(q) ||
-      dhikr.transcription.toLowerCase().includes(q)
-    ) {
+    if (hit(dhikr.russian, dhikr.transcription, dhikr.reward, dhikr.category)) {
       results.push({
-        title: dhikr.russian.slice(0, 60),
-        subtitle: dhikr.transcription.slice(0, 60),
+        title: dhikr.russian,
+        subtitle: `Зикр · ${dhikr.count} раз · ${dhikr.source}`,
+        preview: `${dhikr.arabic}\n\n${dhikr.transcription}\n\n${dhikr.russian}\n\nПовторений: ${dhikr.count}\n\n${dhikr.reward}\n\nИсточник: ${dhikr.source}`,
         category: "Зикры",
         icon: "📿",
         path: "/dhikr",
@@ -183,16 +181,14 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
     }
   }
 
-  // Истории
+  // Истории — ищем и по полному тексту
   for (const story of STORIES) {
     if (results.length >= limit) break;
-    if (
-      story.title.toLowerCase().includes(q) ||
-      story.subtitle.toLowerCase().includes(q)
-    ) {
+    if (hit(story.title, story.subtitle, story.content)) {
       results.push({
         title: story.title,
-        subtitle: story.subtitle,
+        subtitle: `История · ${story.source}`,
+        preview: `${story.subtitle}\n\n${story.content}\n\nИсточник: ${story.source} (${story.reliability})`,
         category: "Истории",
         icon: story.icon,
         path: `/stories?id=${story.id}`,
@@ -200,17 +196,17 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
     }
   }
 
-  // Пророки
+  // Пророки — ищем и по полному жизнеописанию
   for (const prophet of PROPHETS) {
     if (results.length >= limit) break;
-    if (
-      prophet.name.toLowerCase().includes(q) ||
-      prophet.title.toLowerCase().includes(q) ||
-      prophet.summary.toLowerCase().includes(q)
-    ) {
+    if (hit(prophet.name, prophet.title, prophet.summary, prophet.content)) {
+      const lessons = (prophet.lessons || []).map((l) => `• ${l}`).join("\n");
       results.push({
-        title: prophet.name,
-        subtitle: prophet.summary.slice(0, 80),
+        title: `${prophet.name} — ${prophet.title}`,
+        subtitle: `Пророк · ${prophet.quranicRef}`,
+        preview: `${prophet.summary}\n\n${prophet.content}${
+          lessons ? `\n\nУроки:\n${lessons}` : ""
+        }\n\nВ Коране: ${prophet.quranicRef}`,
         category: "Пророки",
         icon: "📖",
         path: `/prophets?id=${prophet.id}`,
@@ -218,16 +214,17 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
     }
   }
 
-  // Сира
+  // Сира — ищем и по основному, и по расширенному тексту
   for (const chapter of SEERAH_CHAPTERS) {
     if (results.length >= limit) break;
-    if (
-      chapter.title.toLowerCase().includes(q) ||
-      chapter.summary.toLowerCase().includes(q)
-    ) {
+    if (hit(chapter.title, chapter.summary, chapter.content, chapter.extended)) {
+      const events = (chapter.keyEvents || []).map((e) => `• ${e}`).join("\n");
       results.push({
         title: chapter.title,
-        subtitle: chapter.summary.slice(0, 80),
+        subtitle: `Сира · ${chapter.year} · ${chapter.location}`,
+        preview: `${chapter.quote ? `«${chapter.quote}»\n\n` : ""}${chapter.summary}\n\n${chapter.content}\n\n${chapter.extended}${
+          events ? `\n\nКлючевые события:\n${events}` : ""
+        }`,
         category: "Сира",
         icon: "🌙",
         path: `/seerah?id=${chapter.id}`,
@@ -235,16 +232,18 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
     }
   }
 
-  // Намаз-гайд
+  // Намаз-гайд — ищем и по шагам
   for (const section of NAMAZ_GUIDE_SECTIONS) {
     if (results.length >= limit) break;
-    if (
-      section.title.toLowerCase().includes(q) ||
-      section.summary.toLowerCase().includes(q)
-    ) {
+    const steps = (section.steps || []) as { title?: string; text?: string }[];
+    const stepsText = steps
+      .map((st) => `• ${st.title ?? ""}${st.text ? `\n  ${st.text}` : ""}`)
+      .join("\n\n");
+    if (hit(section.title, section.summary, stepsText)) {
       results.push({
         title: section.title,
-        subtitle: section.summary,
+        subtitle: "Руководство по намазу",
+        preview: `${section.summary}\n\n${stepsText}`,
         category: "Намаз",
         icon: "🕌",
         path: "/namaz-guide",
@@ -252,16 +251,23 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
     }
   }
 
-  // Новичкам
+  // Новичкам — ищем и по шагам
   for (const section of BEGINNER_SECTIONS) {
     if (results.length >= limit) break;
-    if (
-      section.title.toLowerCase().includes(q) ||
-      section.summary.toLowerCase().includes(q)
-    ) {
+    const steps = (section.steps || []) as {
+      title?: string;
+      description?: string;
+    }[];
+    const stepsText = steps
+      .map(
+        (st) => `• ${st.title ?? ""}${st.description ? `\n  ${st.description}` : ""}`,
+      )
+      .join("\n\n");
+    if (hit(section.title, section.summary, stepsText)) {
       results.push({
         title: section.title,
-        subtitle: section.summary,
+        subtitle: `Новичкам · ${section.source}`,
+        preview: `${section.summary}\n\n${stepsText}\n\nИсточник: ${section.source}`,
         category: "Новичкам",
         icon: "🌟",
         path: "/beginners",
@@ -272,13 +278,11 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
   // Глоссарий
   for (const item of GLOSSARY) {
     if (results.length >= limit) break;
-    if (
-      item.term.toLowerCase().includes(q) ||
-      item.meaning.toLowerCase().includes(q)
-    ) {
+    if (hit(item.term, item.meaning)) {
       results.push({
         title: item.term,
-        subtitle: item.meaning.slice(0, 80),
+        subtitle: "Термин",
+        preview: `${item.term} — ${item.meaning}`,
         category: "Словарь",
         icon: "📚",
         path: "/guide",
@@ -289,13 +293,11 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
   // Функции приложения
   for (const feature of APP_FEATURES) {
     if (results.length >= limit) break;
-    if (
-      feature.name.toLowerCase().includes(q) ||
-      feature.description.toLowerCase().includes(q)
-    ) {
+    if (hit(feature.name, feature.description, feature.group)) {
       results.push({
         title: feature.name,
-        subtitle: feature.description,
+        subtitle: `Раздел приложения · ${feature.group}`,
+        preview: `${feature.name}\n\n${feature.description}`,
         category: "Функции",
         icon: feature.icon,
         path: feature.path,
@@ -324,6 +326,7 @@ export function searchHadithIndex(
         title: h.t.length > 90 ? h.t.slice(0, 90) + "…" : h.t,
         subtitle: `${HADITH_COLLECTION_LABEL[h.c] || h.c} · №${h.n}`,
         preview: h.t,
+        hadithRef: { c: h.c, b: h.b, n: h.n },
         category: "Хадисы",
         icon: "📜",
         path: `/hadiths?collection=${h.c}&book=${h.b}&h=${h.n}`,
@@ -404,4 +407,48 @@ export function searchFactsList(
     }
   }
   return results;
+}
+
+// ---------------------------------------------------------------------------
+// Полный текст хадиса по требованию — индекс хранит лишь фрагмент (280 симв.),
+// а книга целиком весит немного и кэшируется на сессию.
+// ---------------------------------------------------------------------------
+
+const hadithBookCache = new Map<string, Promise<Record<string, unknown>[]>>();
+
+export async function loadFullHadith(ref: {
+  c: string;
+  b: number;
+  n: number;
+}): Promise<string | null> {
+  const key = `${ref.c}/${ref.b}`;
+  if (!hadithBookCache.has(key)) {
+    hadithBookCache.set(
+      key,
+      fetch(`${import.meta.env.BASE_URL}data/hadiths/${key}.json`)
+        .then((r) => r.json())
+        .catch(() => []),
+    );
+  }
+  const book = await hadithBookCache.get(key)!;
+  // В книгах поля называются ru / ar / g (не t — так только в поисковом индексе)
+  const found = book.find((h) => (h as { n?: number }).n === ref.n) as
+    | { ru?: string; ar?: string; g?: string }
+    | undefined;
+  if (!found?.ru) return null;
+  const grade =
+    found.g === "sahih"
+      ? "достоверный /сахих/"
+      : found.g === "hasan"
+        ? "хороший /хасан/"
+        : found.g === "daif"
+          ? "слабый /даиф/"
+          : null;
+  return [
+    found.ar?.trim() || null,
+    found.ru,
+    grade ? `Степень: ${grade}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }

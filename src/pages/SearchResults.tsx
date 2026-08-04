@@ -16,6 +16,7 @@ import {
   searchQuranIndex,
   searchQAList,
   searchFactsList,
+  loadFullHadith,
 } from "../lib/megaSearch";
 import type { IslamicFact } from "../data/facts";
 
@@ -40,13 +41,22 @@ export default function SearchResults() {
 
   // Раскрытые «на месте» результаты — читаем превью без перехода на другую страницу
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const toggleExpanded = (key: string) => {
+  // Полные тексты хадисов, догруженные по требованию (индекс хранит фрагмент)
+  const [fullTexts, setFullTexts] = useState<Record<string, string>>({});
+
+  const toggleExpanded = (key: string, result?: SearchResult) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
+    // Раскрыли хадис — подтягиваем его целиком (один раз на хадис)
+    if (result?.hadithRef && !fullTexts[key]) {
+      loadFullHadith(result.hadithRef).then((text) => {
+        if (text) setFullTexts((prev) => ({ ...prev, [key]: text }));
+      });
+    }
   };
 
   useEffect(() => {
@@ -187,10 +197,11 @@ export default function SearchResults() {
                   const hasPreview = !!result.preview;
                   return (
                     <div key={key}>
+                      {/* Клик НИКОГДА не уводит со страницы — только раскрывает
+                          полный текст на месте. Переход в раздел остаётся
+                          необязательной ссылкой внизу раскрытого блока. */}
                       <button
-                        onClick={() =>
-                          hasPreview ? toggleExpanded(key) : navigate(result.path)
-                        }
+                        onClick={() => toggleExpanded(key, result)}
                         className="w-full py-3 flex items-start gap-3 text-left hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
                       >
                         <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex items-center justify-center text-sm shrink-0 mt-0.5">
@@ -200,31 +211,41 @@ export default function SearchResults() {
                           <p className="text-[11px] text-white/40 mb-0.5">
                             {result.subtitle}
                           </p>
-                          <p
-                            className={`text-sm text-white/85 leading-relaxed ${
-                              isOpen ? "" : "line-clamp-3"
-                            }`}
-                          >
-                            {isOpen && result.preview ? result.preview : result.title}
+                          <p className="text-sm font-medium text-white/90 leading-snug">
+                            {result.title}
                           </p>
+                          {!isOpen && hasPreview && (
+                            <p className="text-[13px] text-white/45 leading-relaxed line-clamp-2 mt-1">
+                              {result.preview}
+                            </p>
+                          )}
                         </div>
-                        {hasPreview && (
-                          <ChevronDown
-                            size={16}
-                            className={`text-white/25 shrink-0 mt-1 transition-transform ${
-                              isOpen ? "rotate-180" : ""
-                            }`}
-                          />
-                        )}
+                        <ChevronDown
+                          size={16}
+                          className={`text-white/25 shrink-0 mt-1 transition-transform ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
+                        />
                       </button>
                       {isOpen && (
-                        <button
-                          onClick={() => navigate(result.path)}
-                          className="w-full flex items-center gap-1.5 py-2.5 pl-11 text-[13px] text-emerald-400 hover:text-emerald-300 active:text-emerald-200 transition-colors"
-                        >
-                          <ExternalLink size={12} />
-                          Открыть полностью
-                        </button>
+                        <div className="pl-11 pr-1 pb-3 -mt-1">
+                          <p className="text-[14px] text-white/85 leading-relaxed whitespace-pre-line">
+                            {fullTexts[key] || result.preview || result.title}
+                          </p>
+                          {result.hadithRef && !fullTexts[key] && (
+                            <p className="text-[11px] text-white/30 mt-1.5 flex items-center gap-1.5">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Загружаю хадис целиком…
+                            </p>
+                          )}
+                          <button
+                            onClick={() => navigate(result.path)}
+                            className="flex items-center gap-1.5 mt-3 text-[13px] text-emerald-400/80 hover:text-emerald-300 active:text-emerald-200 transition-colors"
+                          >
+                            <ExternalLink size={12} />
+                            Перейти в раздел
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
