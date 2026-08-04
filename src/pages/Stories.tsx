@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronDown,
@@ -54,6 +55,22 @@ export default function Stories() {
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Переход из мега-поиска: /stories?id=N — раскрываем нужную историю
+  // и подкручиваем к ней, иначе пользователь попадал просто в общий список.
+  useEffect(() => {
+    const id = Number(searchParams.get("id"));
+    if (!id) return;
+    setExpandedId(id);
+    setActiveCategory(null); // снимаем фильтр, иначе история может быть скрыта
+    const t = setTimeout(() => {
+      document
+        .getElementById(`story-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchParams]);
 
   useEffect(() => {
     const stored = getReadStories();
@@ -160,6 +177,7 @@ export default function Stories() {
           return (
             <div
               key={story.id}
+              id={`story-${story.id}`}
               className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
                 isExpanded
                   ? "border-amber-500/20 bg-slate-800/60"

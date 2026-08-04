@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Search,
@@ -285,6 +285,21 @@ export default function DuaPage() {
     null,
   );
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Переход из мега-поиска: ?id=N — раскрываем нужный элемент и скроллим к нему
+  useEffect(() => {
+    const id = Number(searchParams.get("id"));
+    if (!id) return;
+    setExpandedId(id);
+    const t = setTimeout(() => {
+      document
+        .getElementById(`dua-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchParams]);
+
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [readToday, setReadToday] = useState<Set<number>>(new Set());
   const [showPointsPopup, setShowPointsPopup] = useState(false);
@@ -702,7 +717,8 @@ export default function DuaPage() {
             {filteredDuas.map((dua, index) => (
               <div
                 key={dua.id}
-                className="animate-fade-in"
+                id={`dua-${dua.id}`}
+                className="animate-fade-in scroll-mt-4"
                 style={{
                   animationDelay: `${0.04 + index * 0.03}s`,
                   opacity: 0,

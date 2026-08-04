@@ -143,7 +143,7 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
         subtitle: name.meaning,
         category: "99 имён",
         icon: "✨",
-        path: "/names",
+        path: `/names?id=${name.id}`,
       });
     }
   }
@@ -161,7 +161,7 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
         subtitle: dua.translation.slice(0, 80),
         category: "Дуа",
         icon: "🤲",
-        path: "/dua",
+        path: `/dua?id=${dua.id}`,
       });
     }
   }
@@ -195,7 +195,7 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
         subtitle: story.subtitle,
         category: "Истории",
         icon: story.icon,
-        path: "/stories",
+        path: `/stories?id=${story.id}`,
       });
     }
   }
@@ -213,7 +213,7 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
         subtitle: prophet.summary.slice(0, 80),
         category: "Пророки",
         icon: "📖",
-        path: "/prophets",
+        path: `/prophets?id=${prophet.id}`,
       });
     }
   }
@@ -230,7 +230,7 @@ export function searchInstant(query: string, limit = 14): SearchResult[] {
         subtitle: chapter.summary.slice(0, 80),
         category: "Сира",
         icon: "🌙",
-        path: "/seerah",
+        path: `/seerah?id=${chapter.id}`,
       });
     }
   }

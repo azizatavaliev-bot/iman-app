@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronDown,
@@ -32,6 +33,21 @@ function saveReadProphets(ids: number[]): void {
 export default function Prophets() {
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Переход из мега-поиска: ?id=N — раскрываем нужный элемент и скроллим к нему
+  useEffect(() => {
+    const id = Number(searchParams.get("id"));
+    if (!id) return;
+    setExpandedId(id);
+    const t = setTimeout(() => {
+      document
+        .getElementById(`prophet-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchParams]);
+
 
   useEffect(() => {
     const stored = getReadProphets();
@@ -96,13 +112,14 @@ export default function Prophets() {
       {/* Prophets List */}
       <div className="px-4 pt-4 space-y-3">
         {PROPHETS.map((prophet) => (
-          <ProphetCard
-            key={prophet.id}
-            prophet={prophet}
-            isRead={readIds.has(prophet.id)}
-            isExpanded={expandedId === prophet.id}
-            onToggle={() => handleToggle(prophet.id)}
-          />
+          <div key={prophet.id} id={`prophet-${prophet.id}`} className="scroll-mt-4">
+            <ProphetCard
+              prophet={prophet}
+              isRead={readIds.has(prophet.id)}
+              isExpanded={expandedId === prophet.id}
+              onToggle={() => handleToggle(prophet.id)}
+            />
+          </div>
         ))}
       </div>
     </div>

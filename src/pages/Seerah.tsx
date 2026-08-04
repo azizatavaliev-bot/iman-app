@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -44,6 +45,21 @@ function saveReadChapters(ids: number[]): void {
 export default function Seerah() {
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Переход из мега-поиска: ?id=N — раскрываем нужный элемент и скроллим к нему
+  useEffect(() => {
+    const id = Number(searchParams.get("id"));
+    if (!id) return;
+    setExpandedId(id);
+    const t = setTimeout(() => {
+      document
+        .getElementById(`chapter-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchParams]);
+
   const [extendedIds, setExtendedIds] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<ReadMode>(
     () => (localStorage.getItem(MODE_KEY) as ReadMode) || "scroll",

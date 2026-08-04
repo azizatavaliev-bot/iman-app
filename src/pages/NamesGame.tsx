@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Check,
   X,
@@ -717,6 +718,14 @@ function AllNamesTab({
   onUnmarkLearned: (id: number) => void;
 }) {
   const [selectedName, setSelectedName] = useState<number | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Переход из мега-поиска: /names?id=N — открываем карточку нужного имени
+  useEffect(() => {
+    const id = Number(searchParams.get("id"));
+    if (id >= 1 && id <= 99) setSelectedName(id);
+  }, [searchParams]);
+
   useModalDismiss(selectedName !== null, () => setSelectedName(null));
   const [searchQuery, setSearchQuery] = useState("");
 
