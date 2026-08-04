@@ -291,6 +291,13 @@ export default function DuaPage() {
   useEffect(() => {
     const id = Number(searchParams.get("id"));
     if (!id) return;
+    // Снимаем все фильтры: иначе найденное дуа может не попасть в
+    // filteredDuas (другая категория / вкладка «Избранное» / активный поиск),
+    // и раскрывать/скроллить будет нечего.
+    setActiveTab("categories");
+    setSelectedCategory(null);
+    setSelectedSituation(null);
+    setSearchQuery("");
     setExpandedId(id);
     const t = setTimeout(() => {
       document

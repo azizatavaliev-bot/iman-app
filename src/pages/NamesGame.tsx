@@ -73,7 +73,19 @@ const TIMER_SECONDS = 15;
 // ============================================================
 
 export default function NamesGame() {
-  const [activeTab, setActiveTab] = useState<Tab>("cards");
+  const [searchParams] = useSearchParams();
+  // Переход из мега-поиска: /names?id=N. Карточка имени живёт во вкладке
+  // «Все имена» — без переключения вкладки эффект бы просто не смонтировался.
+  const deepLinkId = (() => {
+    const n = Number(searchParams.get("id"));
+    return n >= 1 && n <= 99 ? n : null;
+  })();
+
+  const [activeTab, setActiveTab] = useState<Tab>(deepLinkId ? "all" : "cards");
+
+  useEffect(() => {
+    if (deepLinkId) setActiveTab("all");
+  }, [deepLinkId]);
   const [learned, setLearned] = useState<number[]>([]);
   const [quizHighScore, setQuizHighScore] = useState(0);
 
@@ -155,6 +167,7 @@ export default function NamesGame() {
         )}
         {activeTab === "all" && (
           <AllNamesTab
+            deepLinkId={deepLinkId}
             learned={learned}
             onMarkLearned={handleMarkLearned}
             onUnmarkLearned={handleUnmarkLearned}
@@ -709,22 +722,22 @@ function QuizTab({
 // ============================================================
 
 function AllNamesTab({
+  deepLinkId,
   learned,
   onMarkLearned,
   onUnmarkLearned,
 }: {
+  deepLinkId: number | null;
   learned: number[];
   onMarkLearned: (id: number) => void;
   onUnmarkLearned: (id: number) => void;
 }) {
-  const [selectedName, setSelectedName] = useState<number | null>(null);
-  const [searchParams] = useSearchParams();
+  const [selectedName, setSelectedName] = useState<number | null>(deepLinkId);
 
-  // Переход из мега-поиска: /names?id=N — открываем карточку нужного имени
+  // Параметр мог смениться, пока вкладка уже открыта
   useEffect(() => {
-    const id = Number(searchParams.get("id"));
-    if (id >= 1 && id <= 99) setSelectedName(id);
-  }, [searchParams]);
+    if (deepLinkId) setSelectedName(deepLinkId);
+  }, [deepLinkId]);
 
   useModalDismiss(selectedName !== null, () => setSelectedName(null));
   const [searchQuery, setSearchQuery] = useState("");

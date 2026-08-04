@@ -51,6 +51,9 @@ export default function Seerah() {
   useEffect(() => {
     const id = Number(searchParams.get("id"));
     if (!id) return;
+    // Якоря глав отрисованы только в режиме «лента»: если у пользователя
+    // сохранён режим «книга», переход из поиска иначе никуда не приведёт.
+    setMode("scroll");
     setExpandedId(id);
     const t = setTimeout(() => {
       document
