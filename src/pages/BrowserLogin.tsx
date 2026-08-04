@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn, Loader2, Lock, User } from "lucide-react";
 import { setBrowserSession } from "../lib/telegram";
+import { clearSyncedLocalData } from "../lib/sync";
 
 /**
  * Вход в браузере вне Telegram — к тем же данным, что и в Telegram-версии
@@ -38,6 +39,12 @@ export default function BrowserLogin() {
         );
         return;
       }
+      // Если до входа человек уже успел что-то сделать анонимно в этом же
+      // браузере (без логина синк не шёл вовсе — только локально), эти
+      // данные не принадлежат аккаунту, в который он сейчас входит. Не даём
+      // им подмешаться к реальному прогрессу через смарт-мёрдж по баллам —
+      // стираем анонимный локальный след ДО того, как заработает синхронизация.
+      clearSyncedLocalData();
       setBrowserSession({
         telegramId: data.telegramId,
         firstName: data.firstName,

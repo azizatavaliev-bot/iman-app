@@ -83,8 +83,9 @@ function stampLocalOwner(telegramId: number): void {
   }
 }
 
-/** Стереть все синкаемые ключи (данные чужого аккаунта на общем устройстве). */
-function clearSyncedLocalData(): void {
+/** Стереть все синкаемые ключи (данные чужого аккаунта на общем устройстве,
+ * либо анонимная активность до входа по логину+паролю — см. BrowserLogin.tsx). */
+export function clearSyncedLocalData(): void {
   const toRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
