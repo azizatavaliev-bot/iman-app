@@ -46,6 +46,24 @@ let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSyncAt = 0;
 let syncDone = false;
 
+// Метка времени ПОСЛЕДНЕГО РЕАЛЬНОГО изменения локальных данных — не путать
+// с "сейчас". Раньше gatherLocalData() штамповала Date.now() при КАЖДОМ
+// вызове, включая вызовы только для сравнения — из-за этого localUpdatedAt
+// в syncUserData() был всегда «прямо сейчас» и ветка «сервер новее»
+// становилась практически недостижимой (сервер почти никогда не
+// побеждал в мёрдже по времени). Теперь отметка ставится только в момент
+// реальной правки (scheduleSyncPush вызывается из storage.ts на каждую
+// запись), а сравнение читает именно её.
+const LAST_MODIFIED_KEY = "iman_local_modified_at";
+
+function stampLocalModified(): void {
+  try {
+    localStorage.setItem(LAST_MODIFIED_KEY, String(Date.now()));
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Check if initial sync has completed */
 export function isSyncDone(): boolean {
   return syncDone;
@@ -128,7 +146,11 @@ function gatherLocalData(): Record<string, unknown> {
       }
     }
   }
-  data._updated_at = Date.now();
+  // Читаем ПЕРСИСТЕНТНУЮ метку последнего изменения (см. stampLocalModified),
+  // а не текущее время — иначе сравнение времени в syncUserData() всегда
+  // считало бы локальные данные «только что изменёнными».
+  data._updated_at =
+    Number(localStorage.getItem(LAST_MODIFIED_KEY)) || Date.now();
   return data;
 }
 
@@ -290,6 +312,11 @@ export async function syncUserData(): Promise<void> {
  * Call this after any localStorage write.
  */
 export function scheduleSyncPush(): void {
+  // Штампуем momент реальной правки ВСЕГДА, а не только внутри Telegram —
+  // это дешёвая операция, и если позже (после логина) синк включится,
+  // метка уже будет достоверной.
+  stampLocalModified();
+
   if (!isTelegramWebApp()) return;
 
   if (syncTimer) clearTimeout(syncTimer);

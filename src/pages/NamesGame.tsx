@@ -13,6 +13,7 @@ import { NAMES_OF_ALLAH } from "../data/names";
 import { getNameStory, hasNameStory } from "../data/names-stories";
 import { storage, POINTS } from "../lib/storage";
 import { useModalDismiss } from "../hooks/useModalDismiss";
+import { toDateKey } from "../lib/dateKey";
 
 // ---- Types ----
 
@@ -67,6 +68,28 @@ function generateQuestion(excludeIndices: number[] = []): QuizQuestion {
 
 const QUIZ_LENGTH = 10;
 const TIMER_SECONDS = 15;
+// Викторину можно переигрывать без ограничений (это нормально для
+// повторения), но баллы за день ограничены — иначе бесконечный реплей
+// даёт бесконечные саваб-коины без реальной пользы для запоминания.
+// 3 полных прохождения в день — щедро для настоящего повторения.
+const DAILY_QUIZ_POINTS_CAP = QUIZ_LENGTH * POINTS.NAMES_QUIZ * 3;
+
+function quizPointsKey(): string {
+  return `iman_names_quiz_points_${toDateKey()}`;
+}
+
+/** Сколько баллов реально начислить сейчас, не превышая дневной лимит.
+ * Возвращает 0, если лимит уже исчерпан — но само прохождение викторины
+ * (счёт на экране) при этом не блокируется, просто без доп. саваба. */
+function claimQuizPoints(amount: number): number {
+  const key = quizPointsKey();
+  const earnedToday = Number(localStorage.getItem(key) || "0");
+  const allowed = Math.max(0, Math.min(amount, DAILY_QUIZ_POINTS_CAP - earnedToday));
+  if (allowed > 0) {
+    localStorage.setItem(key, String(earnedToday + allowed));
+  }
+  return allowed;
+}
 
 // ============================================================
 // Main Component
@@ -444,9 +467,12 @@ function QuizTab({
 
       if (correct) {
         const points = POINTS.NAMES_QUIZ;
+        // Счёт на экране растёт всегда — это честный результат прохождения.
+        // А вот в саваб-коины уходит не больше дневного лимита.
         setScore((s) => s + points);
         setStreak((s) => s + 1);
-        storage.addExtraPoints(points);
+        const awarded = claimQuizPoints(points);
+        if (awarded > 0) storage.addExtraPoints(awarded);
       } else {
         setShakeWrong(true);
         setStreak(0);

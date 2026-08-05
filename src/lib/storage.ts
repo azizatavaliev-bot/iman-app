@@ -386,12 +386,14 @@ class Storage {
     return updated;
   }
 
+  /** @deprecated Никогда не используй — баллы, добавленные так, молча
+   * исчезают при следующем recalculateTotalPoints() (он пересчитывает сумму
+   * с нуля и учитывает только profile.extraPoints, а не totalPoints напрямую).
+   * Оставлено алиасом на addExtraPoints, чтобы случайный вызов не стал
+   * незаметным баг-репортом «пропали баллы за викторину». Все существующие
+   * фичи уже используют addExtraPoints — вызывай его. */
   addPoints(amount: number): UserProfile {
-    const profile = this.getProfile();
-    profile.totalPoints += amount;
-    profile.level = getCurrentLevel(profile.totalPoints).name;
-    this.write(KEYS.PROFILE, profile);
-    return profile;
+    return this.addExtraPoints(amount);
   }
 
   /** Add points from non-recalculable sources (quiz, hadiths, dua reads, seerah, etc.)

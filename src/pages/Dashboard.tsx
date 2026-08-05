@@ -1136,6 +1136,24 @@ export default function Dashboard() {
     return entry.status === "ontime" || entry.status === "late";
   }, [nextPrayer, prayerLog]);
 
+  // Когда все сегодняшние намазы прошли, findNextPrayer() показывает
+  // ЗАВТРАШНИЙ Фаджр с многочасовым обратным отсчётом — это чисто
+  // информационная карточка. Кнопка «Я прочитал намаз» здесь НЕ должна
+  // быть кликабельна: она пишет в СЕГОДНЯШНИЙ лог (prayerTimes/todayKey
+  // относятся к текущему дню, не к завтрашнему), а блокировка по времени
+  // сравнивается с уже прошедшим сегодняшним Фаджром — то есть клик
+  // задним числом помечал бы пропущенный сегодняшний намаз как «поздний»,
+  // хотя человек думает, что подтверждает намаз, которого ещё не было.
+  const nextPrayerIsToday = useMemo(() => {
+    if (!nextPrayer) return false;
+    const now = new Date();
+    return (
+      nextPrayer.date.getFullYear() === now.getFullYear() &&
+      nextPrayer.date.getMonth() === now.getMonth() &&
+      nextPrayer.date.getDate() === now.getDate()
+    );
+  }, [nextPrayer]);
+
   // ---------- Mark prayer as done from dashboard ----------
   const markPrayerDone = useCallback(
     (prayerKey: PrayerKey) => {
@@ -1761,7 +1779,7 @@ export default function Dashboard() {
                 <Check size={18} strokeWidth={2.5} />
                 Прочитано
               </div>
-            ) : (
+            ) : nextPrayerIsToday ? (
               <button
                 onClick={() => markPrayerDone(nextPrayer.key)}
                 className="w-full py-3.5 rounded-2xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all duration-200 active:scale-[0.97] shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2"
@@ -1769,6 +1787,12 @@ export default function Dashboard() {
                 <Check size={18} strokeWidth={2.5} />
                 Я прочитал намаз
               </button>
+            ) : (
+              // Все сегодняшние намазы прошли — это уже завтрашний Фаджр,
+              // отмечать пока нечего (только когда он реально наступит).
+              <p className="text-center text-xs text-white/35 py-1">
+                Все сегодняшние намазы завершены
+              </p>
             )}
           </div>
         ) : (
