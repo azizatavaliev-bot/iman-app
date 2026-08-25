@@ -2809,8 +2809,11 @@ const BACKUP_TABLES = [
   "iman_streaks", "iman_favorite_hadiths", "iman_audit_log"
 ];
 
-const MONITOR_BOT_TOKEN = "8709556501:AAETTS6KAN532pPJ3LFaWPdKZ4Sj0T61NC8";
-const MONITOR_CHAT_ID = "526330944";
+// Токен этого бота был захардкожен здесь и утёк через публичный GitHub-репо
+// (боты сканируют GitHub на утечки Telegram-токенов) — учётку переименовали
+// в спам. Теперь ТОЛЬКО из env; старый токен нужно отозвать через BotFather.
+const MONITOR_BOT_TOKEN = process.env.MONITOR_BOT_TOKEN || "";
+const MONITOR_CHAT_ID = process.env.MONITOR_CHAT_ID || "526330944";
 
 /**
  * Send a file as Telegram document using multipart/form-data over https
@@ -2907,17 +2910,21 @@ async function createBackup() {
     global.LATEST_BACKUP = backup;
 
     // Send to Telegram as document
-    try {
-      const jsonStr = JSON.stringify(backup, null, 2);
-      const fileBuffer = Buffer.from(jsonStr, "utf-8");
-      const dateStr = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-      const fileName = `iman-backup-${dateStr}.json`;
-      const caption = `ImanApp Backup\n${new Date().toISOString()}\nUsers: ${userCount} | Subs: ${subscriberCount} | Tables: ${totalTables}`;
+    if (!MONITOR_BOT_TOKEN) {
+      console.warn("⚠️ MONITOR_BOT_TOKEN не задан — бэкап не отправлен в Telegram (только в памяти)");
+    } else {
+      try {
+        const jsonStr = JSON.stringify(backup, null, 2);
+        const fileBuffer = Buffer.from(jsonStr, "utf-8");
+        const dateStr = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        const fileName = `iman-backup-${dateStr}.json`;
+        const caption = `ImanApp Backup\n${new Date().toISOString()}\nUsers: ${userCount} | Subs: ${subscriberCount} | Tables: ${totalTables}`;
 
-      await sendTelegramDocument(MONITOR_BOT_TOKEN, MONITOR_CHAT_ID, fileName, fileBuffer, caption);
-      console.log("✅ Backup sent to Telegram monitor bot");
-    } catch (tgErr) {
-      console.error("⚠️ Failed to send backup to Telegram:", tgErr.message);
+        await sendTelegramDocument(MONITOR_BOT_TOKEN, MONITOR_CHAT_ID, fileName, fileBuffer, caption);
+        console.log("✅ Backup sent to Telegram monitor bot");
+      } catch (tgErr) {
+        console.error("⚠️ Failed to send backup to Telegram:", tgErr.message);
+      }
     }
 
     // Audit log
